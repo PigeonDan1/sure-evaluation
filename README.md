@@ -106,6 +106,28 @@ See [docs/installation.md](docs/installation.md) and [docs/environment.md](docs/
 
 ---
 
+## 📑 Pipeline Catalog
+
+SURE-EVAL exposes every metric as a declarative pipeline. The machine-readable catalog maps each supported `task + language + metric` to its selected nodes and required input roles:
+
+- [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) — one JSON object per line
+- [docs/pipeline_catalog.md](./docs/pipeline_catalog.md) — schema and usage notes
+
+Example entries:
+
+```jsonl
+{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.aispeech_norm.wenet_cer","nodes":["normalization/aispeech_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
+{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
+```
+
+Regenerate it after adding new routes:
+
+```bash
+python scripts/generate_pipeline_catalog.py
+```
+
+---
+
 ## 🐍 Python API
 
 ```python

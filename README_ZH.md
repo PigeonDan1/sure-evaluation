@@ -106,6 +106,28 @@ sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos
 
 ---
 
+## 📑 流水线路由目录
+
+SURE-EVAL 把每个指标都暴露为声明式流水线。`pipeline_catalog.jsonl` 将每个支持的 `任务 + 语言 + 指标` 映射到所选节点和必填输入角色：
+
+- [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) — 每行一个 JSON 对象
+- [docs/pipeline_catalog.md](./docs/pipeline_catalog.md) — schema 和使用说明
+
+示例条目：
+
+```jsonl
+{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.aispeech_norm.wenet_cer","nodes":["normalization/aispeech_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
+{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
+```
+
+添加新路由后可重新生成：
+
+```bash
+python scripts/generate_pipeline_catalog.py
+```
+
+---
+
 ## 🐍 Python API
 
 ```python
