@@ -208,7 +208,8 @@ def _describe_kwargs(
     if task == "kws":
         return {"metric": metric or "accuracy"}
     if task == "classification":
-        return {"task": original_task.upper() if original_task.lower() in {"ser", "gr"} else original_task}
+        # scripts/run.py already forwards the correct task alias for SER/GR.
+        return {}
     if task == "slu":
         return {"metric": metric or "accuracy"}
     if task == "sd":

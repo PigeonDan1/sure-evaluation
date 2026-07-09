@@ -65,38 +65,13 @@ cat /tmp/asr_eval/report.json | grep score
 
 每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 
+如需 metrics → pipelines → nodes 的机器可读对照表，查看 [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) 和 [docs/pipeline_catalog.md](./docs/pipeline_catalog.md)。
+
 在 CLI 中查看任意任务的路由：
 
 ```bash
 sure-eval metric describe <task> --help
 ```
-
----
-
-## 📝 流水线输入格式
-
-SURE-EVAL 使用显式的角色定位输入。
-
-**制表符分隔的 key-text 文件**（用于 ASR、S2TT、分类）：
-
-```text
-utt_001\t你好世界
-utt_002\t今天天气不错
-```
-
-**TTS 音频样本 JSONL**：
-
-```jsonl
-{"sample_id":"tts_001","prediction_audio":"out.wav","reference_text":"你好世界","reference_audio":"speaker.wav","language":"zh"}
-```
-
-**VC 音频样本 JSONL**：
-
-```jsonl
-{"sample_id":"vc_001","converted_audio":"converted.wav","reference_audio":"speaker.wav","reference_text":"你好世界","language":"zh"}
-```
-
-完整格式说明：[docs/pipeline_inputs.md](docs/pipeline_inputs.md)。
 
 ---
 

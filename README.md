@@ -65,38 +65,13 @@ Input files are tab-separated: `<key>\t<text>`.
 
 Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
 
+For a machine-readable catalog of every metric → pipeline → node mapping, see [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) and [docs/pipeline_catalog.md](./docs/pipeline_catalog.md).
+
 Click any task in the CLI for its route:
 
 ```bash
 sure-eval metric describe <task> --help
 ```
-
----
-
-## 📝 Pipeline Input Formats
-
-SURE-EVAL uses explicit, role-addressed inputs.
-
-**Key-text files** for ASR, S2TT, classification:
-
-```text
-utt_001\t你好世界
-utt_002\t今天天气不错
-```
-
-**Audio samples JSONL** for TTS:
-
-```jsonl
-{"sample_id":"tts_001","prediction_audio":"out.wav","reference_text":"你好世界","reference_audio":"speaker.wav","language":"zh"}
-```
-
-**Audio samples JSONL** for VC:
-
-```jsonl
-{"sample_id":"vc_001","converted_audio":"converted.wav","reference_audio":"speaker.wav","reference_text":"你好世界","language":"zh"}
-```
-
-Full schema details: [docs/pipeline_inputs.md](docs/pipeline_inputs.md).
 
 ---
 
