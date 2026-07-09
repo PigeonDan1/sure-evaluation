@@ -1,0 +1,13 @@
+id: scoring/sacrebleu
+group: s2tt-light
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+verify:
+  imports:
+    - sacrebleu
+  files: []
+

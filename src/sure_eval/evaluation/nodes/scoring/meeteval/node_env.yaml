@@ -1,0 +1,18 @@
+id: scoring/meeteval
+group: sd-sa-asr
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+tools:
+  - id: md-eval-22.pl
+    provider: manual
+    target: md-eval-22.pl
+    env: SURE_EVAL_MD_EVAL_PATH
+verify:
+  imports:
+    - meeteval
+  files: []
+

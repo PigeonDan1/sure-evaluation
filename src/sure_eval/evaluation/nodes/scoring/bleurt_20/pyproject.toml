@@ -1,0 +1,20 @@
+[project]
+name = "sure-eval-scoring-bleurt-20"
+version = "0.1.0"
+requires-python = ">=3.8,<3.11"
+dependencies = [
+    "bleurt",
+    "numpy>=1.24,<1.25",
+    "pandas>=2.0,<2.1",
+    "scipy>=1.10,<1.11",
+    "sentencepiece>=0.2",
+    "tensorflow==2.13.1",
+    "tensorflow-io-gcs-filesystem==0.34.0",
+    "tf-slim>=1.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+bleurt = { path = "checkpoints/bleurt_source/bleurt-src" }

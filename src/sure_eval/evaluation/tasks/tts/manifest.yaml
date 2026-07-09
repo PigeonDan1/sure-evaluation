@@ -1,0 +1,103 @@
+task: TTS
+language_sensitive: true
+canonical_entry: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
+implemented_metric_families:
+  - semantic_error_rate
+  - speaker_similarity
+  - mos
+default_metrics:
+  zh: tts_cer
+  en: tts_wer
+default_pipelines:
+  zh:
+    tts_cer: tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer
+  en:
+    tts_wer: tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer
+input_contracts:
+  audio_samples_jsonl:
+    purpose: tts_cli_audio_samples_batch_input
+    required_roles: [samples_jsonl]
+    optional_roles: [cache_dir, device]
+    row_format: audio_samples_jsonl
+    alignment_key: sample_id
+    aggregation: per_sample_then_metric_aggregation
+    main_report: false
+  semantic/asr_error_rate:
+    purpose: tts_intelligibility_via_asr_transcript
+    required_roles: [prediction_audio, reference_text]
+    optional_roles: [reference_audio]
+    row_format: audio_with_inline_text
+    alignment_key: sample_id
+    aggregation: corpus_edit_distance
+    main_report: true
+  scoring/wavlm_large_sim:
+    purpose: tts_speaker_similarity
+    required_roles: [prediction_audio, reference_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/ecapa_tdnn_sim:
+    purpose: tts_speaker_similarity
+    required_roles: [prediction_audio, reference_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/eres2net_sim:
+    purpose: tts_speaker_similarity
+    required_roles: [prediction_audio, reference_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/dnsmos:
+    purpose: tts_audio_quality
+    required_roles: [prediction_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/wv_mos:
+    purpose: tts_audio_quality
+    required_roles: [prediction_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/utmos:
+    purpose: tts_audio_quality
+    required_roles: [prediction_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+pipeline_nodes:
+  zh:
+    frontend: frontend/funasr_loader_16k_mono
+    transcription: transcription/paraformer_zh
+    downstream_task: ASR
+    downstream_metric: cer
+  en:
+    transcription: transcription/whisper_large_v3
+    normalization: normalization/whisper_norm
+    downstream_task: ASR
+    downstream_metric: wer
+  speaker_similarity:
+    wavlm-large: scoring/wavlm_large_sim
+    ecapa-tdnn: scoring/ecapa_tdnn_sim
+    eres2net: scoring/eres2net_sim
+  mos:
+    dnsmos: scoring/dnsmos
+    wv-mos: scoring/wv_mos
+    utmos: scoring/utmos
+legacy_reference:
+  pipeline: sure_eval.evaluation.tasks.tts.compat.TTSMetricPipeline
+notes:
+  - Semantic WER/CER must transcribe audio first, then call the canonical ASR task route.
+  - English semantic WER uses OpenAI Whisper English normalization before WeNet WER.
+  - WeTextProcessing profiles are available only through explicit semantic_normalizer arguments and do not change default TTS routes.
+  - Mandarin CER keeps CV3-compatible Paraformer execution by passing the original audio path to FunASR AutoModel.generate; frontend/funasr_loader_16k_mono records the internal loader contract.
+  - Speaker similarity and MOS use concrete backend scoring nodes with provider-backed model execution.
+  - The report-level sim value is an aggregate over selected named speaker backends, not a standalone scoring node.
+  - metrics=None defaults to the language-matched semantic metric; speaker/MOS metrics are selected explicitly.

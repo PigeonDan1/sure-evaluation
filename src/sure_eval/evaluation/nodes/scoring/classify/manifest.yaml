@@ -1,0 +1,19 @@
+id: scoring/classify
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: key_label_files_plus_label_spec
+output_schema: accuracy_report
+implementation: sure_eval.evaluation.nodes.scoring.classify.node
+metrics:
+  - accuracy
+supports:
+  - arbitrary_label_ids
+  - aliases
+  - numeric_ids
+  - dataset_label_spec
+input_contract:
+  required_roles: [hyp, ref, label_spec]
+  row_format: key_label
+  alignment_key: key
+  aggregation: accuracy

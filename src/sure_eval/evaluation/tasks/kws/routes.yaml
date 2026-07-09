@@ -1,0 +1,27 @@
+task: KWS
+language_sensitive: false
+routes:
+  - route_id: kws.sure_json.accuracy.wekws_det
+    input_mode: sure_json
+    metric: accuracy
+    pipeline_id: kws.sure_json.accuracy.wekws_det
+    nodes:
+      - scoring/wekws_det
+    input_contract: sure_json
+    executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files
+  - route_id: kws.wekws_score_ctc.accuracy.wekws_det
+    input_mode: wekws_score_ctc
+    metric: accuracy
+    pipeline_id: kws.wekws_score_ctc.accuracy.wekws_det
+    nodes:
+      - scoring/wekws_det
+    input_contract: wekws_score_ctc
+    executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files
+  - route_id: kws.wekws_frame_score.accuracy.wekws_det
+    input_mode: wekws_frame_score
+    metric: accuracy
+    pipeline_id: kws.wekws_frame_score.accuracy.wekws_det
+    nodes:
+      - scoring/wekws_det
+    input_contract: wekws_frame_score
+    executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files

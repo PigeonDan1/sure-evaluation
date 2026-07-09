@@ -1,0 +1,21 @@
+id: scoring/xcomet_xl
+version: v1
+stage: scoring
+language_sensitive: true
+input_schema: key_text_src_hyp_ref
+output_schema: segment_mean_result
+implementation: sure_eval.evaluation.nodes.scoring.xcomet_xl.node
+model: Unbabel/XCOMET-XL
+metric: xcomet_xl
+aggregation: segment_mean
+required_roles:
+  - src
+  - hyp
+  - ref
+internal_stages:
+  - aligned_input_loading
+  - xcomet_xl_inference
+  - segment_mean
+notes:
+  - Uses source, hypothesis, and reference text.
+  - Returns segment scores and their arithmetic mean.

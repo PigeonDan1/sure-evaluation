@@ -1,0 +1,2 @@
+"""Audio frontend contract nodes."""
+

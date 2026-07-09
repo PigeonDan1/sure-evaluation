@@ -1,0 +1,19 @@
+id: scoring/wv_mos
+group: tts-vc-mos
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: wv-mos/wav2vec2
+    provider: manual
+    target: checkpoints/wv-mos/wav2vec2.ckpt
+    env: WV_MOS_CHECKPOINT
+verify:
+  imports:
+    - torch
+    - transformers
+  files:
+    - checkpoints/wv-mos/wav2vec2.ckpt

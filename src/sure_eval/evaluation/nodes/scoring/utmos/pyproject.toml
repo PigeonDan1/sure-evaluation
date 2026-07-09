@@ -1,0 +1,27 @@
+[project]
+name = "sure-eval-scoring-utmos"
+version = "0.1.0"
+requires-python = ">=3.8,<3.9"
+dependencies = [
+    "cython==0.29.28",
+    "fairseq==0.12.2",
+    "hydra-core==1.0.7",
+    "librosa>=0.9.0",
+    "numpy==1.24.4",
+    "omegaconf==2.0.6",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pytorch-lightning==1.5.10",
+    "pytest>=8.0.0",
+    "pyyaml>=6.0.0",
+    "rich>=13.0.0",
+    "scipy==1.10.1",
+    "six==1.16.0",
+    "soundfile>=0.12.0",
+    "structlog>=23.0.0",
+    "torch==1.13.1",
+    "torchaudio==0.13.1",
+]
+
+[tool.uv]
+package = false

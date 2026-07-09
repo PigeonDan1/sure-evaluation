@@ -1,0 +1,44 @@
+id: normalization/wetext_norm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: text_or_key_text_files
+output_schema: text_or_key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.wetext_norm.node
+runtime: node_local_optional
+package:
+  name: WeTextProcessing
+  version: "1.2.0"
+  dependencies:
+    - pynini>=2.1.6,<2.2
+    - importlib_resources
+profiles:
+  zh_tn:
+    language: zh
+    direction: tn
+    normalizer_class: tn.chinese.normalizer.Normalizer
+  zh_itn:
+    language: zh
+    direction: itn
+    normalizer_class: itn.chinese.inverse_normalizer.InverseNormalizer
+  en_tn:
+    language: en
+    direction: tn
+    normalizer_class: tn.english.normalizer.Normalizer
+  en_itn:
+    language: en
+    direction: itn
+    normalizer_class: itn.english.inverse_normalizer.InverseNormalizer
+  ja_tn:
+    language: ja
+    direction: tn
+    normalizer_class: tn.japanese.normalizer.Normalizer
+  ja_itn:
+    language: ja
+    direction: itn
+    normalizer_class: itn.japanese.inverse_normalizer.InverseNormalizer
+default_for: []
+notes:
+  - Optional tool node only; this node does not replace ASR/TTS/VC default routes.
+  - WeTextProcessing is node-local because pynini is a heavy runtime dependency.
+  - Use temporary cache directories for demos/tests to avoid writing FST cache files into the source tree.

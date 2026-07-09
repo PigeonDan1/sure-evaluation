@@ -1,0 +1,19 @@
+id: scoring/wenet_wer
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: normalized_key_text_files
+output_schema: edit_distance_counts
+implementation: sure_eval.evaluation.nodes.scoring.wenet_wer.node
+reference_compatibility:
+  scorer: sure_eval.evaluation.nodes.scoring.wenet_wer.wenet_compute_cer.compute_wer
+internal_stages:
+  - tokenization
+  - case_normalization
+  - edit_distance
+aliases:
+  - scoring/wenet_cer
+  - scoring/wenet_mer
+notes:
+  - The wrapped WeNet script is a composite scoring backend. It handles tokenization and case normalization before edit-distance scoring.
+  - The wrapper does not modify wenet_compute_cer.py.

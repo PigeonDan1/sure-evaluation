@@ -1,0 +1,60 @@
+name: Core
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.10"
+          - "3.11"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: CLI smoke
+        run: |
+          sure-eval --help
+          sure-eval doctor --json
+          sure-eval metric describe asr --language zh --metric cer --json
+          sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run --json
+          sure-eval env download --node scoring/dnsmos --dry-run --json
+      - name: Tests
+        run: |
+          pytest tests/test_evaluation_cli.py \
+                 tests/test_evaluation_env_check.py \
+                 tests/test_rps_manager.py \
+                 tests/test_whisper_normalization_node.py \
+                 tests/test_sctk_sclite_scoring_node.py -q
+
+  build:
+    name: Package build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build wheel and sdist
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel --sdist
+      - name: Install wheel smoke
+        run: |
+          python -m venv /tmp/sure-eval-wheel
+          /tmp/sure-eval-wheel/bin/python -m pip install dist/*.whl
+          /tmp/sure-eval-wheel/bin/sure-eval metric describe asr --language zh --metric cer --json

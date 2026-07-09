@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sure-evaluation"
+version = "0.1.0"
+description = "Standalone SURE evaluation package"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "SURE Team", email = "sure@example.com"}
+]
+
+dependencies = [
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "typing-extensions>=4.8.0",
+    "httpx>=0.25.0",
+    "requests>=2.31.0",
+    "aiohttp>=3.9.0",
+    "sacrebleu>=2.3.0",
+    "editdistance>=0.6.2",
+    "jiwer>=3.0.0",
+    "regex>=2024.0.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "tqdm>=4.66.0",
+    "PyYAML>=6.0.0",
+    "rich>=13.0.0",
+    "structlog>=23.0.0",
+    "typer>=0.16.0,<1.0.0",
+    "tinydb>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+wetext = [
+    "WeTextProcessing==1.2.0",
+]
+diarization = [
+    "meeteval>=0.2.0",
+]
+audio = [
+    "soundfile>=0.12.0",
+    "librosa>=0.10.0",
+]
+download = [
+    "huggingface-hub>=0.20.0",
+    "modelscope>=1.10.0",
+]
+datasets = [
+    "datasets>=2.14.0",
+]
+
+[project.scripts]
+sure-eval = "sure_eval.cli:app"
+sure-evaluation = "sure_eval.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = [
+    "sure_eval.evaluation.nodes.*.*.checkpoints*",
+    "sure_eval.evaluation.nodes.*.*.checkpoints.*",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+sure_eval = [
+    "evaluation/tasks/*/*.yaml",
+    "evaluation/tasks/*/*.yml",
+    "evaluation/tasks/*/*.md",
+    "evaluation/nodes/*/*/manifest.yaml",
+    "evaluation/nodes/*/*/node_env.yaml",
+    "evaluation/nodes/*/*/README.md",
+    "evaluation/nodes/scoring/sctk_sclite/*.sh",
+    "evaluation/conversion/*/manifest.yaml",
+    "evaluation/conversion/*/*.md",
+    "reports/sota/*.yaml",
+]
+
+[tool.setuptools.exclude-package-data]
+sure_eval = [
+    "evaluation/nodes/**/checkpoints/**",
+    "evaluation/nodes/**/.venv/**",
+    "evaluation/nodes/**/*.ckpt",
+    "evaluation/nodes/**/*.pt",
+    "evaluation/nodes/**/*.pth",
+    "evaluation/nodes/**/*.onnx",
+    "evaluation/nodes/**/*.safetensors",
+    "evaluation/nodes/**/*.bin",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

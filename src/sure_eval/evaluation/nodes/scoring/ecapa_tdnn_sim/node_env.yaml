@@ -1,0 +1,19 @@
+id: scoring/ecapa_tdnn_sim
+group: tts-vc-speaker
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: speechbrain/spkrec-ecapa-voxceleb
+    provider: huggingface
+    target: checkpoints/huggingface/hub/models--speechbrain--spkrec-ecapa-voxceleb/snapshots/0f99f2d0ebe89ac095bcc5903c4dd8f72b367286/embedding_model.ckpt
+    env: ECAPA_TDNN_SIM_CHECKPOINT
+verify:
+  imports:
+    - speechbrain
+    - torch
+  files:
+    - checkpoints/huggingface/hub/models--speechbrain--spkrec-ecapa-voxceleb/snapshots/0f99f2d0ebe89ac095bcc5903c4dd8f72b367286/embedding_model.ckpt

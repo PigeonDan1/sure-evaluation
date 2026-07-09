@@ -1,0 +1,19 @@
+id: scoring/wavlm_large_sim
+group: tts-vc-speaker
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: microsoft/wavlm-large
+    provider: huggingface
+    target: checkpoints/huggingface/hub/models--microsoft--wavlm-large/snapshots/c1423ed94bb01d80a3f5ce5bc39f6026a0f4828c/pytorch_model.bin
+    env: WAVLM_LARGE_SIM_CHECKPOINT
+verify:
+  imports:
+    - torch
+    - transformers
+  files:
+    - checkpoints/huggingface/hub/models--microsoft--wavlm-large/snapshots/c1423ed94bb01d80a3f5ce5bc39f6026a0f4828c/pytorch_model.bin

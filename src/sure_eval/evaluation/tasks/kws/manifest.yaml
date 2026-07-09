@@ -1,0 +1,36 @@
+id: task/kws
+version: v1
+task: KWS
+default_metric: accuracy
+routes:
+  accuracy:
+    pipeline_id: kws.default.accuracy.wekws_det
+    scoring: scoring/wekws_det
+input_contracts:
+  sure_json:
+    required_roles:
+      - reference_jsonl
+      - sample_output
+  wekws_score_ctc:
+    required_roles:
+      - wekws_label_file
+      - wekws_score_file
+      - keyword
+  wekws_frame_score:
+    required_roles:
+      - wekws_label_file
+      - wekws_frame_score_file
+      - keyword
+metrics:
+  - accuracy
+  - precision
+  - recall
+  - f1
+  - false_reject_rate
+  - false_alarm_rate
+  - false_alarm_per_hour
+  - det_curve
+compatibility:
+  legacy_entry:
+    - sure_eval.evaluation.tasks.kws.KWSMetricPipeline
+    - scripts/run_kws_metric_pipeline.py

@@ -1,0 +1,19 @@
+id: scoring/wavlm_large_sim
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: speaker_audio_pairs
+output_schema: provider_normalized_similarity
+implementation: sure_eval.evaluation.nodes.scoring.wavlm_large_sim.node
+metric: sim/wavlm-large
+backend: wavlm-large
+model: microsoft/wavlm-large
+internal_stages:
+  - embedding_or_score_provider
+  - score_normalization
+  - mean_aggregation
+used_by:
+  - TTS speaker similarity
+  - VC speaker similarity
+notes:
+  - Heavy WavLM loading stays inside the injected provider.

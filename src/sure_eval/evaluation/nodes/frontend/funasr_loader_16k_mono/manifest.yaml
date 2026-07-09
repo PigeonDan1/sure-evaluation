@@ -1,0 +1,21 @@
+id: frontend/funasr_loader_16k_mono
+version: v1
+stage: frontend
+language_sensitive: true
+languages: [zh, cmn, yue]
+input_schema: audio_path
+output_schema: original_audio_path_for_funasr
+implementation: sure_eval.evaluation.nodes.frontend.funasr_loader_16k_mono.node
+runtime: in_process
+internal_stages:
+  - audio_decode
+  - channel_mean
+  - resample_if_needed
+used_by:
+  - TTS semantic CER before transcription/paraformer_zh
+  - VC semantic CER before transcription/paraformer_zh
+notes:
+  - This node is a pipeline-visible contract for the FunASR internal loader.
+  - It does not materialize a normalized wav or change the audio path passed to Paraformer.
+  - Mandarin evaluation remains CV3-compatible by calling FunASR AutoModel.generate with the original path.
+

@@ -1,0 +1,19 @@
+id: normalization/prompt_norm
+version: v1
+stage: normalization
+language_sensitive: false
+input_schema: key_text_files_plus_prompt_jsonl
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.prompt_norm.node
+supports:
+  - structured_choices_list
+  - structured_choices_map
+  - legacy_prompt_choice_lines
+  - arbitrary_choice_ids
+  - variable_choice_count
+profiles:
+  choice_id:
+    output: canonical_choice_id
+  choice_text:
+    output: canonical_choice_text
+    compatibility: SUREEvaluator._process_slu_prediction_file

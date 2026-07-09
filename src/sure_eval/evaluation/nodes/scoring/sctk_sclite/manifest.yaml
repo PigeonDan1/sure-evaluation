@@ -1,0 +1,38 @@
+id: scoring/sctk_sclite
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: normalized_key_text_files
+intermediate_schema: trn
+output_schema: sctk_sclite_metric_report
+implementation: sure_eval.evaluation.nodes.scoring.sctk_sclite.node
+reference_compatibility:
+  toolkit: NIST SCTK
+  scorer: sclite
+  repository: https://github.com/usnistgov/SCTK
+  pinned_commit: 9688a26882a688132a5e414cadcb4c19b6fffaba
+metrics:
+  - wer
+  - cer
+runtime:
+  dependency_type: external_binary
+  python_dependency: false
+  binary_resolution_order:
+    - explicit function argument
+    - SURE_EVAL_SCLITE_BIN
+    - PATH
+    - SURE_EVAL_SCTK_ROOT/<pinned_commit>/bin/sclite
+    - SURE_EVAL_CACHE_DIR/tools/sctk/<pinned_commit>/bin/sclite
+    - node-local .local/sctk/<pinned_commit>/bin/sclite
+  build_script: src/sure_eval/evaluation/nodes/scoring/sctk_sclite/build_sctk.sh
+internal_stages:
+  - key_text_parse
+  - trn_materialize
+  - sclite
+  - sclite_report_parse
+notes:
+  - This node is optional and is never selected by default ASR routes.
+  - The main Python environment only calls an existing sclite binary; it does not install SCTK.
+  - Input key sets must match exactly before TRN materialization.
+  - Normalization remains upstream in aispeech_norm, whisper_norm, or wetext_norm.
+  - The first implementation supports key-text to TRN scoring; STM/CTM timed scoring is a later extension.

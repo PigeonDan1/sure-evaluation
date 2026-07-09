@@ -1,0 +1,19 @@
+id: transcription/whisper_large_v3
+group: asr-transcription
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: openai/whisper-large-v3
+    provider: huggingface
+    target: checkpoints/huggingface/hub/models--openai--whisper-large-v3/snapshots/06f233fe06e710322aca913c1bc4249a0d71fce1/model.safetensors
+    env: WHISPER_LARGE_V3_CHECKPOINT
+verify:
+  imports:
+    - transformers
+    - torch
+  files:
+    - checkpoints/huggingface/hub/models--openai--whisper-large-v3/snapshots/06f233fe06e710322aca913c1bc4249a0d71fce1/model.safetensors

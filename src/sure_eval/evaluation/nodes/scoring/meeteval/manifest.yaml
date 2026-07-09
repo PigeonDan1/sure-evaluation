@@ -1,0 +1,37 @@
+id: scoring/meeteval
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: meeteval_annotation_files
+output_schema: meeteval_metric_report
+implementation: sure_eval.evaluation.nodes.scoring.meeteval.node
+reference_compatibility:
+  legacy_entry: sure_eval.evaluation.sure_evaluator.SUREEvaluator
+  methods:
+    - SUREEvaluator._eval_sd
+    - SUREEvaluator._eval_sa_asr
+backend:
+  library: meeteval
+  loader: meeteval.io.load
+supported_input_formats:
+  - STM
+  - CTM
+  - SegLST
+  - RTTM for DER
+metrics:
+  - der
+  - cpwer
+hyperparameters:
+  collar:
+    type: float
+    applies_to:
+      - der
+      - time-constrained WER variants
+internal_stages:
+  - meeteval_load
+  - metric_scoring
+  - result_aggregation
+notes:
+  - This node delegates annotation parsing to MeetEval and does not force STM-only input.
+  - Route-level params such as collar are recorded in the pipeline trace and report details.
+  - Keep md-eval-22.pl in this node or its .cache directory for offline DER scoring.

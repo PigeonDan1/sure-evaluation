@@ -1,0 +1,27 @@
+id: scoring/sacrebleu
+version: v1
+stage: scoring
+language_sensitive: true
+input_schema: key_text_files
+output_schema: bleu_chrf_result
+implementation: sure_eval.evaluation.nodes.scoring.sacrebleu.node
+reference_compatibility:
+  legacy_entry: SUREEvaluator._eval_s2tt
+  libraries:
+    - sacrebleu.metrics.BLEU
+    - sacrebleu.metrics.CHRF
+tokenizer_by_language:
+  zh: zh
+  en: 13a
+  default: none
+metrics:
+  - bleu
+  - bleu_char
+  - chrf
+internal_stages:
+  - tokenizer_selection
+  - corpus_bleu
+  - corpus_chrf2
+notes:
+  - Tokenizer selection is part of the SacreBLEU scoring backend, not a normalization node.
+  - Returns legacy-compatible fields: bleu, bleu_char, chrf, score.

@@ -1,0 +1,28 @@
+id: scoring/wekws_det
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: kws_samples
+output_schema: kws_metric_report
+implementation: sure_eval.evaluation.nodes.scoring.wekws_det.node
+reference_compatibility:
+  task_entry: sure_eval.evaluation.tasks.kws.KWSMetricPipeline
+  primary_reference: wenet-e2e/wekws
+metrics:
+  - accuracy
+  - precision
+  - recall
+  - f1
+  - false_reject_rate
+  - false_alarm_rate
+  - false_alarm_per_hour
+  - det_curve
+internal_stages:
+  - keyword_normalization
+  - threshold_decision
+  - det_curve
+  - operating_point_summary
+notes:
+  - Positive samples below threshold or with wrong keyword count as false rejects.
+  - Negative samples above threshold count as false alarms.
+  - False alarm per hour uses negative audio duration when available.

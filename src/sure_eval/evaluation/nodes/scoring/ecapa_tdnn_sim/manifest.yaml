@@ -1,0 +1,19 @@
+id: scoring/ecapa_tdnn_sim
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: speaker_audio_pairs
+output_schema: provider_normalized_similarity
+implementation: sure_eval.evaluation.nodes.scoring.ecapa_tdnn_sim.node
+metric: sim/ecapa-tdnn
+backend: ecapa-tdnn
+model: speechbrain/spkrec-ecapa-voxceleb
+internal_stages:
+  - embedding_or_score_provider
+  - score_normalization
+  - mean_aggregation
+used_by:
+  - TTS speaker similarity
+  - VC speaker similarity
+notes:
+  - Heavy ECAPA-TDNN loading stays inside the injected provider.

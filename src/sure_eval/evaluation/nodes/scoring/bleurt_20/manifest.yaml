@@ -1,0 +1,21 @@
+id: scoring/bleurt_20
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: key_text_hyp_ref
+output_schema: segment_mean_result
+implementation: sure_eval.evaluation.nodes.scoring.bleurt_20.node
+model: BLEURT-20
+metric: bleurt_20
+aggregation: segment_mean
+required_roles:
+  - hyp
+  - ref
+internal_stages:
+  - aligned_input_loading
+  - bleurt_20_inference
+  - segment_mean
+notes:
+  - Uses hypothesis and reference text.
+  - BLEURT_20_CHECKPOINT must point to the local BLEURT-20 checkpoint.
+  - Returns segment scores and their arithmetic mean.

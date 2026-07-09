@@ -1,0 +1,27 @@
+task: CLASSIFICATION
+language_sensitive: false
+routes:
+  - route_id: classification.accuracy.classify
+    task_alias: classification
+    metric: accuracy
+    pipeline_id: classification.accuracy.classify
+    nodes:
+      - scoring/classify
+    input_contract: scoring/classify
+    executor: sure_eval.evaluation.tasks.classification.pipeline.evaluate_classification_files
+  - route_id: ser.accuracy.classify
+    task_alias: SER
+    metric: accuracy
+    pipeline_id: ser.accuracy.classify
+    nodes:
+      - scoring/classify
+    input_contract: scoring/classify
+    executor: sure_eval.evaluation.tasks.classification.pipeline.evaluate_classification_files
+  - route_id: gr.accuracy.classify
+    task_alias: GR
+    metric: accuracy
+    pipeline_id: gr.accuracy.classify
+    nodes:
+      - scoring/classify
+    input_contract: scoring/classify
+    executor: sure_eval.evaluation.tasks.classification.pipeline.evaluate_classification_files

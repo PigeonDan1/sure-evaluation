@@ -1,0 +1,52 @@
+data:
+  root: ./data
+  cache: ./data/cache
+  models: ./data/models
+  datasets: ./data/datasets
+  results: ./results
+models:
+  providers:
+    - huggingface
+    - modelscope
+  cache_dir: ./data/models
+  download:
+    max_retries: 3
+    timeout: 300
+    resume: true
+datasets:
+  sources:
+    - modelscope
+    - huggingface
+  definitions: {}
+evaluation:
+  default_metrics:
+    ASR: cer
+    S2TT: bleu
+    SD: der
+    SA-ASR: cpwer
+    TTS: tts_cer
+    VC: vc_cer
+    KWS: accuracy
+    CLASSIFICATION: accuracy
+    SLU: accuracy
+  metric_settings: {}
+  batch: {}
+tools:
+  mcp: {}
+  default_tools: {}
+  local: {}
+rps:
+  baselines: {}
+agent:
+  auto_eval: {}
+  decision: {}
+logging:
+  level: INFO
+  format: structured
+  file: ./logs/sure-eval.log
+  rotation: 1 day
+  retention: 30 days
+api:
+  tool_api: {}
+  model_api: {}
+

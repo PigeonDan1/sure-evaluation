@@ -1,0 +1,118 @@
+task: VC
+language_sensitive: true
+canonical_entry: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
+implemented_metric_families:
+  - semantic_error_rate
+  - speaker_similarity
+  - mos
+default_metrics:
+  zh: vc_cer
+  en: vc_wer
+default_pipelines:
+  zh:
+    vc_cer: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer
+  en:
+    vc_wer: vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer
+input_contracts:
+  audio_samples_jsonl:
+    purpose: vc_cli_audio_samples_batch_input
+    required_roles: [samples_jsonl]
+    optional_roles: [cache_dir, device]
+    row_format: audio_samples_jsonl
+    alignment_key: sample_id
+    aggregation: per_sample_then_metric_aggregation
+    main_report: false
+  semantic/asr_error_rate_with_text:
+    purpose: vc_content_preservation_via_asr_transcript
+    required_roles: [converted_audio, reference_text]
+    optional_roles: [reference_audio, source_audio]
+    row_format: audio_with_inline_text
+    alignment_key: sample_id
+    aggregation: corpus_edit_distance
+    main_report: true
+  semantic/asr_error_rate_with_audio_reference:
+    purpose: vc_content_preservation_via_paired_asr_transcripts
+    required_roles: [converted_audio, reference_audio]
+    optional_roles: [source_audio]
+    row_format: paired_audio_transcripts
+    alignment_key: sample_id
+    aggregation: corpus_edit_distance
+    main_report: true
+  scoring/wavlm_large_sim:
+    purpose: vc_speaker_similarity
+    required_roles: [converted_audio, reference_audio]
+    optional_roles: [source_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/ecapa_tdnn_sim:
+    purpose: vc_speaker_similarity
+    required_roles: [converted_audio, reference_audio]
+    optional_roles: [source_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/eres2net_sim:
+    purpose: vc_speaker_similarity
+    required_roles: [converted_audio, reference_audio]
+    optional_roles: [source_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/dnsmos:
+    purpose: vc_audio_quality
+    required_roles: [converted_audio]
+    optional_roles: [source_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/wv_mos:
+    purpose: vc_audio_quality
+    required_roles: [converted_audio]
+    optional_roles: [source_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/utmos:
+    purpose: vc_audio_quality
+    required_roles: [converted_audio]
+    optional_roles: [source_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+pipeline_nodes:
+  zh:
+    frontend: frontend/funasr_loader_16k_mono
+    transcription: transcription/paraformer_zh
+    downstream_task: ASR
+    downstream_metric: cer
+  en:
+    transcription: transcription/whisper_large_v3
+    normalization: normalization/whisper_norm
+    downstream_task: ASR
+    downstream_metric: wer
+  speaker_similarity:
+    wavlm-large: scoring/wavlm_large_sim
+    ecapa-tdnn: scoring/ecapa_tdnn_sim
+    eres2net: scoring/eres2net_sim
+  mos:
+    dnsmos: scoring/dnsmos
+    wv-mos: scoring/wv_mos
+    utmos: scoring/utmos
+legacy_reference:
+  pipeline: sure_eval.evaluation.tasks.vc.compat.VCMetricPipeline
+notes:
+  - If reference_text is present, only converted_audio is transcribed.
+  - If reference_text is absent, reference_audio is transcribed and used as the ASR reference text.
+  - English semantic WER uses OpenAI Whisper English normalization before WeNet WER.
+  - WeTextProcessing profiles are available only through explicit semantic_normalizer arguments and do not change default VC routes.
+  - Mandarin CER keeps CV3-compatible Paraformer execution by passing original audio paths to FunASR AutoModel.generate; frontend/funasr_loader_16k_mono records the internal loader contract.
+  - Speaker similarity and MOS use concrete backend scoring nodes with provider-backed model execution.
+  - The report-level sim value is an aggregate over selected named speaker backends, not a standalone scoring node.
+  - metrics=None defaults to the language-matched semantic metric; speaker/MOS metrics are selected explicitly.

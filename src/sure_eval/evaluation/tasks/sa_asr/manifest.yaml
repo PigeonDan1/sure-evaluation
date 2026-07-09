@@ -1,0 +1,28 @@
+task: SA-ASR
+language_sensitive: false
+canonical_entry: sure_eval.evaluation.tasks.sa_asr.pipeline.evaluate_sa_asr_files
+default_metric: cpwer
+default_params:
+  collar: 0.5
+  companion_metrics:
+    - der
+input_contracts:
+  scoring/meeteval:
+    purpose: speaker_attributed_asr_cpwer
+    required_roles: [hyp, ref]
+    row_format: meeteval_annotation
+    alignment_key: session_id
+    aggregation: meeteval_combined_error_rate
+    main_report: true
+    input_format_policy: meeteval.io.load
+    supported_input_formats:
+      - STM
+      - CTM
+      - SegLST
+legacy_reference:
+  evaluator: sure_eval.evaluation.sure_evaluator.SUREEvaluator
+  methods:
+    - SUREEvaluator._eval_sa_asr
+notes:
+  - SA-ASR defaults to cpWER as the main metric and reports DER as a companion metric.
+  - The default route normalizes STM transcript fields before MeetEval to match the legacy evaluator.

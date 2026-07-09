@@ -1,0 +1,18 @@
+id: scoring/dnsmos
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: generated_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.dnsmos.node
+metric: dnsmos
+backend: dnsmos
+internal_stages:
+  - audio_score_provider
+  - score_normalization
+  - mean_aggregation
+used_by:
+  - TTS audio quality
+  - VC audio quality
+notes:
+  - Heavy DNSMOS/ONNX execution stays inside the injected provider.

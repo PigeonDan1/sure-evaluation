@@ -1,0 +1,19 @@
+id: scoring/sctk_sclite
+group: sd-sa-asr
+runtime:
+  type: binary
+  optional: true
+  gpu: false
+  build_script: build_sctk.sh
+  binary: bin/sclite
+tools:
+  - id: NIST SCTK sclite
+    provider: github
+    source: https://github.com/usnistgov/SCTK
+    revision: 9688a26882a688132a5e414cadcb4c19b6fffaba
+    target: "${SURE_EVAL_CACHE_DIR}/tools/sctk/9688a26882a688132a5e414cadcb4c19b6fffaba/bin/sclite"
+    env: SURE_EVAL_SCLITE_BIN
+verify:
+  commands:
+    - sclite -h
+

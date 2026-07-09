@@ -1,0 +1,24 @@
+id: scoring/xcomet_xl
+group: s2tt-heavy
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: Unbabel/XCOMET-XL
+    provider: modelscope
+    target: checkpoints/xcomet_xl/modelscope/evalscope/XCOMET-XL/checkpoints/model.ckpt
+    env: XCOMET_XL_CHECKPOINT_PATH
+  - id: facebook/xlm-roberta-xl
+    provider: huggingface
+    target: checkpoints/xlm_roberta_xl/huggingface
+    env: XCOMET_XL_ENCODER_CACHE
+verify:
+  imports:
+    - comet
+    - torch
+  files:
+    - checkpoints/xcomet_xl/modelscope/evalscope/XCOMET-XL/checkpoints/model.ckpt
+

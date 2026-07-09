@@ -1,0 +1,19 @@
+id: normalization/wetext_norm
+group: normalization-extra
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+packages:
+  - name: WeTextProcessing
+    version: "1.2.0"
+verify:
+  imports:
+    - tn.chinese.normalizer
+    - tn.english.normalizer
+    - tn.japanese.normalizer
+    - pynini
+  files: []
+

@@ -1,0 +1,83 @@
+task: S2TT
+language_sensitive: true
+routes:
+  - route_id: s2tt.zh.bleu.sacrebleu
+    language: zh
+    metric: bleu
+    pipeline_id: s2tt.zh.bleu.sacrebleu
+    nodes:
+      - scoring/sacrebleu
+    input_contract: scoring/sacrebleu
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.en.bleu.sacrebleu
+    language: en
+    metric: bleu
+    pipeline_id: s2tt.en.bleu.sacrebleu
+    nodes:
+      - scoring/sacrebleu
+    input_contract: scoring/sacrebleu
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.zh.bleu_char.sacrebleu
+    language: zh
+    metric: bleu_char
+    pipeline_id: s2tt.zh.bleu_char.sacrebleu
+    nodes:
+      - scoring/sacrebleu
+    input_contract: scoring/sacrebleu
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.en.bleu_char.sacrebleu
+    language: en
+    metric: bleu_char
+    pipeline_id: s2tt.en.bleu_char.sacrebleu
+    nodes:
+      - scoring/sacrebleu
+    input_contract: scoring/sacrebleu
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.zh.chrf.sacrebleu
+    language: zh
+    metric: chrf
+    pipeline_id: s2tt.zh.chrf.sacrebleu
+    nodes:
+      - scoring/sacrebleu
+    input_contract: scoring/sacrebleu
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.en.chrf.sacrebleu
+    language: en
+    metric: chrf
+    pipeline_id: s2tt.en.chrf.sacrebleu
+    nodes:
+      - scoring/sacrebleu
+    input_contract: scoring/sacrebleu
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.zh.xcomet_xl.xcomet_xl
+    language: zh
+    metric: xcomet_xl
+    pipeline_id: s2tt.zh.xcomet_xl.xcomet_xl
+    nodes:
+      - scoring/xcomet_xl
+    input_contract: scoring/xcomet_xl
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.en.xcomet_xl.xcomet_xl
+    language: en
+    metric: xcomet_xl
+    pipeline_id: s2tt.en.xcomet_xl.xcomet_xl
+    nodes:
+      - scoring/xcomet_xl
+    input_contract: scoring/xcomet_xl
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.zh.bleurt_20.bleurt_20
+    language: zh
+    metric: bleurt_20
+    pipeline_id: s2tt.zh.bleurt_20.bleurt_20
+    nodes:
+      - scoring/bleurt_20
+    input_contract: scoring/bleurt_20
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+  - route_id: s2tt.en.bleurt_20.bleurt_20
+    language: en
+    metric: bleurt_20
+    pipeline_id: s2tt.en.bleurt_20.bleurt_20
+    nodes:
+      - scoring/bleurt_20
+    input_contract: scoring/bleurt_20
+    executor: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files

@@ -1,0 +1,19 @@
+id: scoring/eres2net_sim
+group: tts-vc-speaker
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: iic/speech_eres2net_sv_zh-cn_16k-common
+    provider: modelscope
+    target: checkpoints/modelscope/models/iic/speech_eres2net_sv_zh-cn_16k-common/pretrained_eres2net_aug.ckpt
+    env: ERES2NET_SIM_CHECKPOINT
+verify:
+  imports:
+    - modelscope
+    - torch
+  files:
+    - checkpoints/modelscope/models/iic/speech_eres2net_sv_zh-cn_16k-common/pretrained_eres2net_aug.ckpt

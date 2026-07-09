@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local environments and runtime assets
+.venv/
+.venv.*/
+.venv.hostbak/
+**/.venv/
+**/checkpoints/
+runtime/
+
+# Large model artifacts
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.bin
+
+# Local outputs
+artifacts/
+reports/*
+!reports/sota/
+!reports/sota/**
+results/
+tmp/
+*.log
+MANIFEST.runtime*

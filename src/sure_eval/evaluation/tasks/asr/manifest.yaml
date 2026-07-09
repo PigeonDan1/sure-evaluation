@@ -1,0 +1,47 @@
+task: ASR
+language_sensitive: true
+canonical_entry: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+default_metrics:
+  zh: cer
+  en: wer
+  cs: mer
+default_pipelines:
+  zh:
+    cer: asr.zh.cer.aispeech_norm.wenet_cer
+  en:
+    wer: asr.en.wer.whisper_norm.wenet_wer
+  cs:
+    mer: asr.cs.mer.aispeech_norm.wenet_mer
+input_contracts:
+  scoring/wenet_cer:
+    purpose: character_error_rate
+    required_roles: [hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: corpus_edit_distance
+    main_report: true
+  scoring/wenet_wer:
+    purpose: word_error_rate
+    required_roles: [hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: corpus_edit_distance
+    main_report: true
+  scoring/wenet_mer:
+    purpose: mixed_error_rate_for_code_switch_asr
+    required_roles: [hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: corpus_edit_distance
+    main_report: true
+legacy_reference:
+  evaluator: sure_eval.evaluation.sure_evaluator.SUREEvaluator
+  methods:
+    - SUREEvaluator._eval_asr
+    - SUREEvaluator._eval_asr_codeswitch
+notes:
+  - ASR compatibility metric classes should route through the canonical task pipeline.
+  - Legacy SUREEvaluator remains the regression oracle while other tasks are migrated.
+  - English WER defaults to OpenAI Whisper English normalization; the legacy AISpeech route remains available as asr.en.wer.aispeech_norm.wenet_wer.
+  - WeTextProcessing profiles are available only through explicit normalizer arguments such as normalizer="wetext:zh_tn"; no default route uses wetext_norm.
+  - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.

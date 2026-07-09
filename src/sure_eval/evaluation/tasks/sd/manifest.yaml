@@ -1,0 +1,27 @@
+task: SD
+language_sensitive: false
+canonical_entry: sure_eval.evaluation.tasks.sd.pipeline.evaluate_sd_files
+default_metric: der
+default_params:
+  collar: 0.25
+input_contracts:
+  scoring/meeteval:
+    purpose: speaker_diarization_error_rate
+    required_roles: [hyp, ref]
+    row_format: meeteval_annotation
+    alignment_key: session_id
+    aggregation: session_mean_error_rate
+    main_report: true
+    input_format_policy: meeteval.io.load
+    supported_input_formats:
+      - RTTM for DER
+      - STM
+      - CTM
+      - SegLST
+legacy_reference:
+  evaluator: sure_eval.evaluation.sure_evaluator.SUREEvaluator
+  methods:
+    - SUREEvaluator._eval_sd
+notes:
+  - SD delegates annotation parsing to MeetEval and does not assume STM-only input.
+  - The collar parameter is part of the route and is recorded in report details.

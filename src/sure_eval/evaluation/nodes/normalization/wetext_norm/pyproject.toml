@@ -1,0 +1,14 @@
+[project]
+name = "sure-eval-normalization-wetext"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "WeTextProcessing==1.2.0",
+    "pynini>=2.1.6,<2.2",
+    "importlib_resources",
+    "pyyaml>=6.0.0",
+    "pytest>=8.0.0",
+]
+
+[tool.uv]
+package = false

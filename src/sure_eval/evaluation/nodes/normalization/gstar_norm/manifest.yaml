@@ -1,0 +1,16 @@
+id: normalization/gstar_norm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.gstar_norm.node
+reference_compatibility:
+  legacy_entry: SUREEvaluator._eval_sa_asr
+internal_stages:
+  - key_text_parse
+  - gstar_text_normalize
+notes:
+  - This node preserves the G-STAR SA-ASR text normalization rule.
+  - Format conversion into key-text belongs to src/sure_eval/evaluation/conversion/.
+  - The node does not parse STM or other task-specific annotation formats.

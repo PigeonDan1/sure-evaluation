@@ -1,0 +1,18 @@
+id: scoring/wv_mos
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: generated_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.wv_mos.node
+metric: wv-mos
+backend: wv-mos
+internal_stages:
+  - audio_score_provider
+  - score_normalization
+  - mean_aggregation
+used_by:
+  - TTS audio quality
+  - VC audio quality
+notes:
+  - Heavy Wav2Vec2MOS execution stays inside the injected provider.

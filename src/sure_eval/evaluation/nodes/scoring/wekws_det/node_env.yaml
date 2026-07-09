@@ -1,0 +1,13 @@
+id: scoring/wekws_det
+group: kws-extra
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+verify:
+  imports:
+    - pydantic
+  files: []
+

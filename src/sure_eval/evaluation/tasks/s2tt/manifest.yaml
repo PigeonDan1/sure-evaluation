@@ -1,0 +1,44 @@
+task: S2TT
+language_sensitive: true
+canonical_entry: sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files
+default_metric: bleu
+supported_metrics:
+  - bleu
+  - bleu_char
+  - chrf
+  - xcomet_xl
+  - bleurt_20
+default_pipeline: s2tt.{tokenizer_profile}.{metric}.sacrebleu
+input_contracts:
+  scoring/sacrebleu:
+    purpose: traditional_reproducible_anchor
+    required_roles: [hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: corpus_metric
+    main_report: true
+  scoring/xcomet_xl:
+    purpose: primary_semantic_quality
+    required_roles: [src, hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: segment_mean
+    main_report: true
+    model: Unbabel/XCOMET-XL
+  scoring/bleurt_20:
+    purpose: complementary_semantic_quality
+    required_roles: [hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: segment_mean
+    main_report: true
+    model: BLEURT-20
+legacy_reference:
+  evaluator: sure_eval.evaluation.sure_evaluator.SUREEvaluator
+  methods:
+    - SUREEvaluator._eval_s2tt
+notes:
+  - S2TT currently has no separate normalization node.
+  - SacreBLEU tokenizer selection, BLEU, and chrF2 are internal stages of scoring/sacrebleu.
+  - The scoring node returns legacy-compatible bleu, bleu_char, chrf, and score fields.
+  - XCOMET-XL and BLEURT-20 run from node-local uv environments because they have heavy and different runtime dependencies.

@@ -1,0 +1,7 @@
+aishell1:
+  metric: cer
+  score: 80.0
+  higher_is_better: false
+  sota_model: reference
+  description: Minimal packaged baseline used by RPS smoke tests.
+

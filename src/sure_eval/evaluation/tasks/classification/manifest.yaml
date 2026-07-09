@@ -1,0 +1,16 @@
+task: CLASSIFICATION
+language_sensitive: false
+canonical_entry: sure_eval.evaluation.tasks.classification.pipeline.evaluate_classification_files
+default_metric: accuracy
+input_contracts:
+  scoring/classify:
+    purpose: classification_accuracy
+    required_roles: [hyp, ref]
+    optional_roles: [label_spec]
+    row_format: key_label
+    alignment_key: key
+    aggregation: accuracy
+    main_report: true
+notes:
+  - SER and GR use this task route with built-in compatibility label specs.
+  - Dataset-specific classification should pass an explicit label spec file.

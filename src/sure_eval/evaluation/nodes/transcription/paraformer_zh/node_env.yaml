@@ -1,0 +1,19 @@
+id: transcription/paraformer_zh
+group: asr-transcription
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch
+    provider: modelscope
+    target: checkpoints/modelscope/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/model.pt
+    env: PARAFORMER_ZH_CHECKPOINT
+verify:
+  imports:
+    - funasr
+    - modelscope
+  files:
+    - checkpoints/modelscope/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/model.pt

@@ -1,0 +1,29 @@
+[project]
+name = "sure-eval-scoring-eres2net-sim"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "addict>=2.4.0",
+    "datasets==2.18.0",
+    "librosa==0.10.2",
+    "modelscope==1.20.0",
+    "numpy==1.26.4",
+    "oss2>=2.18.0",
+    "pillow>=10.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pytest>=8.0.0",
+    "pyyaml>=6.0.0",
+    "rich>=13.0.0",
+    "scipy==1.15.3",
+    "setuptools==69.5.1",
+    "simplejson>=3.19.0",
+    "sortedcontainers>=2.4.0",
+    "soundfile==0.12.1",
+    "structlog>=23.0.0",
+    "torch==2.3.1",
+    "torchaudio==2.3.1",
+]
+
+[tool.uv]
+package = false

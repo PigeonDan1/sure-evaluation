@@ -1,0 +1,14 @@
+id: sa_asr__cpwer
+task: sa_asr
+metric: cpwer
+source_format: stm
+target_format: meeteval_stm
+used_by:
+  - sa_asr.cpwer.gstar_norm.meeteval
+scripts:
+  stm_to_txt: src/sure_eval/evaluation/conversion/sa_asr__cpwer/stm_to_txt.py
+  txt_to_stm: src/sure_eval/evaluation/conversion/sa_asr__cpwer/txt_to_stm.py
+affects_metric: true
+notes:
+  - Converts STM transcript fields to key-text before normalization.
+  - Converts normalized key-text back to STM before MeetEval scoring.

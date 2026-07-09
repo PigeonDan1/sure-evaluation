@@ -1,0 +1,15 @@
+task: SA-ASR
+language_sensitive: false
+routes:
+  - route_id: sa_asr.cpwer.meeteval
+    metric: cpwer
+    pipeline_id: sa_asr.cpwer.gstar_norm.meeteval
+    nodes:
+      - normalization/gstar_norm
+      - scoring/meeteval
+    input_contract: scoring/meeteval
+    executor: sure_eval.evaluation.tasks.sa_asr.pipeline.evaluate_sa_asr_files
+    params:
+      collar: 0.5
+      companion_metrics:
+        - der

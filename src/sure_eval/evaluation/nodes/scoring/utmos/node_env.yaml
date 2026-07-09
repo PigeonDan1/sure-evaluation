@@ -1,0 +1,19 @@
+id: scoring/utmos
+group: tts-vc-mos
+runtime:
+  type: uv
+  python: "3.8"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: UTMOS-demo/epoch=3-step=7459.ckpt
+    provider: manual
+    target: checkpoints/UTMOS-demo/epoch=3-step=7459.ckpt
+    env: UTMOS_CHECKPOINT
+verify:
+  imports:
+    - torch
+    - fairseq
+  files:
+    - checkpoints/UTMOS-demo/epoch=3-step=7459.ckpt

@@ -1,0 +1,21 @@
+id: scoring/bleurt_20
+group: s2tt-heavy
+runtime:
+  type: uv
+  python: "3.10"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+models:
+  - id: BLEURT-20
+    provider: manual
+    target: checkpoints/bleurt_20/saved_model/saved_model.pb
+    env: BLEURT_20_CHECKPOINT
+verify:
+  imports:
+    - bleurt
+    - tensorflow
+  files:
+    - checkpoints/bleurt_20/saved_model/saved_model.pb
+    - checkpoints/bleurt_20/saved_model/bleurt_config.json
+

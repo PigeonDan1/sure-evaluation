@@ -1,0 +1,19 @@
+id: transcription/whisper_large_v3
+version: v1
+stage: transcription
+language_sensitive: true
+languages: [en]
+input_schema: audio_path
+output_schema: transcript_text
+implementation: sure_eval.evaluation.nodes.transcription.whisper_large_v3.node
+default_runner: sure_eval.evaluation.nodes.transcription.WhisperLargeV3Transcriber
+internal_stages:
+  - audio_decode
+  - asr_inference
+  - text_extraction
+used_by:
+  - TTS semantic WER
+  - VC semantic WER
+notes:
+  - The node can receive an injected runner for tests and lightweight smoke checks.
+  - Default model loading remains lazy through the existing TTS semantic provider.

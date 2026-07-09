@@ -1,0 +1,206 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+
+def test_kws_pipeline_scores_detection_samples() -> None:
+    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
+
+    samples = [
+        KWSSample(
+            key="pos",
+            expected_detected=True,
+            expected_keyword="嗨小问",
+            duration=1.2,
+            detected=True,
+            predicted_keyword="嗨小问",
+            score=0.9,
+        ),
+        KWSSample(
+            key="neg",
+            expected_detected=False,
+            duration=2.4,
+            detected=False,
+            score=None,
+        ),
+    ]
+
+    report = KWSMetricPipeline(thresholds=[0.0, 0.5, 0.95]).evaluate(samples)
+
+    assert report.results["accuracy"].score == 1.0
+    assert report.results["recall"].score == 1.0
+    assert report.results["false_reject_rate"].score == 0.0
+    assert report.results["false_alarm_rate"].score == 0.0
+    assert report.results["false_alarm_per_hour"].score == 0.0
+    assert report.results["det_curve"].details["points"][1] == {
+        "threshold": 0.5,
+        "false_alarm_per_hour": 0.0,
+        "false_reject_rate": 0.0,
+        "false_alarm_rate": 0.0,
+        "true_detect_rate": 1.0,
+        "false_alarms": 0,
+        "false_rejects": 0,
+    }
+    assert report.summary["best_threshold"] == 0.5
+
+
+def test_kws_pipeline_penalizes_wrong_keyword() -> None:
+    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
+
+    sample = KWSSample(
+        key="pos",
+        expected_detected=True,
+        expected_keyword="嗨小问",
+        duration=1.0,
+        detected=True,
+        predicted_keyword="你好问问",
+        score=0.99,
+    )
+
+    report = KWSMetricPipeline(thresholds=[0.5]).evaluate([sample])
+
+    assert report.results["accuracy"].score == 0.0
+    assert report.results["recall"].score == 0.0
+    assert report.results["false_reject_rate"].score == 1.0
+    assert report.rows[0]["correct"] is False
+    assert report.rows[0]["error_type"] == "wrong_keyword"
+
+
+def test_kws_loads_sure_json_outputs(tmp_path: Path) -> None:
+    from sure_eval.evaluation.tasks.kws.loaders import load_samples_from_jsonl_and_outputs
+
+    gt = tmp_path / "gt.jsonl"
+    gt.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "key": "pos",
+                        "expected": "detect",
+                        "text": "嗨小问",
+                        "duration": 1.0,
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "key": "neg",
+                        "expected": "reject",
+                        "duration": 2.0,
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    outputs = tmp_path / "sample_output.json"
+    outputs.write_text(
+        json.dumps(
+            [
+                {
+                    "key": "pos",
+                    "result": {
+                        "detected": True,
+                        "keyword": "嗨小问",
+                        "score": 0.91,
+                    },
+                },
+                {
+                    "key": "neg",
+                    "result": {
+                        "detected": False,
+                        "keyword": None,
+                        "score": None,
+                    },
+                },
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    samples = load_samples_from_jsonl_and_outputs(gt, outputs)
+
+    assert [sample.key for sample in samples] == ["pos", "neg"]
+    assert samples[0].expected_detected is True
+    assert samples[0].expected_keyword == "嗨小问"
+    assert samples[0].detected is True
+    assert samples[0].score == 0.91
+    assert samples[1].expected_detected is False
+
+
+def test_kws_loads_wekws_score_format(tmp_path: Path) -> None:
+    from sure_eval.evaluation.tasks.kws.loaders import load_samples_from_wekws_score_file
+
+    labels = tmp_path / "labels.jsonl"
+    labels.write_text(
+        "\n".join(
+            [
+                json.dumps({"key": "pos", "txt": "嗨小问", "duration": 1.0}, ensure_ascii=False),
+                json.dumps({"key": "neg", "txt": "其他文本", "duration": 2.0}, ensure_ascii=False),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    scores = tmp_path / "score.txt"
+    scores.write_text(
+        "\n".join(
+            [
+                "pos detected 嗨小问 0.930",
+                "neg rejected",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    samples = load_samples_from_wekws_score_file(labels, scores, keyword="嗨小问")
+
+    assert len(samples) == 2
+    assert samples[0].expected_detected is True
+    assert samples[0].detected is True
+    assert samples[0].predicted_keyword == "嗨小问"
+    assert samples[0].score == 0.93
+    assert samples[1].expected_detected is False
+    assert samples[1].detected is False
+
+
+def test_kws_loads_wekws_frame_score_format(tmp_path: Path) -> None:
+    from sure_eval.evaluation.tasks.kws.loaders import load_samples_from_wekws_frame_score_file
+
+    labels = tmp_path / "labels.jsonl"
+    labels.write_text(
+        "\n".join(
+            [
+                json.dumps({"key": "pos", "txt": "嗨小问", "duration": 1.0}, ensure_ascii=False),
+                json.dumps({"key": "neg", "txt": "其他文本", "duration": 2.0}, ensure_ascii=False),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    scores = tmp_path / "score.txt"
+    scores.write_text(
+        "\n".join(
+            [
+                "pos 嗨小问 0.100000 0.930000 0.700000",
+                "neg 嗨小问 0.100000 0.200000 0.300000",
+                "pos 其他 0.990000",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    samples = load_samples_from_wekws_frame_score_file(labels, scores, keyword="嗨小问")
+
+    assert len(samples) == 2
+    assert samples[0].expected_detected is True
+    assert samples[0].scores == [0.1, 0.93, 0.7]
+    assert samples[0].score == 0.93
+    assert samples[1].expected_detected is False
+    assert samples[1].score == 0.3

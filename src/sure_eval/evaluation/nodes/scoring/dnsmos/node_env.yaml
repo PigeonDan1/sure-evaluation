@@ -1,0 +1,19 @@
+id: scoring/dnsmos
+group: tts-vc-mos
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+models:
+  - id: DNSMOS/model_v8.onnx
+    provider: manual
+    target: checkpoints/DNSMOS/model_v8.onnx
+    env: DNSMOS_CHECKPOINT
+verify:
+  imports:
+    - librosa
+    - onnxruntime
+  files:
+    - checkpoints/DNSMOS/model_v8.onnx

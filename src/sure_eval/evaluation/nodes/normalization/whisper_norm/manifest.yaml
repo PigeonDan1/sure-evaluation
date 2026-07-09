@@ -1,0 +1,35 @@
+id: normalization/whisper_norm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.whisper_norm.node
+runtime: in_process
+profiles:
+  english:
+    language: en
+    normalizer_class: EnglishTextNormalizer
+    default_for:
+      - ASR/en/wer
+      - TTS/en/tts_wer
+      - VC/en/vc_wer
+  basic:
+    language: multilingual
+    normalizer_class: BasicTextNormalizer
+    default_for: []
+upstream:
+  package: openai-whisper
+  version: "20250625"
+  url: https://github.com/openai/whisper/tree/main/whisper/normalizers
+  license: MIT
+  local_changes:
+    - Replaced more_itertools.windowed with a private triple-window helper to avoid an extra runtime dependency.
+  vendored_files:
+    - normalization_impl/basic.py
+    - normalization_impl/english.py
+    - normalization_impl/english.json
+    - normalization_impl/LICENSE.openai-whisper
+notes:
+  - The English profile is only the default for English WER routes.
+  - Chinese CER and code-switch MER stay on normalization/aispeech_norm.

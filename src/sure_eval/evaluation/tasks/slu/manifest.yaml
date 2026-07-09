@@ -1,0 +1,19 @@
+task: SLU
+language_sensitive: false
+canonical_entry: sure_eval.evaluation.tasks.slu.pipeline.evaluate_slu_files
+default_metric: accuracy
+input_contracts:
+  prompt_norm_classify:
+    purpose: spoken_language_understanding_choice_accuracy
+    required_roles: [hyp, ref, prompt_jsonl]
+    optional_roles: [label_spec]
+    row_format: key_label_with_prompt_choices
+    alignment_key: key
+    aggregation: accuracy
+    main_report: true
+pipeline_nodes:
+  - normalization/prompt_norm
+  - scoring/classify
+notes:
+  - Prompt choices may be structured or parsed from legacy prompt text.
+  - Choice ids and choice counts are arbitrary; A/B/C/D is only one compatible case.
