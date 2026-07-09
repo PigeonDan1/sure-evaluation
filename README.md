@@ -68,16 +68,19 @@ The base install is intentionally lightweight. Heavy metrics run in isolated nod
 
 ## 📋 Supported Tasks
 
-| Task | Metrics | Notes |
-|:-----|:--------|:------|
-| **ASR** | WER, CER, MER | Text-only, base install |
-| **S2TT** | BLEU, chrF2, XCOMET-XL, BLEURT-20 | Base + optional heavy metrics |
-| **SD** | DER | Requires `[diarization]` |
-| **SA-ASR** | cpWER, DER | Requires `[diarization]` |
-| **TTS / VC** | CER/WER, speaker similarity, MOS | Optional transcription + scoring nodes |
-| **Classification / SER / GR** | Accuracy | Text-only, base install |
-| **SLU** | Accuracy | Text-only, base install |
-| **KWS** | accuracy, precision, recall, F1, FRR, FAR | Base + optional node |
+| Task | Metrics | Notes | Guide |
+|:-----|:--------|:------|:------|
+| **ASR** | WER, CER, MER | Text-only, base install | [docs/tasks/asr.md](./docs/tasks/asr.md) |
+| **S2TT** | BLEU, chrF2, XCOMET-XL, BLEURT-20 | Base + optional heavy metrics | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
+| **SD** | DER | Requires `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
+| **SA-ASR** | cpWER, DER | Requires `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
+| **TTS** | CER/WER, speaker similarity, MOS | Optional transcription + scoring nodes | [docs/tasks/tts.md](./docs/tasks/tts.md) |
+| **VC** | CER/WER, speaker similarity, MOS | Optional transcription + scoring nodes | [docs/tasks/vc.md](./docs/tasks/vc.md) |
+| **Classification / SER / GR** | Accuracy | Text-only, base install | [docs/tasks/classification.md](./docs/tasks/classification.md) |
+| **SLU** | Accuracy | Text-only, base install | [docs/tasks/slu.md](./docs/tasks/slu.md) |
+| **KWS** | accuracy, precision, recall, F1, FRR, FAR | Base + optional node | [docs/tasks/kws.md](./docs/tasks/kws.md) |
+
+Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
 
 Click any task in the CLI for its route:
 

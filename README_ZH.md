@@ -68,16 +68,19 @@ cat /tmp/asr_eval/report.json | grep score
 
 ## 📋 支持的任务
 
-| 任务 | 指标 | 说明 |
-|:-----|:-----|:-----|
-| **ASR** | WER、CER、MER | 纯文本，基础包可用 |
-| **S2TT** | BLEU、chrF2、XCOMET-XL、BLEURT-20 | 基础 + 可选重指标 |
-| **SD** | DER | 需 `[diarization]` |
-| **SA-ASR** | cpWER、DER | 需 `[diarization]` |
-| **TTS / VC** | CER/WER、说话人相似度、MOS | 可选转录 + 打分节点 |
-| **分类 / SER / GR** | Accuracy | 纯文本，基础包可用 |
-| **SLU** | Accuracy | 纯文本，基础包可用 |
-| **KWS** | accuracy、precision、recall、F1、FRR、FAR | 基础 + 可选节点 |
+| 任务 | 指标 | 说明 | 指南 |
+|:-----|:-----|:-----|:-----|
+| **ASR** | WER、CER、MER | 纯文本，基础包可用 | [docs/tasks/asr.md](./docs/tasks/asr.md) |
+| **S2TT** | BLEU、chrF2、XCOMET-XL、BLEURT-20 | 基础 + 可选重指标 | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
+| **SD** | DER | 需 `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
+| **SA-ASR** | cpWER、DER | 需 `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
+| **TTS** | CER/WER、说话人相似度、MOS | 可选转录 + 打分节点 | [docs/tasks/tts.md](./docs/tasks/tts.md) |
+| **VC** | CER/WER、说话人相似度、MOS | 可选转录 + 打分节点 | [docs/tasks/vc.md](./docs/tasks/vc.md) |
+| **分类 / SER / GR** | Accuracy | 纯文本，基础包可用 | [docs/tasks/classification.md](./docs/tasks/classification.md) |
+| **SLU** | Accuracy | 纯文本，基础包可用 | [docs/tasks/slu.md](./docs/tasks/slu.md) |
+| **KWS** | accuracy、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
+
+每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 
 在 CLI 中查看任意任务的路由：
 
