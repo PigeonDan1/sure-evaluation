@@ -49,23 +49,6 @@ cat /tmp/asr_eval/report.json | grep score
 
 ---
 
-## 📦 包含什么？
-
-| 层级 | 基础包包含 | 可选节点本地环境 |
-|:-----|:-----------|:-----------------|
-| CLI、路由、报告 | ✅ | — |
-| ASR WER/CER、分类、SLU、KWS | ✅ | — |
-| S2TT BLEU/chrF2 | ✅ | — |
-| SD DER、SA-ASR cpWER | 需 `[diarization]` | — |
-| TTS/VC WER/CER | ✅ 路由 | ASR 转录节点 |
-| TTS/VC 说话人相似度 | — | `scoring/wavlm_large_sim` 等 |
-| TTS/VC MOS（DNSMOS、WV-MOS、UTMOS） | — | `scoring/dnsmos` 等 |
-| S2TT XCOMET-XL、BLEURT-20 | — | `scoring/xcomet_xl`、`scoring/bleurt_20` |
-
-基础包故意保持轻量。重指标在独立的节点本地环境中运行，你只需要安装自己需要的部分。
-
----
-
 ## 📋 支持的任务
 
 | 任务 | 指标 | 说明 | 指南 |
@@ -87,6 +70,33 @@ cat /tmp/asr_eval/report.json | grep score
 ```bash
 sure-eval metric describe <task> --help
 ```
+
+---
+
+## 📝 流水线输入格式
+
+SURE-EVAL 使用显式的角色定位输入。
+
+**制表符分隔的 key-text 文件**（用于 ASR、S2TT、分类）：
+
+```text
+utt_001\t你好世界
+utt_002\t今天天气不错
+```
+
+**TTS 音频样本 JSONL**：
+
+```jsonl
+{"sample_id":"tts_001","prediction_audio":"out.wav","reference_text":"你好世界","reference_audio":"speaker.wav","language":"zh"}
+```
+
+**VC 音频样本 JSONL**：
+
+```jsonl
+{"sample_id":"vc_001","converted_audio":"converted.wav","reference_audio":"speaker.wav","reference_text":"你好世界","language":"zh"}
+```
+
+完整格式说明：[docs/pipeline_inputs.md](docs/pipeline_inputs.md)。
 
 ---
 

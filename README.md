@@ -49,23 +49,6 @@ Input files are tab-separated: `<key>\t<text>`.
 
 ---
 
-## 📦 What's in the Box?
-
-| Layer | Included in base install | Optional node-local setup |
-|:------|:-------------------------|:--------------------------|
-| CLI, routing, reports | ✅ | — |
-| ASR WER/CER, classification, SLU, KWS | ✅ | — |
-| S2TT BLEU/chrF2 | ✅ | — |
-| SD DER, SA-ASR cpWER | needs `[diarization]` | — |
-| TTS/VC WER/CER | ✅ route | ASR transcription node |
-| TTS/VC speaker similarity | — | `scoring/wavlm_large_sim`, etc. |
-| TTS/VC MOS (DNSMOS, WV-MOS, UTMOS) | — | `scoring/dnsmos`, etc. |
-| S2TT XCOMET-XL, BLEURT-20 | — | `scoring/xcomet_xl`, `scoring/bleurt_20` |
-
-The base install is intentionally lightweight. Heavy metrics run in isolated node-local environments so you only install what you need.
-
----
-
 ## 📋 Supported Tasks
 
 | Task | Metrics | Notes | Guide |
@@ -87,6 +70,33 @@ Click any task in the CLI for its route:
 ```bash
 sure-eval metric describe <task> --help
 ```
+
+---
+
+## 📝 Pipeline Input Formats
+
+SURE-EVAL uses explicit, role-addressed inputs.
+
+**Key-text files** for ASR, S2TT, classification:
+
+```text
+utt_001\t你好世界
+utt_002\t今天天气不错
+```
+
+**Audio samples JSONL** for TTS:
+
+```jsonl
+{"sample_id":"tts_001","prediction_audio":"out.wav","reference_text":"你好世界","reference_audio":"speaker.wav","language":"zh"}
+```
+
+**Audio samples JSONL** for VC:
+
+```jsonl
+{"sample_id":"vc_001","converted_audio":"converted.wav","reference_audio":"speaker.wav","reference_text":"你好世界","language":"zh"}
+```
+
+Full schema details: [docs/pipeline_inputs.md](docs/pipeline_inputs.md).
 
 ---
 

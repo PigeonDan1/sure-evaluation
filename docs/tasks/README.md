@@ -2,6 +2,8 @@
 
 Each guide describes one SURE-EVAL task, including supported metrics, pipeline nodes, input/output formats, and CLI examples.
 
+For shared input schemas, see [Pipeline Input Formats](../pipeline_inputs.md).
+
 - [ASR — Automatic Speech Recognition](./asr.md)
 - [S2TT — Speech-to-Text Translation](./s2tt.md)
 - [SD — Speaker Diarization](./sd.md)
