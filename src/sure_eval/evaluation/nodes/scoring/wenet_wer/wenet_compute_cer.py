@@ -106,15 +106,21 @@ class Calculator:
         lab = [''] + list(lab)
         rec = [''] + list(rec)
         
-        # Initialize space matrix
+        # Initialize space matrix. Only the len(lab) x len(rec) submatrix is
+        # read by the DP and trace-back below, so only that region is reset.
+        # Resetting every previously grown row (upstream behavior) made every
+        # utterance after one long utterance pay O(max_len^2); scores are
+        # identical either way.
         while len(self.space) < len(lab):
             self.space.append([])
-        for row in self.space:
-            for element in row:
-                element['dist'] = 0
-                element['error'] = 'non'
+        for i in range(len(lab)):
+            row = self.space[i]
             while len(row) < len(rec):
                 row.append({'dist': 0, 'error': 'non'})
+            for j in range(len(rec)):
+                element = row[j]
+                element['dist'] = 0
+                element['error'] = 'non'
         
         # Initialize borders
         for i in range(len(lab)):
