@@ -1,0 +1,13 @@
+id: normalization/canonical_itn
+group: normalization-extra
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+packages:
+  - name: cn2an
+    version: ">=0.5.24,<0.6"
+verify:
+  imports:
+    - cn2an
+  files: []

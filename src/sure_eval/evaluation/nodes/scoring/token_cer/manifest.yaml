@@ -1,0 +1,22 @@
+id: scoring/token_cer
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: key_text_files
+output_schema: metric_result
+implementation: sure_eval.evaluation.nodes.scoring.token_cer.node
+runtime: node_local_optional
+package:
+  name: rapidfuzz
+  version: ">=3.0,<4"
+notes:
+  - Token-level corpus micro-average CER over canonical written-form text;
+    pair with normalization/canonical_itn, whose tokenizer this node applies
+    (CJK per char, latin words, digits per char, symbols per char).
+  - S/D/I decomposition from minimal unit-cost edit operations (rapidfuzz).
+  - Reference utterances missing from the hypothesis are scored as empty
+    hypotheses; zero covered reference tokens raise instead of scoring 0.0.
+internal_stages:
+  - canonical_tokenization
+  - token_edit_distance
+  - sdi_decomposition

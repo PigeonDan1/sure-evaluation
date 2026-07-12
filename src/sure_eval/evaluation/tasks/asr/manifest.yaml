@@ -8,6 +8,7 @@ default_metrics:
 default_pipelines:
   zh:
     cer: asr.zh.cer.aispeech_norm.wenet_cer
+    cer_canonical: asr.zh.cer_canonical.canonical_itn.token_cer
   en:
     wer: asr.en.wer.whisper_norm.wenet_wer
   cs:
@@ -34,6 +35,13 @@ input_contracts:
     alignment_key: key
     aggregation: corpus_edit_distance
     main_report: true
+  scoring/token_cer:
+    purpose: canonical_written_form_character_error_rate
+    required_roles: [hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: corpus_token_edit_distance
+    main_report: true
 legacy_reference:
   evaluator: sure_eval.evaluation.sure_evaluator.SUREEvaluator
   methods:
@@ -45,3 +53,4 @@ notes:
   - English WER defaults to OpenAI Whisper English normalization; the legacy AISpeech route remains available as asr.en.wer.aispeech_norm.wenet_wer.
   - WeTextProcessing profiles are available only through explicit normalizer arguments such as normalizer="wetext:zh_tn"; no default route uses wetext_norm.
   - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.
+  - cer_canonical is an opt-in written-form canonical CER (ITN + token-level scoring) that coexists with the default WeNet-compatible cer; it never replaces it. Requires the [canonical] extra (cn2an + rapidfuzz), and identical scores require an identical cn2an version (recorded in each run's node trace).
