@@ -17,6 +17,7 @@ from sure_eval.evaluation.nodes.normalization.aispeech_norm import (
     normalize_asr_files,
     normalize_codeswitch_asr_files,
 )
+from sure_eval.evaluation.nodes.normalization.canonical_itn import normalize_canonical_asr_files
 from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
 from sure_eval.evaluation.nodes.normalization.wetext_norm import (
     SUPPORTED_PROFILES as WETEXT_SUPPORTED_PROFILES,
@@ -31,6 +32,8 @@ from sure_eval.evaluation.nodes.scoring.sctk_sclite import (
     score_sctk_sclite_cer,
     score_sctk_sclite_wer,
 )
+from sure_eval.evaluation.nodes.scoring.token_cer import score_token_cer
+from sure_eval.evaluation.nodes.scoring.token_mer import score_token_mer
 
 _ASR_CONTRACTS = {
     "cer": MetricInputContract(
@@ -51,7 +54,27 @@ _ASR_CONTRACTS = {
         aggregation="corpus_edit_distance",
         purpose="mixed_error_rate_for_code_switch_asr",
     ),
+    "cer_canonical": MetricInputContract(
+        metric_id="scoring/token_cer",
+        required_roles=("hyp", "ref"),
+        aggregation="corpus_token_edit_distance",
+        purpose="canonical_written_form_character_error_rate",
+    ),
+    "mer_canonical": MetricInputContract(
+        metric_id="scoring/token_mer",
+        required_roles=("hyp", "ref"),
+        aggregation="corpus_token_edit_distance",
+        purpose="canonical_mixed_token_error_rate",
+    ),
+    "wer_canonical": MetricInputContract(
+        metric_id="scoring/token_mer",
+        required_roles=("hyp", "ref"),
+        aggregation="corpus_token_edit_distance",
+        purpose="canonical_written_form_word_error_rate",
+    ),
 }
+
+_CANONICAL_METRICS = {"cer_canonical", "mer_canonical", "wer_canonical"}
 
 
 def evaluate_asr_files(
@@ -69,7 +92,9 @@ def evaluate_asr_files(
     normalized_scorer = _normalize_scorer(language=language, metric=normalized_metric, scorer=scorer)
     input_files = EvaluationFiles.from_ref_hyp(ref_file=ref_file, hyp_file=hyp_file)
     _ASR_CONTRACTS[normalized_metric].validate(input_files)
-    if language == "cs":
+    if language == "cs" and normalized_metric not in _CANONICAL_METRICS:
+        if normalized_metric != "mer":
+            raise ValueError(f"Unsupported code-switch ASR metric: {normalized_metric}")
         if normalized_scorer != "wenet":
             raise ValueError("ASR code-switch MER does not support explicit scorer selection")
         if normalizer:
@@ -80,22 +105,12 @@ def evaluate_asr_files(
         metric=normalized_metric,
         normalizer=normalizer,
     )
-    if normalized_metric == "cer":
+    if normalized_metric in {"cer", "wer"} | _CANONICAL_METRICS:
         return _evaluate_regular(
             ref_file,
             hyp_file,
             language=language,
-            metric="cer",
-            normalizer=normalized_normalizer,
-            scorer=normalized_scorer,
-            input_files=input_files,
-        )
-    if normalized_metric == "wer":
-        return _evaluate_regular(
-            ref_file,
-            hyp_file,
-            language=language,
-            metric="wer",
+            metric=normalized_metric,
             normalizer=normalized_normalizer,
             scorer=normalized_scorer,
             input_files=input_files,
@@ -200,6 +215,14 @@ def _normalize_metric(*, language: str, metric: str) -> str:
 
 def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None) -> str:
     normalized = (normalizer or "").lower().strip()
+    if metric in _CANONICAL_METRICS:
+        if normalized in {"", "canonical", "canonical_itn", "normalization/canonical_itn"}:
+            return "canonical"
+        raise ValueError(
+            f"ASR {metric} requires the canonical_itn normalizer, got {normalizer!r}"
+        )
+    if normalized in {"canonical", "canonical_itn", "normalization/canonical_itn"}:
+        raise ValueError("normalization/canonical_itn requires a canonical-family metric")
     if not normalized:
         if language == "en" and metric == "wer":
             return "whisper"
@@ -219,6 +242,16 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
 
 def _normalize_scorer(*, language: str, metric: str, scorer: str | None) -> str:
     normalized = (scorer or "").lower().strip().replace("-", "_")
+    if metric == "cer_canonical":
+        if normalized in {"", "token", "token_cer", "scoring/token_cer"}:
+            return "token"
+        raise ValueError(f"ASR cer_canonical only supports the token_cer scorer, got {scorer!r}")
+    if metric in {"mer_canonical", "wer_canonical"}:
+        if normalized in {"", "token", "token_mer", "scoring/token_mer"}:
+            return "token_mer"
+        raise ValueError(f"ASR {metric} only supports the token_mer scorer, got {scorer!r}")
+    if normalized in {"token", "token_cer", "scoring/token_cer", "token_mer", "scoring/token_mer"}:
+        raise ValueError("token scorers require a canonical-family metric")
     if not normalized:
         return "wenet"
     if normalized in {"wenet", "wenet_wer", "wenet_cer", "scoring/wenet_wer", "scoring/wenet_cer"}:
@@ -233,6 +266,11 @@ def _normalize_scorer(*, language: str, metric: str, scorer: str | None) -> str:
 
 
 def _normalization_node(*, language: str, normalizer: str):
+    if normalizer == "canonical":
+        return (
+            lambda files: normalize_canonical_asr_files(files, language=language),
+            "canonical_itn",
+        )
     if normalizer.startswith("wetext:"):
         profile = normalizer.split(":", 1)[1]
         return (
@@ -257,6 +295,13 @@ def _normalization_node(*, language: str, normalizer: str):
 
 
 def _scoring_node(*, metric: str, scorer: str):
+    if scorer == "token" and metric == "cer_canonical":
+        return score_token_cer, "token_cer"
+    if scorer == "token_mer" and metric in {"mer_canonical", "wer_canonical"}:
+        return (
+            lambda files: score_token_mer(files, metric=metric),
+            "token_mer",
+        )
     if scorer == "wenet":
         if metric == "cer":
             return score_wenet_cer, "wenet_cer"

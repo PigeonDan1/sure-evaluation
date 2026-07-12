@@ -29,6 +29,33 @@ routes:
     input_contract: scoring/wenet_wer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
     compatibility: legacy_sure_evaluator
+  - route_id: asr.zh.cer_canonical.canonical_itn.token_cer
+    language: zh
+    metric: cer_canonical
+    pipeline_id: asr.zh.cer_canonical.canonical_itn.token_cer
+    nodes:
+      - normalization/canonical_itn
+      - scoring/token_cer
+    input_contract: scoring/token_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  - route_id: asr.cs.mer_canonical.canonical_itn.token_mer
+    language: cs
+    metric: mer_canonical
+    pipeline_id: asr.cs.mer_canonical.canonical_itn.token_mer
+    nodes:
+      - normalization/canonical_itn
+      - scoring/token_mer
+    input_contract: scoring/token_mer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  - route_id: asr.en.wer_canonical.canonical_itn.token_mer
+    language: en
+    metric: wer_canonical
+    pipeline_id: asr.en.wer_canonical.canonical_itn.token_mer
+    nodes:
+      - normalization/canonical_itn
+      - scoring/token_mer
+    input_contract: scoring/token_mer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
   - route_id: asr.cs.mer.aispeech_norm.wenet_mer
     language: cs
     metric: mer

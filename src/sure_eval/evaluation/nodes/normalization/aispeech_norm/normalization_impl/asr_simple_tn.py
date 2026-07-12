@@ -58,6 +58,18 @@ def get_n2w_map(map_file, language=None):
     #print(n2w_map, file=sys.stderr)
     return n2w_map
 
+def load_and_sort_map(map_file, language=None):
+    """Load one .map file into (key, value) pairs sorted by key length desc."""
+    n2w_map = get_n2w_map(map_file, language)
+    if not n2w_map:
+        return []
+    pairs = []
+    for item in n2w_map:
+        pairs.extend(item.items())
+    pairs.sort(key=lambda x: len(x[0]), reverse=True)
+    return pairs
+
+
 def tn_replace(text, key, value):
     pattern = None
     if key[0:2] == "\\b" or key[-2:] == "\\b": # 目前仅支持在首尾加单词边界符
@@ -253,7 +265,7 @@ def asr_num2words(
         map_files = glob.glob(os.path.join(map_dir, "*.map"))
         for mf in map_files:
             if os.path.basename(mf) != "digit.map":
-                pairs.extend(load_and_sort_map(mf))
+                pairs.extend(load_and_sort_map(mf, language))
         pairs.sort(key=lambda x: len(x[0]), reverse=True)
     text2 = text
     for key, value in pairs:
