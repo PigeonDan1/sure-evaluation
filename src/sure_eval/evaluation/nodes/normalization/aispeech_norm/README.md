@@ -13,3 +13,16 @@ Profiles:
 - `zh`: AISpeech number text normalization plus punctuation stripping.
 - `cs`: AISpeech code-switch tokenization, language split, and number text
   normalization.
+
+Input handling:
+
+- Rows are `<key>\t<text>`. A row whose text is empty is a valid recognition
+  result and is preserved, so downstream scoring counts it as deletions instead
+  of silently dropping the utterance.
+- Non-empty lines without a tab separator are dropped and counted in the node
+  trace under `row_stats`. If a file yields no parseable rows at all, the node
+  raises instead of producing an empty (and trivially perfect) evaluation.
+- Normalization map tables are loaded once per node call and shared across
+  rows (with a shared number-conversion cache), instead of re-globbing and
+  re-reading map files for every line/token. Output is identical; the
+  per-call fallback inside `asr_num2words` remains for legacy callers.

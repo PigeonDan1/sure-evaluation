@@ -7,6 +7,16 @@ def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
     path.write_text("".join(f"{key}\t{text}\n" for key, text in rows), encoding="utf-8")
 
 
+def _assert_matches_legacy(actual: dict, legacy: dict) -> None:
+    """Every legacy field must match; scoring results may add coverage fields."""
+
+    for key, value in legacy.items():
+        if isinstance(value, dict):
+            _assert_matches_legacy(actual[key], value)
+        else:
+            assert actual[key] == value, f"legacy field {key!r} diverged"
+
+
 def _fake_wetext_normalizer(files, *, profile: str):
     from sure_eval.evaluation.core.types import PipelineNodeResult
 
@@ -90,7 +100,7 @@ def test_asr_zh_cer_pipeline_matches_sure_evaluator(tmp_path: Path) -> None:
     assert report.language == "zh"
     assert report.metric == "cer"
     assert report.score == legacy["score"]
-    assert report.details["scoring_result"] == legacy
+    _assert_matches_legacy(report.details["scoring_result"], legacy)
     assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert report.details["input_contract"]["aggregation"] == "corpus_edit_distance"
     assert report.details["input_files"] == {"ref": str(ref_file), "hyp": str(hyp_file)}
@@ -144,7 +154,7 @@ def test_asr_en_wer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Pat
     )
 
     assert report.score == legacy["score"]
-    assert report.details["scoring_result"] == legacy
+    _assert_matches_legacy(report.details["scoring_result"], legacy)
     assert report.pipeline_id == "asr.en.wer.aispeech_norm.wenet_wer"
     assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
     assert report.pipeline_trace[0].details["profile"] == "en"
@@ -323,7 +333,7 @@ def test_asr_codeswitch_mer_pipeline_matches_sure_evaluator(tmp_path: Path) -> N
     assert report.language == "cs"
     assert report.metric == "mer"
     assert report.score == legacy["score"]
-    assert report.details["scoring_result"] == legacy
+    _assert_matches_legacy(report.details["scoring_result"], legacy)
     assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert report.details["input_contract"]["metric_id"] == "scoring/wenet_mer"
     assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
