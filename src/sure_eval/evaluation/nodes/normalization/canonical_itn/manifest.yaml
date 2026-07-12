@@ -1,0 +1,30 @@
+id: normalization/canonical_itn
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.canonical_itn.node
+runtime: node_local_optional
+package:
+  name: cn2an
+  version: ">=0.5.24,<0.6"
+notes:
+  - Canonicalizes numbers into the written space via ITN (spoken -> written,
+    many-to-one), so different written forms of the same speech stop scoring
+    as errors while real errors stay errors.
+  - Deterministic only for a fixed cn2an version; the engine version is
+    recorded in the node trace of every run. The engine is required; there is
+    no silent fallback.
+  - Punctuation is replaced by spaces (never deleted); % $ ¥ ° and
+    digit-context . / - are preserved as semantic symbols.
+  - Currently supports language zh. Pair with scoring/token_cer, which applies
+    the matching CJK-char / latin-word / digit-per-char tokenization.
+internal_stages:
+  - nfkc_lowercase
+  - idiom_unit_masking
+  - cn2an_itn
+  - cjk_numeral_span_pass
+  - percent_rewrite
+  - mixed_number_expansion
+  - punctuation_spacing
