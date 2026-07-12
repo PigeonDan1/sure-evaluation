@@ -1,0 +1,25 @@
+id: scoring/token_mer
+version: v1
+stage: scoring
+language_sensitive: true
+input_schema: key_text_files
+output_schema: metric_result
+implementation: sure_eval.evaluation.nodes.scoring.token_mer.node
+runtime: node_local_optional
+package:
+  name: rapidfuzz
+  version: ">=3.0,<4"
+notes:
+  - Mixed / English token error rate of the canonical family; pair with
+    normalization/canonical_itn. Applies the exact same token-level scorer
+    and tokenizer as scoring/token_cer (CJK per char, latin words, digits per
+    char, symbols per char) -- the family difference lives entirely in the
+    normalization stage, which whisper-normalizes latin spans for en/cs.
+  - Degeneration by construction; text without latin letters produces exactly
+    the cer_canonical token sequence, text without CJK is wer_canonical.
+  - Reference utterances missing from the hypothesis are scored as empty
+    hypotheses; zero covered reference tokens raise instead of scoring 0.0.
+internal_stages:
+  - canonical_tokenization
+  - token_edit_distance
+  - sdi_decomposition

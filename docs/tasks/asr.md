@@ -8,6 +8,8 @@ Evaluate text transcripts against references.
 |:-------|:---------|:------------|:------|
 | `cer` | `zh` | `asr.zh.cer.aispeech_norm.wenet_cer` | `normalization/aispeech_norm` → `scoring/wenet_cer` |
 | `cer_canonical` | `zh` (opt-in, needs `[canonical]` extra) | `asr.zh.cer_canonical.canonical_itn.token_cer` | `normalization/canonical_itn` → `scoring/token_cer` |
+| `wer_canonical` | `en` (opt-in, needs `[canonical]` extra) | `asr.en.wer_canonical.canonical_itn.token_mer` | `normalization/canonical_itn` → `scoring/token_mer` |
+| `mer_canonical` | `cs` (opt-in, needs `[canonical]` extra) | `asr.cs.mer_canonical.canonical_itn.token_mer` | `normalization/canonical_itn` → `scoring/token_mer` |
 | `wer` | `en` (Whisper norm) | `asr.en.wer.whisper_norm.wenet_wer` | `normalization/whisper_norm` → `scoring/wenet_wer` |
 | `wer` | `en` (legacy AISpeech norm) | `asr.en.wer.aispeech_norm.wenet_wer` | `normalization/aispeech_norm` → `scoring/wenet_wer` |
 | `mer` | `cs` (code-switching) | `asr.cs.mer.aispeech_norm.wenet_mer` | `normalization/aispeech_norm` → `scoring/wenet_mer` |
@@ -79,5 +81,29 @@ Determinism: identical scores require an identical `cn2an` version; the
 engine version is recorded in each run's node trace. See
 `src/sure_eval/evaluation/nodes/normalization/canonical_itn/README.md` for
 the full chain and known limitations.
+
+`cer_canonical` is one member of the **canonical family**, which shares one
+normalization chain, one tokenizer, and one scorer:
+
+- `cer_canonical` (zh) — CJK per char, digits per char;
+- `wer_canonical` (en) — latin words; the normalization stage additionally
+  whisper-normalizes latin spans (contraction expansion `don't` →
+  `do not`, spoken numbers `fifty percent` → `50%`, spoken-filler removal,
+  British→American spelling fold) using the vendored Whisper English
+  normalizer, with two robustness passes: unambiguous bare contractions are
+  restored first (`dont` → `don't`, so apostrophe-dropping outputs expand
+  identically), and `'s` is collapsed instead of expanded (`it's` ≡ `its`,
+  `john's` ≡ `johns`; `'s` is possessive/is/has-ambiguous);
+- `mer_canonical` (cs) — both of the above in one token stream.
+
+Scoring includes a deterministic word-spacing repair: a latin word equal to
+the concatenation of 2–4 consecutive words on the other side is split
+(`tenthe` ≡ `ten the`), so pure spacing artifacts never score as errors
+while any letter difference stays fully scored.
+
+Degeneration holds by construction and is locked by tests: text without
+latin letters scores identically under `mer_canonical` and `cer_canonical`
+(the whisper stage only touches spans containing latin letters); text
+without CJK scores identically under `mer_canonical` and `wer_canonical`.
 
 These are not part of the default routes and must be requested explicitly.

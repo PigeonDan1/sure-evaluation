@@ -1,0 +1,13 @@
+id: scoring/token_mer
+group: scoring-extra
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+packages:
+  - name: rapidfuzz
+    version: ">=3.0,<4"
+verify:
+  imports:
+    - rapidfuzz
+  files: []

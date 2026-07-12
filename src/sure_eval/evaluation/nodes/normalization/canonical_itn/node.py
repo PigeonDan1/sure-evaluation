@@ -30,18 +30,25 @@ def normalize_canonical_asr_files(
 ) -> tuple[KeyTextFiles, PipelineNodeResult]:
     """Normalize key-text files into the canonical written form."""
 
-    if language != "zh":
+    if language not in {"zh", "en", "cs"}:
         raise ValueError(
-            f"normalization/canonical_itn currently supports language='zh' only, got {language!r}"
+            f"normalization/canonical_itn supports languages zh/en/cs, got {language!r}"
         )
     engine = chain.engine_info()  # fail fast when the ITN engine is missing
+    # zh uses the plain chain; en/cs additionally whisper-normalize latin
+    # spans (contractions, spoken numbers, fillers, spelling). Text without
+    # latin letters is identical under both, which preserves the pure-Chinese
+    # degeneration to cer_canonical.
+    normalize_fn = chain.normalize_text if language == "zh" else chain.normalize_text_mixed
+    if language != "zh":
+        engine = dict(engine, en_span_normalizer="whisper_english")
 
     fallbacks_before = chain.itn_fallback_count()
     ref_norm_file = _new_temp_file()
     hyp_norm_file = _new_temp_file()
     try:
-        ref_stats = _write_normalized_file(files.ref_file, ref_norm_file)
-        hyp_stats = _write_normalized_file(files.hyp_file, hyp_norm_file)
+        ref_stats = _write_normalized_file(files.ref_file, ref_norm_file, normalize_fn)
+        hyp_stats = _write_normalized_file(files.hyp_file, hyp_norm_file, normalize_fn)
     except Exception:
         Path(ref_norm_file).unlink(missing_ok=True)
         Path(hyp_norm_file).unlink(missing_ok=True)
@@ -55,7 +62,7 @@ def normalize_canonical_asr_files(
             version=NODE_VERSION,
             details={
                 "language": language,
-                "profile": "zh_canonical",
+                "profile": f"{language}_canonical",
                 "text_normalizer": "canonical_itn_chain",
                 "ref_file": ref_norm_file,
                 "hyp_file": hyp_norm_file,
@@ -68,7 +75,7 @@ def normalize_canonical_asr_files(
     )
 
 
-def _write_normalized_file(input_file: str, output_file: str) -> dict[str, int]:
+def _write_normalized_file(input_file: str, output_file: str, normalize_fn) -> dict[str, int]:
     rows: list[str] = []
     num_empty_text_rows = 0
     num_dropped_malformed_rows = 0
@@ -80,7 +87,7 @@ def _write_normalized_file(input_file: str, output_file: str) -> dict[str, int]:
                     num_dropped_malformed_rows += 1
                 continue
             if text:
-                text_norm = chain.normalize_text(text)
+                text_norm = normalize_fn(text)
             else:
                 num_empty_text_rows += 1
                 text_norm = ""

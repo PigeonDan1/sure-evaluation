@@ -14,6 +14,12 @@ Scores canonical written-form key-text files (see
   via `num_hyp_missing_utts`; hypothesis-only utterances are counted in
   `num_hyp_extra_utts`; covering zero reference tokens raises instead of
   reporting a perfect 0.0.
+- Word-spacing repair: a latin word token on one side is split when its
+  letters exactly equal the concatenation of 2-4 consecutive word tokens on
+  the other side ("tenthe" vs "ten the"), cancelling pure spacing artifacts
+  while any letter difference stays fully scored. Repair count is reported
+  as `spacing_repairs`. Deterministic and per-utterance; CJK/digit/symbol
+  tokens never participate.
 - An empty reference with a non-empty hypothesis contributes pure
   insertions, so corpus scores may exceed 100% on hallucination-style sets
   by design.
