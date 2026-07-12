@@ -11,8 +11,10 @@ default_pipelines:
     cer_canonical: asr.zh.cer_canonical.canonical_itn.token_cer
   en:
     wer: asr.en.wer.whisper_norm.wenet_wer
+    wer_canonical: asr.en.wer_canonical.canonical_itn.token_mer
   cs:
     mer: asr.cs.mer.aispeech_norm.wenet_mer
+    mer_canonical: asr.cs.mer_canonical.canonical_itn.token_mer
 input_contracts:
   scoring/wenet_cer:
     purpose: character_error_rate
@@ -42,6 +44,13 @@ input_contracts:
     alignment_key: key
     aggregation: corpus_token_edit_distance
     main_report: true
+  scoring/token_mer:
+    purpose: canonical_mixed_token_error_rate
+    required_roles: [hyp, ref]
+    row_format: key_text
+    alignment_key: key
+    aggregation: corpus_token_edit_distance
+    main_report: true
 legacy_reference:
   evaluator: sure_eval.evaluation.sure_evaluator.SUREEvaluator
   methods:
@@ -54,3 +63,4 @@ notes:
   - WeTextProcessing profiles are available only through explicit normalizer arguments such as normalizer="wetext:zh_tn"; no default route uses wetext_norm.
   - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.
   - cer_canonical is an opt-in written-form canonical CER (ITN + token-level scoring) that coexists with the default WeNet-compatible cer; it never replaces it. Requires the [canonical] extra (cn2an + rapidfuzz), and identical scores require an identical cn2an version (recorded in each run's node trace).
+  - mer_canonical (cs) and wer_canonical (en) complete the canonical family; text without latin letters degenerates to cer_canonical and text without CJK to wer_canonical, by construction. For en/cs the normalization stage additionally whisper-normalizes latin spans (contraction expansion, spoken numbers to digits, spoken-filler removal, British-to-American spelling) using the vendored Whisper English normalizer; spans without latin letters pass through unchanged, which is what preserves the pure-Chinese degeneration.

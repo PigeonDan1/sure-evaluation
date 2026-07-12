@@ -344,6 +344,85 @@ def normalize_text(s: str) -> str:
     return _strip_punct_space(s)
 
 
+_EN_LETTER = re.compile(r"[A-Za-z]")
+_HAN_SPLIT = re.compile(r"([一-鿿]+)")
+
+# Apostrophe policy, chosen for maximal equivalence coverage under the
+# inherent non-transitivity of contractions (it's ~ it is, it's ~ its, but
+# it is !~ it has):
+# 1. UNAMBIGUOUS bare contractions (n't / 're / 'll / 've / 'm / 'd forms)
+#    are restored before the Whisper normalizer, so outputs which drop
+#    apostrophes ("dont", "im") expand identically to apostrophed
+#    references ("don't"): dont == don't == do not.
+# 2. 's is COLLAPSED (apostrophe deleted on both sides) instead of
+#    expanded, because 's is three-ways ambiguous (possessive / is / has)
+#    and expansion mis-scores every possessive and every system that drops
+#    apostrophes: john's == johns, it's == its. The one forgone
+#    equivalence is contracted-vs-written-out (it's vs it is), which no
+#    deterministic mapping can have together with the two above.
+_BARE_CONTRACTIONS = {
+    "aint": "ain't", "arent": "aren't", "cant": "can't", "couldnt": "couldn't",
+    "didnt": "didn't", "doesnt": "doesn't", "dont": "don't", "hadnt": "hadn't",
+    "hasnt": "hasn't", "havent": "haven't", "im": "i'm",
+    "isnt": "isn't", "ive": "i've", "mustnt": "mustn't",
+    "shouldnt": "shouldn't", "theyd": "they'd", "theyll": "they'll",
+    "theyre": "they're", "theyve": "they've", "wasnt": "wasn't",
+    "werent": "weren't", "weve": "we've",
+    "wont": "won't", "wouldnt": "wouldn't", "youd": "you'd",
+    "youll": "you'll", "youre": "you're", "youve": "you've",
+}
+_BARE_CONTRACTION_RE = re.compile(
+    r"\b(" + "|".join(sorted(_BARE_CONTRACTIONS, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+_S_COLLAPSE_RE = re.compile(r"([A-Za-z])'s\b")
+_whisper_english = None
+
+
+def _require_whisper_english():
+    global _whisper_english
+    if _whisper_english is None:
+        from sure_eval.evaluation.nodes.normalization.whisper_norm.normalization_impl import (
+            EnglishTextNormalizer,
+        )
+
+        _whisper_english = EnglishTextNormalizer()
+    return _whisper_english
+
+
+def _normalize_en_spans(s: str) -> str:
+    """Whisper-normalize latin spans (contractions, spoken numbers, fillers,
+    spelling) while leaving Han runs and letter-free spans untouched.
+
+    Only spans containing latin letters are processed, so text without latin
+    letters passes through EXACTLY unchanged -- this is what makes the mixed
+    chain degenerate to the plain chain on pure-Chinese input.
+    """
+
+    normalizer = _require_whisper_english()
+    out: list[str] = []
+    for span in _HAN_SPLIT.split(s):
+        if span and _EN_LETTER.search(span):
+            span = span.replace("’", "'")
+            span = _BARE_CONTRACTION_RE.sub(
+                lambda m: _BARE_CONTRACTIONS[m.group(0).lower()], span
+            )
+            span = _S_COLLAPSE_RE.sub(r"\1s", span)
+            out.append(f" {normalizer(span)} ")
+        else:
+            out.append(span)
+    return "".join(out)
+
+
+def normalize_text_mixed(s: str) -> str:
+    """Mixed-language canonicalization: latin spans are whisper-normalized
+    first, then the full string runs through the plain canonical chain."""
+
+    if not s:
+        return ""
+    return normalize_text(_normalize_en_spans(s))
+
+
 def normalize_text_no_numnorm(s: str) -> str:
     """Same chain minus all number canonicalization (inspection toggle)."""
 
