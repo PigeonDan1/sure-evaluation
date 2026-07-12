@@ -13,6 +13,7 @@ OUTPUT = REPO_ROOT / "docs" / "pipeline_catalog.jsonl"
 
 COMBINATIONS = [
     ("asr", {"language": "zh", "metric": "cer"}),
+    ("asr", {"language": "zh", "metric": "cer_canonical"}),
     ("asr", {"language": "en", "metric": "wer"}),
     ("asr", {"language": "cs", "metric": "mer"}),
     ("s2tt", {"language": "zh", "metric": "bleu"}),

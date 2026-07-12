@@ -60,6 +60,10 @@ download = [
 datasets = [
     "datasets>=2.14.0",
 ]
+canonical = [
+    "cn2an>=0.5.24,<0.6",
+    "rapidfuzz>=3.0,<4",
+]
 
 [project.scripts]
 sure-eval = "sure_eval.cli:app"
