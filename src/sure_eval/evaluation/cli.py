@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 import subprocess
 import sys
 from datetime import datetime
@@ -26,6 +27,7 @@ from sure_eval.evaluation.env_check import (
     doctor_payload,
     check_pipeline_environment,
     iter_known_node_ids,
+    package_install_specs,
     raise_if_environment_failed,
 )
 
@@ -391,6 +393,12 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
         if python:
             command_parts.append(f"uv venv --python {python}")
         command_parts.append("uv sync" if project == "pyproject.toml" else f"uv sync --project {project}")
+    elif runtime_type == "pip":
+        specs = package_install_specs(node_env)
+        if specs:
+            command_parts.append("python -m pip install " + " ".join(shlex.quote(spec) for spec in specs))
+        else:
+            command_parts.append("# no pip packages declared")
     elif runtime_type == "binary" and runtime.get("build_script"):
         command_parts.append(f"bash {runtime['build_script']}")
     else:
@@ -416,6 +424,7 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
         "project": project,
         "build_script": runtime.get("build_script"),
         "command": " && ".join(command_parts),
+        "packages": package_install_specs(node_env),
         "no_download": no_download,
         "downloads": [] if no_download else downloads,
         "node_env": str(checker.node_env_path(node_id)) if node_env else "",

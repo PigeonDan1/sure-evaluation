@@ -94,6 +94,28 @@ def test_node_env_checker_reports_missing_later_model_target(tmp_path: Path) -> 
     assert env_name == "SECOND_MODEL"
 
 
+def test_pip_runtime_node_checks_declared_imports(monkeypatch) -> None:
+    from sure_eval.evaluation import env_check
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    original_find_spec = env_check.importlib.util.find_spec
+
+    def _fake_find_spec(name: str):
+        if name == "cn2an":
+            return None
+        return original_find_spec(name)
+
+    monkeypatch.setattr(env_check.importlib.util, "find_spec", _fake_find_spec)
+
+    result = NodeEnvChecker().check_node("normalization/canonical_itn")
+
+    assert result.runtime == "pip_optional"
+    assert result.status == "failed"
+    assert "cn2an" in result.message
+    assert "cn2an" in result.details["missing_imports"]
+    assert "pip install" in result.fix
+
+
 def test_transcription_node_local_envs_are_checked() -> None:
     from sure_eval.evaluation.env_check import NodeEnvChecker
 
@@ -198,6 +220,21 @@ def test_env_setup_dry_run_reads_node_env_metadata() -> None:
     assert action["project"] == "pyproject.toml"
     assert action["node_env"].endswith("node_env.yaml")
     assert action["downloads"][0]["env"] == "DNSMOS_CHECKPOINT"
+
+
+def test_env_setup_dry_run_builds_pip_runtime_command() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["env", "setup", "--node", "normalization/canonical_itn", "--dry-run", "--json"])
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    action = payload["actions"][0]
+    assert action["node_id"] == "normalization/canonical_itn"
+    assert action["runtime"] == "pip"
+    assert action["packages"] == ["cn2an>=0.5.24,<0.6"]
+    assert "python -m pip install" in action["command"]
+    assert "cn2an" in action["command"]
 
 
 def test_env_setup_dry_run_resolves_task_metrics_and_group() -> None:

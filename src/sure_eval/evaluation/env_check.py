@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import shlex
 import shutil
 import sys
 from dataclasses import dataclass
@@ -28,7 +29,7 @@ NODE_LOCAL_PROJECTS = {
     "transcription/whisper_large_v3",
 }
 
-OPTIONAL_NODE_RUNTIME_TYPES = {"uv", "binary"}
+OPTIONAL_NODE_RUNTIME_TYPES = {"uv", "binary", "pip"}
 
 DEFAULT_CHECKPOINTS_BY_NODE = {
     "scoring/bleurt_20": (
@@ -150,6 +151,8 @@ class NodeEnvChecker:
             )
         if runtime == "binary":
             return self._check_binary_node(node_id, node_path, node_env or {})
+        if runtime == "pip_optional":
+            return self._check_pip_node(node_id, node_path, node_env or {})
         python_name = self._runtime_python_name(node_env)
         venv_python = node_path / ".venv" / "bin" / python_name
         fallback_python = node_path / ".venv" / "bin" / "python"
@@ -301,6 +304,61 @@ class NodeEnvChecker:
             details=details,
         )
 
+    def _check_pip_node(self, node_id: str, node_path: Path, node_env: dict[str, Any]) -> EnvCheckResult:
+        details = {
+            "node_path": str(node_path),
+            "node_env": str(self.node_env_path(node_id)),
+            "packages": package_install_specs(node_env),
+        }
+        verify = node_env.get("verify") if isinstance(node_env.get("verify"), dict) else {}
+        imports = [str(name) for name in verify.get("imports") or ()]
+        details["imports"] = imports
+
+        missing_files = []
+        for file_name in verify.get("files") or ():
+            file_path = node_path / str(file_name)
+            if not file_path.exists():
+                missing_files.append(str(file_path))
+        if missing_files:
+            details["missing_files"] = missing_files
+            return EnvCheckResult(
+                name=node_id,
+                node_id=node_id,
+                runtime="pip_optional",
+                required=True,
+                status="failed",
+                message=f"verify file is missing: {missing_files[0]}",
+                details=details,
+            )
+
+        missing_imports = [name for name in imports if importlib.util.find_spec(name) is None]
+        if missing_imports:
+            details["missing_imports"] = missing_imports
+            install_specs = package_install_specs(node_env)
+            fix = "Install missing Python package(s)"
+            if install_specs:
+                fix = "python -m pip install " + " ".join(shlex.quote(spec) for spec in install_specs)
+            return EnvCheckResult(
+                name=node_id,
+                node_id=node_id,
+                runtime="pip_optional",
+                required=True,
+                status="failed",
+                message=f"missing import(s): {', '.join(missing_imports)}",
+                fix=fix,
+                details=details,
+            )
+
+        return EnvCheckResult(
+            name=node_id,
+            node_id=node_id,
+            runtime="pip_optional",
+            required=True,
+            status="ok",
+            message="pip runtime imports available",
+            details=details,
+        )
+
     @staticmethod
     def _runtime_python_name(node_env: dict[str, Any] | None) -> str:
         if not node_env:
@@ -316,8 +374,12 @@ class NodeEnvChecker:
         if node_env:
             runtime = node_env.get("runtime") if isinstance(node_env.get("runtime"), dict) else {}
             runtime_type = str(runtime.get("type") or "").strip()
-            if runtime_type in OPTIONAL_NODE_RUNTIME_TYPES:
-                return "binary" if runtime_type == "binary" else "node_local_project"
+            if runtime_type == "binary":
+                return "binary"
+            if runtime_type == "uv":
+                return "node_local_project"
+            if runtime_type == "pip":
+                return "pip_optional"
         if node_id in NODE_LOCAL_PROJECTS:
             return "node_local_project"
         if (node_path / "pyproject.toml").exists() and node_id not in {
@@ -327,6 +389,19 @@ class NodeEnvChecker:
         }:
             return "node_local_optional"
         return "in_process"
+
+
+def package_install_specs(node_env: dict[str, Any]) -> list[str]:
+    specs = []
+    for package in node_env.get("packages") or ():
+        if not isinstance(package, dict):
+            continue
+        name = str(package.get("name") or "")
+        version = str(package.get("version") or "")
+        if not name:
+            continue
+        specs.append(f"{name}{version}" if version else name)
+    return specs
 
 
 def check_pipeline_environment(pipeline: dict[str, Any]) -> list[EnvCheckResult]:
