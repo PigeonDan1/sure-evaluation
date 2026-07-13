@@ -25,12 +25,13 @@ pip install "sure-evaluation[audio]"        # local audio helpers
 pip install "sure-evaluation[download]"     # Hugging Face / ModelScope asset download helpers
 pip install "sure-evaluation[diarization]"  # MeetEval for SD and SA-ASR
 pip install "sure-evaluation[wetext]"       # WeTextProcessing normalization
+pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER routes
 ```
 
 For maintainers:
 
 ```bash
-pip install -e ".[dev,audio,download,diarization,wetext]"
+pip install -e ".[dev,audio,download,diarization,wetext,canonical]"
 ```
 
 ## Optional Cache Root

@@ -53,7 +53,7 @@ Input files are tab-separated: `<key>\t<text>`.
 
 | Task | Metrics | Notes | Guide |
 |:-----|:--------|:------|:------|
-| **ASR** | WER, CER, MER | Text-only, base install | [docs/tasks/asr.md](./docs/tasks/asr.md) |
+| **ASR** | WER, CER, MER, canonical variants | Text-only; canonical variants require `[canonical]` | [docs/tasks/asr.md](./docs/tasks/asr.md) |
 | **S2TT** | BLEU, chrF2, XCOMET-XL, BLEURT-20 | Base + optional heavy metrics | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
 | **SD** | DER | Requires `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
 | **SA-ASR** | cpWER, DER | Requires `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
@@ -89,6 +89,7 @@ pip install "sure-evaluation[diarization]"  # MeetEval for SD / SA-ASR
 pip install "sure-evaluation[audio]"        # Local audio helpers
 pip install "sure-evaluation[download]"     # Hugging Face / ModelScope download helpers
 pip install "sure-evaluation[wetext]"       # WeTextProcessing normalization
+pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER routes
 
 # Put caches on a large disk
 export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
@@ -117,7 +118,7 @@ Example entries:
 
 ```jsonl
 {"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.aispeech_norm.wenet_cer","nodes":["normalization/aispeech_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
-{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
+{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","normalization/punctuation_strip_norm","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
 ```
 
 Regenerate it after adding new routes:

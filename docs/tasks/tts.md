@@ -8,8 +8,12 @@ Evaluate synthesized speech for intelligibility, speaker similarity, and quality
 
 | Metric | Language | Pipeline ID | Nodes |
 |:-------|:---------|:------------|:------|
-| `tts_cer` | `zh` / `cmn` / `yue` | `tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `scoring/wenet_cer` |
+| `tts_cer` | `zh` / `cmn` / `yue` | `tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
 | `tts_wer` | `en` | `tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer` | `transcription/whisper_large_v3` → `normalization/whisper_norm` → `scoring/wenet_wer` |
+
+Mandarin semantic CER strips punctuation only before WeNet CER. It does not
+use `normalization/aispeech_norm` by default, so numbers, case, and
+non-punctuation text are preserved.
 
 ### Speaker similarity
 
