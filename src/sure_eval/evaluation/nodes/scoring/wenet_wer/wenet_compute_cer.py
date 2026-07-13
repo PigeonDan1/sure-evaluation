@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import re
 import sys
 import unicodedata
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 
 # Constants
 remove_tag = True

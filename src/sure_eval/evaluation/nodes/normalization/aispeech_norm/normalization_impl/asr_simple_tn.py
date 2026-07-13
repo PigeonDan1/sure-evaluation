@@ -98,7 +98,7 @@ def preprocess_zh_text(text):
                 return num2words_std(num, lang='zh_CN')
             else:
                 return digit_str
-        except:
+        except Exception:
             return digit_str
     
     # 匹配中文数字的逐位读法（如"一零"、"一五"、"二零"等）
@@ -115,7 +115,7 @@ def preprocess_zh_text(text):
                 return num2words_std(num, lang='zh_CN')
             else:
                 return num_str  # 大数字保持阿拉伯数字
-        except:
+        except Exception:
             return num_str
     
     # 匹配独立的数字（避免匹配日期中的数字）
@@ -177,7 +177,7 @@ def preprocess_en_text(text):
         val = match.group(1).replace(',', '')
         try:
             return num2words_std(val, lang='en', to='currency', currency='USD')
-        except:
+        except Exception:
             return match.group(0) # Fallback
 
     text = re.sub(r'\$(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)', replace_currency, text)
@@ -401,4 +401,3 @@ def asr_num2words(
         logger.debug(f"fun_o: {text}")
 
     return text
-
