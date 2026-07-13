@@ -176,6 +176,12 @@ sure-eval metric run \
   --json
 ```
 
+For Mandarin TTS semantic CER, the default route is
+`frontend/funasr_loader_16k_mono -> transcription/paraformer_zh ->
+normalization/punctuation_strip_norm -> scoring/wenet_cer`. This strips
+punctuation only and does not use `normalization/aispeech_norm` unless an
+explicit semantic normalizer selects it.
+
 TTS rows use explicit roles:
 
 ```json

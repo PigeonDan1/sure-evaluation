@@ -1107,10 +1107,17 @@ def test_tts_metric_pipeline_connects_semantic_speaker_and_mos() -> None:
     assert report.results["dnsmos"].score == 3.1
     assert report.results["wv-mos"].score == 3.2
     assert report.results["utmos"].score == 3.3
-    assert report.results["tts_wer"].details["pipeline_id"] == "tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer"
+    assert (
+        report.results["tts_wer"].details["pipeline_id"]
+        == "tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer"
+    )
     assert (
         report.results["tts_cer"].details["pipeline_id"]
-        == "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer"
+        == "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+    )
+    assert (
+        report.results["tts_cer"].details["pipeline_trace"][2]["node_id"]
+        == "normalization/punctuation_strip_norm"
     )
     assert report.results["sim/wavlm-large"].details["pipeline_trace"][0]["node_id"] == "scoring/wavlm_large_sim"
     assert report.results["dnsmos"].details["pipeline_trace"][0]["node_id"] == "scoring/dnsmos"
@@ -1681,9 +1688,11 @@ def test_validation_plan_lists_required_models_without_importing_heavy_deps() ->
 
     plan = build_validation_plan(suite="all", device="cpu")
     model_ids = {item["model_id"] for item in plan["models"]}
+    base_model_ids = {item.get("base_model_id") for item in plan["models"]}
 
     assert "openai/whisper-large-v3" in model_ids
     assert "paraformer-zh" in model_ids
-    assert "microsoft/wavlm-large" in model_ids
+    assert "wavlm_large_finetune.pth" in model_ids
+    assert "microsoft/wavlm-large" in base_model_ids
     assert "speechbrain/spkrec-ecapa-voxceleb" in model_ids
     assert "iic/speech_eres2net_sv_zh-cn_16k-common" in model_ids

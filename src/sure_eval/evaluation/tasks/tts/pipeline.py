@@ -25,6 +25,7 @@ _TTS_SEMANTIC_TEXT_CONTRACT = MetricInputContract(
     purpose="tts_intelligibility_via_asr_transcript",
 )
 _ZIP_SENTINEL = object()
+_ZH_DEFAULT_SEMANTIC_NORMALIZER = "punctuation_strip"
 
 
 def evaluate_tts_samples(
@@ -56,12 +57,16 @@ def evaluate_tts_samples(
         expected_metric = _default_semantic_metric("tts", language)
         if metric_name != expected_metric:
             raise ValueError(f"Metric {metric_name} does not match language {language}; expected {expected_metric}")
+        effective_semantic_normalizer = _effective_semantic_normalizer(
+            language=language,
+            explicit_normalizer=semantic_normalizer,
+        )
         semantic = _evaluate_semantic(
             samples,
             rows,
             metric_name=metric_name,
             language=language,
-            semantic_normalizer=semantic_normalizer,
+            semantic_normalizer=effective_semantic_normalizer,
             transcribers=transcribers,
         )
         semantic_result = _semantic_metric_result(metric_name, semantic)
@@ -109,12 +114,16 @@ def evaluate_tts_samples(
         transcript_node = "paraformer_zh" if _uses_cer(language) else "whisper_large_v3"
         asr_metric = _asr_metric_for_semantic(metric, language)
         normalizer_label = _normalizer_label_from_asr_pipeline(results[metric]["asr_pipeline_id"])
-        if _uses_cer(language) and semantic_normalizer is None:
-            pipeline_id = f"tts.{language}.{metric}.funasr_loader_16k_mono.{transcript_node}.asr_{asr_metric}"
-        elif _uses_cer(language):
-            pipeline_id = f"tts.{language}.{metric}.funasr_loader_16k_mono.{transcript_node}.{normalizer_label}.wenet_{asr_metric}"
+        if _uses_cer(language):
+            pipeline_id = (
+                f"tts.{language}.{metric}.funasr_loader_16k_mono."
+                f"{transcript_node}.{normalizer_label}.wenet_{asr_metric}"
+            )
         else:
-            pipeline_id = f"tts.{language}.{metric}.{transcript_node}.{normalizer_label}.wenet_{asr_metric}"
+            pipeline_id = (
+                f"tts.{language}.{metric}.{transcript_node}."
+                f"{normalizer_label}.wenet_{asr_metric}"
+            )
     else:
         input_contract = None
         pipeline_id = f"tts.{language}.multi.audio_metric_nodes"
@@ -211,6 +220,7 @@ def _evaluate_semantic(
             "transcript": transcript,
             "reference_text": sample.reference_text,
             "asr_metric": asr_metric_for_semantic(metric_name, sample.language),
+            "normalizer": semantic_normalizer,
         }
 
     asr_metric = asr_metric_for_semantic(metric_name, language)
@@ -286,6 +296,14 @@ def _uses_cer(language: str) -> bool:
 
 def _default_semantic_metric(prefix: str, language: str) -> str:
     return f"{prefix}_{'cer' if _uses_cer(language) else 'wer'}"
+
+
+def _effective_semantic_normalizer(*, language: str, explicit_normalizer: str | None) -> str | None:
+    if explicit_normalizer is not None:
+        return explicit_normalizer
+    if _uses_cer(language):
+        return _ZH_DEFAULT_SEMANTIC_NORMALIZER
+    return None
 
 
 def _asr_metric_for_semantic(metric: str, language: str) -> str:

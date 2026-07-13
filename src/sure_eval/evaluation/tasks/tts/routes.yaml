@@ -1,14 +1,15 @@
 task: TTS
 language_sensitive: true
 routes:
-  - route_id: tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer
+  - route_id: tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
     language: zh
     metric: tts_cer
     family: semantic_error_rate
-    pipeline_id: tts.{language}.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer
+    pipeline_id: tts.{language}.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
     nodes:
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
+      - normalization/punctuation_strip_norm
       - scoring/wenet_cer
     input_contract: semantic/asr_error_rate
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples

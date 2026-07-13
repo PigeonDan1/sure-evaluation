@@ -13,7 +13,7 @@ Semantic routes:
 
 | Language | Metric | Transcription node | Normalization node | Downstream ASR metric |
 | --- | --- | --- | --- | --- |
-| `zh` / `cmn` / `yue` | `tts_cer` | `transcription/paraformer_zh` | `normalization/aispeech_norm` | `cer` |
+| `zh` / `cmn` / `yue` | `tts_cer` | `transcription/paraformer_zh` | `normalization/punctuation_strip_norm` | `cer` |
 | `en` | `tts_wer` | `transcription/whisper_large_v3` | `normalization/whisper_norm` | `wer` |
 
 Speaker similarity and MOS routes:
@@ -32,5 +32,6 @@ metric selection plus injected providers. The report-level `sim` value is an agg
 named speaker backends, not a standalone scoring node.
 
 `normalization/wetext_norm` can be selected explicitly with
-`evaluate_tts_samples(..., semantic_normalizer="wetext:zh_tn")`. Defaults remain
-unchanged.
+`evaluate_tts_samples(..., semantic_normalizer="wetext:zh_tn")`. Mandarin defaults
+use `normalization/punctuation_strip_norm`, not `normalization/aispeech_norm`, so
+numbers, case, and non-punctuation text are preserved before WeNet CER scoring.

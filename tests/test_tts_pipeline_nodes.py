@@ -26,7 +26,7 @@ def _fake_wetext_normalizer(files, *, profile: str):
     )
 
 
-def test_tts_zh_semantic_route_reuses_asr_cer_pipeline() -> None:
+def test_tts_zh_semantic_route_uses_punctuation_strip_norm() -> None:
     from sure_eval.evaluation.tasks.tts.pipeline import evaluate_tts_samples
     from sure_eval.evaluation.tasks.tts.compat import TTSSample
 
@@ -49,20 +49,28 @@ def test_tts_zh_semantic_route_reuses_asr_cer_pipeline() -> None:
     assert report.language == "zh"
     assert report.metric == "tts_cer"
     assert report.score == 0.0
-    assert report.pipeline_id == "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer"
+    assert report.pipeline_id == (
+        "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+    )
     assert report.details["results"]["tts_cer"]["score"] == 0.0
+    assert (
+        report.details["results"]["tts_cer"]["asr_pipeline_id"]
+        == "asr.zh.cer.punctuation_strip_norm.wenet_cer"
+    )
     assert report.details["rows"][0]["semantic"]["metric"] == "tts_cer"
     assert report.details["rows"][0]["semantic"]["transcript"] == "你好世界"
     assert report.details["rows"][0]["semantic"]["asr_metric"] == "cer"
+    assert report.details["rows"][0]["semantic"]["normalizer"] == "punctuation_strip"
     assert transcriber.calls == [("hyp.wav", "zh")]
 
     trace_ids = [node.node_id for node in report.pipeline_trace]
     assert trace_ids == [
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
-        "normalization/aispeech_norm",
+        "normalization/punctuation_strip_norm",
         "scoring/wenet_cer",
     ]
+    assert "normalization/aispeech_norm" not in trace_ids
     assert report.pipeline_trace[0].details["audio_path"] == "hyp.wav"
     assert report.pipeline_trace[0].details["materialized_audio_path"] is None
     assert report.pipeline_trace[0].details["cv3_compatible"] is True

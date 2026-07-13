@@ -1,0 +1,24 @@
+id: normalization/punctuation_strip_norm
+version: v1
+stage: normalization
+language_sensitive: false
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.punctuation_strip_norm.node
+runtime: in_process
+profiles:
+  unicode_category_p_or_ascii:
+    operation: punctuation_stripping_only
+    removes:
+      - Unicode categories whose name starts with P
+      - ASCII string.punctuation characters
+    preserves:
+      - numbers
+      - case
+      - whitespace
+      - non-punctuation symbols outside ASCII punctuation
+    default_for:
+      - TTS/zh/tts_cer
+notes:
+  - This node intentionally does not apply AISpeech number text normalization.
+  - It exists so Mandarin TTS CER can strip punctuation without rewriting digits, Latin words, or Chinese text.

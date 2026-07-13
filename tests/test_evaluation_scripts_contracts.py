@@ -210,6 +210,7 @@ def test_tts_script_merges_multi_metric_input_contracts() -> None:
     assert description.node_ids == (
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
+        "normalization/punctuation_strip_norm",
         "scoring/wenet_cer",
         "scoring/wavlm_large_sim",
         "scoring/dnsmos",
@@ -231,6 +232,7 @@ def test_tts_routes_declare_semantic_speaker_and_mos_nodes() -> None:
     assert zh_semantic["nodes"] == [
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
+        "normalization/punctuation_strip_norm",
         "scoring/wenet_cer",
     ]
     en_semantic = next(

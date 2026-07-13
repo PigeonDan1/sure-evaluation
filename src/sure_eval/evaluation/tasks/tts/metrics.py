@@ -75,7 +75,7 @@ class WERMetric(_ASRWERMetric):
         method=(
             "Transcribe generated speech with Whisper-large-v3 for English or "
             "Paraformer-zh for Mandarin, then compute word error rate against "
-            "the target synthesis text with punctuation normalization."
+            "the target synthesis text with route-specific punctuation normalization."
         ),
         score_key="wer",
         higher_is_better=False,
@@ -92,7 +92,7 @@ class CERMetric(_ASRCERMetric):
         method=(
             "Character-level text error rate for Mandarin TTS intelligibility; "
             "Seed-TTS-Eval obtains transcripts with Paraformer-zh before "
-            "computing the same edit-distance error-rate family."
+            "computing the same edit-distance error-rate family after punctuation-only normalization."
         ),
         score_key="cer",
         higher_is_better=False,

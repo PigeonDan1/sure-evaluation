@@ -259,6 +259,34 @@ def test_asr_can_explicitly_use_wetext_normalizer_without_changing_defaults(tmp_
     assert report.pipeline_trace[0].details["profile"] == "zh_tn"
 
 
+def test_asr_can_explicitly_use_punctuation_strip_normalizer(tmp_path: Path) -> None:
+    from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
+
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    _write_key_text(ref_file, [("utt1", "你好，世界！")])
+    _write_key_text(hyp_file, [("utt1", "你好世界")])
+
+    report = evaluate_asr_files(
+        str(ref_file),
+        str(hyp_file),
+        language="zh",
+        metric="cer",
+        normalizer="punctuation_strip",
+    )
+
+    assert report.pipeline_id == "asr.zh.cer.punctuation_strip_norm.wenet_cer"
+    assert report.score == 0.0
+    assert [node.node_id for node in report.pipeline_trace] == [
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+    assert (
+        report.pipeline_trace[0].details["normalization"]["operation"]
+        == "punctuation_stripping_only"
+    )
+
+
 def test_asr_rejects_wetext_profile_that_does_not_match_language(tmp_path: Path) -> None:
     from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 

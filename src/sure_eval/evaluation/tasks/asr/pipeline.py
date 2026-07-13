@@ -18,6 +18,9 @@ from sure_eval.evaluation.nodes.normalization.aispeech_norm import (
     normalize_codeswitch_asr_files,
 )
 from sure_eval.evaluation.nodes.normalization.canonical_itn import normalize_canonical_asr_files
+from sure_eval.evaluation.nodes.normalization.punctuation_strip_norm import (
+    normalize_punctuation_strip_key_text_files,
+)
 from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
 from sure_eval.evaluation.nodes.normalization.wetext_norm import (
     SUPPORTED_PROFILES as WETEXT_SUPPORTED_PROFILES,
@@ -237,6 +240,13 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         return "whisper"
     if normalized in {"aispeech", "aispeech_norm", "normalization/aispeech_norm"}:
         return "aispeech"
+    if normalized in {
+        "punctuation_strip",
+        "punctuation_strip_norm",
+        "strip_punctuation",
+        "normalization/punctuation_strip_norm",
+    }:
+        return "punctuation_strip"
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -290,6 +300,11 @@ def _normalization_node(*, language: str, normalizer: str):
         return (
             lambda files: normalize_asr_files(files, language=language),
             "aispeech_norm",
+        )
+    if normalizer == "punctuation_strip":
+        return (
+            lambda files: normalize_punctuation_strip_key_text_files(files, language=language),
+            "punctuation_strip_norm",
         )
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
