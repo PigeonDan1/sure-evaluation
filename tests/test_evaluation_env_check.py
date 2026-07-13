@@ -73,6 +73,27 @@ def test_node_env_checker_accepts_default_xcomet_checkpoint_without_env_var(monk
     assert result.status == "ok"
 
 
+def test_node_env_checker_reports_missing_later_model_target(tmp_path: Path) -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    node_path = tmp_path / "node"
+    checkpoint_dir = node_path / "checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    (checkpoint_dir / "first.bin").write_bytes(b"first")
+    node_env = {
+        "models": [
+            {"target": "checkpoints/first.bin", "env": "FIRST_MODEL"},
+            {"target": "checkpoints/second.bin", "env": "SECOND_MODEL"},
+        ],
+        "verify": {"files": ["checkpoints/first.bin"]},
+    }
+
+    path, env_name = NodeEnvChecker()._checkpoint_path("scoring/wavlm_large_sim", node_path, node_env)
+
+    assert path == checkpoint_dir / "second.bin"
+    assert env_name == "SECOND_MODEL"
+
+
 def test_transcription_node_local_envs_are_checked() -> None:
     from sure_eval.evaluation.env_check import NodeEnvChecker
 

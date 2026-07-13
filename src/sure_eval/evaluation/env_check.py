@@ -41,7 +41,7 @@ DEFAULT_CHECKPOINTS_BY_NODE = {
     ),
     "scoring/wavlm_large_sim": (
         "WAVLM_LARGE_SIM_CHECKPOINT",
-        "checkpoints/huggingface/hub/models--microsoft--wavlm-large/snapshots/c1423ed94bb01d80a3f5ce5bc39f6026a0f4828c/pytorch_model.bin",
+        "checkpoints/wavlm_large_finetune.pth",
     ),
     "scoring/ecapa_tdnn_sim": (
         "ECAPA_TDNN_SIM_CHECKPOINT",
@@ -233,6 +233,8 @@ class NodeEnvChecker:
         node_env: dict[str, Any] | None,
     ) -> tuple[Path | None, str]:
         if node_env:
+            first_declared_path: Path | None = None
+            first_declared_env = ""
             for model in node_env.get("models") or ():
                 if not isinstance(model, dict):
                     continue
@@ -240,11 +242,18 @@ class NodeEnvChecker:
                 target = str(model.get("target") or "")
                 if not target:
                     continue
-                return Path(os.environ.get(env_name, node_path / target)).expanduser(), env_name
+                model_path = Path(os.environ.get(env_name, node_path / target)).expanduser()
+                if first_declared_path is None:
+                    first_declared_path = model_path
+                    first_declared_env = env_name
+                if not model_path.exists():
+                    return model_path, env_name
             for file_name in (node_env.get("verify") or {}).get("files") or ():
                 file_path = node_path / str(file_name)
                 if not file_path.exists():
                     return file_path, ""
+            if first_declared_path is not None:
+                return first_declared_path, first_declared_env
         checkpoint_env, default_checkpoint = DEFAULT_CHECKPOINTS_BY_NODE.get(node_id, ("", ""))
         if default_checkpoint:
             return Path(os.environ.get(checkpoint_env, node_path / default_checkpoint)).expanduser(), checkpoint_env
