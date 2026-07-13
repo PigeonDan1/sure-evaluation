@@ -7,13 +7,18 @@ runtime:
   optional: true
   gpu: optional
 models:
+  - id: wavlm_large_finetune.pth
+    provider: manual
+    target: checkpoints/wavlm_large_finetune.pth
+    env: WAVLM_LARGE_SIM_CHECKPOINT
   - id: microsoft/wavlm-large
     provider: huggingface
-    target: checkpoints/huggingface/hub/models--microsoft--wavlm-large/snapshots/c1423ed94bb01d80a3f5ce5bc39f6026a0f4828c/pytorch_model.bin
-    env: WAVLM_LARGE_SIM_CHECKPOINT
+    target: checkpoints/huggingface/hub/models--microsoft--wavlm-large/snapshots/c1423ed94bb01d80a3f5ce5bc39f6026a0f4828c/config.json
+    env: WAVLM_LARGE_BASE_CONFIG
 verify:
   imports:
     - torch
     - transformers
   files:
-    - checkpoints/huggingface/hub/models--microsoft--wavlm-large/snapshots/c1423ed94bb01d80a3f5ce5bc39f6026a0f4828c/pytorch_model.bin
+    - checkpoints/wavlm_large_finetune.pth
+    - checkpoints/huggingface/hub/models--microsoft--wavlm-large/snapshots/c1423ed94bb01d80a3f5ce5bc39f6026a0f4828c/config.json

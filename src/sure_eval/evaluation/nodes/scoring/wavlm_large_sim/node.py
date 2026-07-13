@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from contextlib import redirect_stdout
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -15,6 +16,9 @@ NODE_ID = "scoring/wavlm_large_sim"
 NODE_VERSION = "v1"
 NODE_DIR = Path(__file__).resolve().parent
 DEFAULT_CACHE_DIR = NODE_DIR / "checkpoints"
+DEFAULT_CHECKPOINT_PATH = Path(
+    os.environ.get("WAVLM_LARGE_SIM_CHECKPOINT", DEFAULT_CACHE_DIR / "wavlm_large_finetune.pth")
+).expanduser()
 
 
 def score_wavlm_large_sim(rows: list[SpeakerRow], *, provider: SpeakerProvider) -> PipelineNodeResult:
@@ -31,12 +35,20 @@ def score_wavlm_large_sim(rows: list[SpeakerRow], *, provider: SpeakerProvider) 
 def build_default_provider(*, device: str = "cuda") -> SpeakerProvider:
     from sure_eval.evaluation.nodes.scoring.common.speaker_providers import (
         EmbeddingSpeakerSimilarityProvider,
-        WavLMSpeakerEmbeddingProvider,
+        SeedWavLMSpeakerEmbeddingProvider,
     )
 
+    seed_provider_kwargs = {
+        "checkpoint_path": DEFAULT_CHECKPOINT_PATH,
+        "device": device,
+        "cache_dir": DEFAULT_CACHE_DIR,
+    }
+    if base_config_path := os.environ.get("WAVLM_LARGE_BASE_CONFIG"):
+        seed_provider_kwargs["model_id"] = base_config_path
+
     return EmbeddingSpeakerSimilarityProvider(
-        WavLMSpeakerEmbeddingProvider(device=device, cache_dir=DEFAULT_CACHE_DIR),
-        backend="wavlm-large-cosine",
+        SeedWavLMSpeakerEmbeddingProvider(**seed_provider_kwargs),
+        backend="seed-tts-wavlm-large-cosine",
     )
 
 

@@ -45,10 +45,11 @@ def build_validation_plan(
             [
                 {
                     "metric": "sim",
-                    "model_id": "microsoft/wavlm-large",
-                    "backend": "wavlm-large-cosine",
+                    "model_id": "wavlm_large_finetune.pth",
+                    "base_model_id": "microsoft/wavlm-large",
+                    "backend": "seed-tts-wavlm-large-cosine",
                     "device": device,
-                    "cache_dir": str(cache_path / "speaker" / "huggingface"),
+                    "cache_dir": str(cache_path / "speaker"),
                 },
                 {
                     "metric": "sim",
@@ -175,15 +176,20 @@ def run_speaker_smoke(
         ERes2NetSimilarityProvider,
         EmbeddingSpeakerSimilarityProvider,
         ERes2NetEmbeddingProvider,
-        WavLMSpeakerEmbeddingProvider,
+        SeedWavLMSpeakerEmbeddingProvider,
     )
+    from sure_eval.evaluation.nodes.scoring.wavlm_large_sim.node import DEFAULT_CACHE_DIR, DEFAULT_CHECKPOINT_PATH
 
     fixtures = plan["fixtures"]
     checks: list[dict[str, Any]] = []
     try:
         provider = EmbeddingSpeakerSimilarityProvider(
-            WavLMSpeakerEmbeddingProvider(device=device, cache_dir=Path(cache_dir) / "speaker"),
-            backend="wavlm-large-cosine",
+            SeedWavLMSpeakerEmbeddingProvider(
+                checkpoint_path=DEFAULT_CHECKPOINT_PATH,
+                device=device,
+                cache_dir=DEFAULT_CACHE_DIR,
+            ),
+            backend="seed-tts-wavlm-large-cosine",
         )
         row = provider(fixtures["speaker_trial"], fixtures["speaker_enroll"])
         checks.append(_record_ok("speaker_wavlm_large", row))

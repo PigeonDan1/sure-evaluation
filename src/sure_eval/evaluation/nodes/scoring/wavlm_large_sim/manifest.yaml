@@ -16,4 +16,5 @@ used_by:
   - TTS speaker similarity
   - VC speaker similarity
 notes:
+  - Default provider uses Seed-TTS-Eval style wavlm_large_finetune.pth from the node checkpoints directory.
   - Heavy WavLM loading stays inside the injected provider.

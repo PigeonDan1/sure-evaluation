@@ -276,8 +276,9 @@ def build_default_tts_metric_pipeline(
         ERes2NetEmbeddingProvider,
         ERes2NetSimilarityProvider,
         EmbeddingSpeakerSimilarityProvider,
-        WavLMSpeakerEmbeddingProvider,
+        SeedWavLMSpeakerEmbeddingProvider,
     )
+    from sure_eval.evaluation.nodes.scoring.wavlm_large_sim.node import DEFAULT_CACHE_DIR, DEFAULT_CHECKPOINT_PATH
 
     cache_path = Path(cache_dir) if cache_dir is not None else None
     semantic_cache = cache_path / "semantic" if cache_path is not None else None
@@ -291,8 +292,12 @@ def build_default_tts_metric_pipeline(
         },
         speaker_providers={
             "wavlm-large": EmbeddingSpeakerSimilarityProvider(
-                WavLMSpeakerEmbeddingProvider(device=device, cache_dir=speaker_cache),
-                backend="wavlm-large-cosine",
+                SeedWavLMSpeakerEmbeddingProvider(
+                    checkpoint_path=DEFAULT_CHECKPOINT_PATH,
+                    device=device,
+                    cache_dir=speaker_cache or DEFAULT_CACHE_DIR,
+                ),
+                backend="seed-tts-wavlm-large-cosine",
             ),
             "ecapa-tdnn": EmbeddingSpeakerSimilarityProvider(
                 ECAPATDNNEmbeddingProvider(device=device, cache_dir=speaker_cache),

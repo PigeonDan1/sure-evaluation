@@ -2,5 +2,9 @@
 
 `scoring/wavlm_large_sim` scores speaker similarity with a WavLM-large style provider and reports `sim/wavlm-large`.
 
-The node wraps SURE's shared SIM normalization and aggregation. It does not load the WavLM model directly;
-model loading stays inside the injected provider.
+The default provider follows the Seed-TTS-Eval WavLM-large speaker verification path:
+`wavlm_large_finetune.pth` is loaded from this node's `checkpoints/` directory,
+then WavLM hidden states are aggregated through the finetuned ECAPA-TDNN head and
+scored by cosine similarity.
+
+The node wraps SURE's shared SIM normalization and aggregation. Model loading stays inside the injected provider.
