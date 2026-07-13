@@ -13,15 +13,10 @@ import string
 import tempfile
 import unicodedata
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 from sure_eval.core.logging import get_logger
-from sure_eval.evaluation.nodes.scoring.wenet_wer.wenet_compute_cer import (
-    Calculator,
-    characterize,
-    compute_wer,
-    normalize,
-)
+from sure_eval.evaluation.nodes.scoring.wenet_wer.wenet_compute_cer import compute_wer
 
 logger = get_logger(__name__)
 

@@ -5,7 +5,6 @@ This module manages SOTA baselines for all datasets in SURE Benchmark.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any
@@ -237,13 +236,6 @@ class SOTAManager:
         data: dict[str, Any] = {}
         for name, baseline in self._baselines.items():
             data[name] = baseline.to_dict()
-        
-        # Preserve comments by reading original and updating
-        if self.sota_file.exists():
-            with open(self.sota_file, "r", encoding="utf-8") as f:
-                original_text = f.read()
-        else:
-            original_text = ""
         
         with open(self.sota_file, "w", encoding="utf-8") as f:
             yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)

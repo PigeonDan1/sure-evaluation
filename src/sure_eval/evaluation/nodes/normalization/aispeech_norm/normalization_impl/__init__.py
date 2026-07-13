@@ -1,7 +1,7 @@
 from pathlib import Path
-import sys,os
-import importlib
-import re
+import os
+import sys
+
 from .logger import logger
 from .lang_en import TextNormalization_EN
 from .lang_zh import TextNormalization_ZH
@@ -96,4 +96,3 @@ def text_normalization(
             infile.close()
         if need_close_outfile:
             outfile.close()
-

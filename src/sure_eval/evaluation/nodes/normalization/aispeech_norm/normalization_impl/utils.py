@@ -6,9 +6,9 @@
 # Description:
 #########################################################################
 
-import unicodedata
+import argparse
 import re
-import logging
+import unicodedata
 
 # 在 Unicode 标准中，字符被分为不同的类别，unicodedata.category(char) 函数会返回一个表示字符所属类别的字符串，该字符串的首字母代表了大类，其中 C 代表控>制字符类，Z 代表分隔符类。以下为你详细介绍这两类中包含的字符：
 # 控制字符类别（C）
@@ -204,4 +204,3 @@ def to_unicode_codepoints(items):
         else:
             raise TypeError(f"Unsupported type in to_unicode_codepoints: {type(item)}")
     return ''.join(result)
-

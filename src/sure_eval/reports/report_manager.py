@@ -514,6 +514,6 @@ class ReportManager:
             with open(self.report_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data.get("report_date", "Unknown")
-        except:
+        except Exception:
             from datetime import datetime
             return datetime.now().strftime("%Y-%m-%d")

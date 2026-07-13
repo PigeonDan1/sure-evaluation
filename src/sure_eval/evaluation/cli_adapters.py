@@ -10,7 +10,6 @@ from sure_eval.evaluation.scripts import describe_pipeline, run_task
 from sure_eval.evaluation.scripts.contracts import (
     load_task_manifest,
     load_task_routes,
-    normalize_metric_list,
 )
 
 ROLE_TO_CLI_ARG = {

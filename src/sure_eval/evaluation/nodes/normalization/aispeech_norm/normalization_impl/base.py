@@ -1,7 +1,8 @@
-import codecs,os,sys,io
-import argparse
-import unicodedata
+import glob
+import os
 import re
+import sys
+import unicodedata
 from .logger import logger
 from .utils import replace_invisible_chars, simple_pattern_difference
 from .asr_simple_tn import asr_num2words, get_n2w_map
@@ -81,10 +82,12 @@ def fun_normalize_nfkc(text: str, debug: int = 0):
         logger.debug(f"fun_i: {text}")
         logger.debug(f"fun_o: {text2}")
     if debug == 2 and text != text2:
-        logger.debug(f"fun_i: ")
-        for ch in text: logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
-        logger.debug(f"fun_o: ")
-        for ch in text2: logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
+        logger.debug("fun_i: ")
+        for ch in text:
+            logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
+        logger.debug("fun_o: ")
+        for ch in text2:
+            logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
 
     return text2
 
@@ -180,7 +183,6 @@ class TextNormalization_Base:
             return
 
         # 1. 扫描所有 .map 文件
-        import glob, os
         map_files = glob.glob(os.path.join(self.map_dir, "*.map"))
         digit_map_file = None
         other_map_files = []
@@ -218,7 +220,7 @@ class TextNormalization_Base:
                         self.digit_map_sorted.append((k, v))
                 self.digit_map_sorted.sort(key=lambda x: len(x[0]), reverse=True)
 
-    def get_language():
+    def get_language(self):
         return [self.language, self.language_name_en, self.language_name_zh, self.spaced_writing, self.score_method]
 
     def config(self, **kwargs):
@@ -325,7 +327,7 @@ class TextNormalization_Base:
         # 类型检查
         if not isinstance(pattern, re.Pattern):
             logger.error(f"pattern 必须是 re.Pattern 类型，而不是 {type(pattern).__name__}")
-            raise TypeError(f"异常退出！")
+            raise TypeError("异常退出！")
             
         # 所有其它非法字符均替换
         text2 = pattern.sub(replacement, text) # 一般替换为空格或空
@@ -336,10 +338,12 @@ class TextNormalization_Base:
         if self.debug == 2 and text != text2:
             logger.debug(f"pattern: {pattern}")
             logger.debug(f"text: {text}")
-            logger.debug(f"text: ")
-            for ch in text: logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
+            logger.debug("text: ")
+            for ch in text:
+                logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
             logger.debug(f"alphabet_pattern: {self.alphabet_pattern}")
-            for ch in self.alphabet_pattern: logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
+            for ch in self.alphabet_pattern:
+                logger.debug(f"char = {ch} \t unicode = {ord(ch):04x}")
 
         return text2
 
@@ -440,35 +444,42 @@ class TextNormalization_Base:
         # 替换不标准的控制字符为空格
         # 下一步的NFKC 正规化仅会将非断行空格（U+00A0）和全角空格（U+3000）转换为普通空格（U+0020），
         # 其他功能特殊的空格（如半角空格、零宽空格等）仍需此步处理。
-        if not text: return text
+        if not text:
+            return text
         text = replace_invisible_chars(text)
         
         # NFKC正规化
-        if not text: return text
+        if not text:
+            return text
         text = fun_normalize_nfkc(text, debug=self.debug)
         
         # 删除辅助字符
-        if not text: return text
+        if not text:
+            return text
         if self.remove_diacritic and self.diacritic_pattern:
             text = self.fun_remove_chars_pattern(text, RE_CHAR_DIACRITIC, "")
         
         # 替换特殊的0-9专用字符到正常的0-9
-        if not text: return text
+        if not text:
+            return text
         text = fun_convert_special_numbers_to_arabic(text, debug=self.debug)
         
         # 可选：非法字符的行，整行删除
-        if not text: return text
+        if not text:
+            return text
         text = self.fun_remove_lines_pattern(text, RE_LINE_CONTAINS_INVALID_CHAR)
         
         # 替换（非ascii/字母表/标点）字符为空格
-        if not text: return text
+        if not text:
+            return text
         if self.remove_not_ascii_lang_mark:
             text = self.fun_remove_chars_pattern(text, RE_CHAR_NOT_ASCII_LANG_MARK, " " * self.spaced_writing)
         
         # 简单正则化（如有更复杂需求可扩展），这一步必须将数字正规化，否则后续会被清除掉。
         if self.debug > 0:
             logger.debug(f"tn_begin: {text}")
-        if not text: return text
+        if not text:
+            return text
         text = asr_num2words(
             text, 
             self.language, 
@@ -483,42 +494,51 @@ class TextNormalization_Base:
             logger.debug(f"tn_end  : {text}")
 
         # 可选：删除整行（全部是标点符号等）
-        if not text: return text
+        if not text:
+            return text
         text = self.fun_remove_lines_pattern(text, RE_LINE_NO_LETTER)
 
         # 可选：删除括号及内容
-        if not text: return text
+        if not text:
+            return text
         if self.remove_brackets:
             text = self.fun_remove_chars_pattern(text, RE_BRACKETS_CONTENT, " " * self.spaced_writing)
         
         # 删除非单词的字符
-        if not text: return text
+        if not text:
+            return text
         if self.remove_not_word:
             text = self.fun_remove_chars_pattern(text, RE_CHAR_NOT_WORD, " " * self.spaced_writing)
         
         # 可选：删除英文字母
-        if not text: return text
+        if not text:
+            return text
         if not self.keep_english_letters:
             text = self.fun_remove_english_letters(text)
         
         # 可选：删除短横
-        if not text: return text
+        if not text:
+            return text
         text = self.fun_remove_chars_dashes(text)
         
         # 可选：删除非法的单引号
-        if not text: return text
+        if not text:
+            return text
         text = self.fun_remove_chars_single_quotes(text)
 
         # 删除整行：包含超过连续4个字符以上的单词
-        if not text: return text
+        if not text:
+            return text
         text = self.fun_remove_lines_pattern(text, RE_LINE_FOUR_CONSECUTIVE_LETTERS)
 
         # 可选：大小写转换
-        if not text: return text
+        if not text:
+            return text
         text = self.fun_convert_case(text)
         
         # 最后清除多余的空格，并输出到最终文件
-        if not text: return text
+        if not text:
+            return text
         text = ' '.join(text.split())
 
         return text
