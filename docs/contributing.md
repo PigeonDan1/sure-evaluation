@@ -1,6 +1,10 @@
 # Contributing
 
 Every metric contribution should be reproducible from declarations and tests.
+Before changing evaluation behavior, classify the PR with the decision tree in
+[Add Evaluation Capabilities](./add_a_metric.md). It separates new tasks, new
+metric families, alternate routes for existing metrics, and node/tool/version
+changes.
 
 Before opening a PR:
 
@@ -21,4 +25,3 @@ Do not commit:
 
 If a node depends on a model, external binary, or heavyweight package stack, add
 or update `node_env.yaml`.
-

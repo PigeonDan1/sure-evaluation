@@ -9,7 +9,7 @@
 [![Core](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml/badge.svg)](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml)
 [![GitHub stars](https://img.shields.io/github/stars/PigeonDan1/sure-evaluation.svg?style=social&label=Stars)](https://github.com/PigeonDan1/sure-evaluation/stargazers)
 
-🌐 [English](./README.md) · [中文](./README_ZH.md) · [📖 文档](./docs/)
+🌐 [English](./README.md) · [中文](./README_ZH.md) · [📖 文档](./docs/) · [🚀 Demo](https://sure-eval.com/)
 
 </div>
 
@@ -53,7 +53,7 @@ cat /tmp/asr_eval/report.json | grep score
 
 | 任务 | 指标 | 说明 | 指南 |
 |:-----|:-----|:-----|:-----|
-| **ASR** | WER、CER、MER | 纯文本，基础包可用 | [docs/tasks/asr.md](./docs/tasks/asr.md) |
+| **ASR** | WER、CER、MER | 纯文本；canonical 归一化路由需 `[canonical]` | [docs/tasks/asr.md](./docs/tasks/asr.md) |
 | **S2TT** | BLEU、chrF2、XCOMET-XL、BLEURT-20 | 基础 + 可选重指标 | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
 | **SD** | DER | 需 `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
 | **SA-ASR** | cpWER、DER | 需 `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
@@ -89,6 +89,7 @@ pip install "sure-evaluation[diarization]"  # SD / SA-ASR 所需的 MeetEval
 pip install "sure-evaluation[audio]"        # 本地音频辅助库
 pip install "sure-evaluation[download]"     # Hugging Face / ModelScope 下载辅助
 pip install "sure-evaluation[wetext]"       # WeTextProcessing 归一化
+pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER 路由
 
 # 把缓存放到大容量磁盘
 export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
@@ -117,7 +118,7 @@ SURE-EVAL 把每个指标都暴露为声明式流水线。`pipeline_catalog.json
 
 ```jsonl
 {"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.aispeech_norm.wenet_cer","nodes":["normalization/aispeech_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
-{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
+{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","normalization/punctuation_strip_norm","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
 ```
 
 添加新路由后可重新生成：

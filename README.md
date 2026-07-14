@@ -9,7 +9,7 @@
 [![Core](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml/badge.svg)](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml)
 [![GitHub stars](https://img.shields.io/github/stars/PigeonDan1/sure-evaluation.svg?style=social&label=Stars)](https://github.com/PigeonDan1/sure-evaluation/stargazers)
 
-🌐 [English](./README.md) · [中文](./README_ZH.md) · [📖 Docs](./docs/)
+🌐 [English](./README.md) · [中文](./README_ZH.md) · [📖 Docs](./docs/) · [🚀 Demo](https://sure-eval.com/)
 
 </div>
 
