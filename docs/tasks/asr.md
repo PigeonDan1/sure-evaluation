@@ -2,17 +2,22 @@
 
 Evaluate text transcripts against references.
 
-## Metrics
+## Metric Families And Routes
 
-| Metric | Language | Pipeline ID | Nodes |
-|:-------|:---------|:------------|:------|
-| `cer` | `zh` | `asr.zh.cer.aispeech_norm.wenet_cer` | `normalization/aispeech_norm` → `scoring/wenet_cer` |
-| `cer_canonical` | `zh` (opt-in, needs `[canonical]` extra) | `asr.zh.cer_canonical.canonical_itn.token_cer` | `normalization/canonical_itn` → `scoring/token_cer` |
-| `wer_canonical` | `en` (opt-in, needs `[canonical]` extra) | `asr.en.wer_canonical.canonical_itn.token_mer` | `normalization/canonical_itn` → `scoring/token_mer` |
-| `mer_canonical` | `cs` (opt-in, needs `[canonical]` extra) | `asr.cs.mer_canonical.canonical_itn.token_mer` | `normalization/canonical_itn` → `scoring/token_mer` |
-| `wer` | `en` (Whisper norm) | `asr.en.wer.whisper_norm.wenet_wer` | `normalization/whisper_norm` → `scoring/wenet_wer` |
-| `wer` | `en` (legacy AISpeech norm) | `asr.en.wer.aispeech_norm.wenet_wer` | `normalization/aispeech_norm` → `scoring/wenet_wer` |
-| `mer` | `cs` (code-switching) | `asr.cs.mer.aispeech_norm.wenet_mer` | `normalization/aispeech_norm` → `scoring/wenet_mer` |
+The reported ASR metric families are still CER, WER, and MER. Selectors such
+as `cer_canonical`, `wer_canonical`, and `mer_canonical` are opt-in route
+selectors for canonical normalization variants; they are not new evaluation
+metric families.
+
+| Reported metric | Route selector | Language | Pipeline ID | Nodes |
+|:----------------|:---------------|:---------|:------------|:------|
+| CER | `cer` | `zh` | `asr.zh.cer.aispeech_norm.wenet_cer` | `normalization/aispeech_norm` → `scoring/wenet_cer` |
+| CER | `cer_canonical` (opt-in, needs `[canonical]` extra) | `zh` | `asr.zh.cer_canonical.canonical_itn.token_cer` | `normalization/canonical_itn` → `scoring/token_cer` |
+| WER | `wer` | `en` (Whisper norm) | `asr.en.wer.whisper_norm.wenet_wer` | `normalization/whisper_norm` → `scoring/wenet_wer` |
+| WER | `wer` + `normalizer="aispeech"` | `en` (legacy AISpeech norm) | `asr.en.wer.aispeech_norm.wenet_wer` | `normalization/aispeech_norm` → `scoring/wenet_wer` |
+| WER | `wer_canonical` (opt-in, needs `[canonical]` extra) | `en` | `asr.en.wer_canonical.canonical_itn.token_mer` | `normalization/canonical_itn` → `scoring/token_mer` |
+| MER | `mer` | `cs` (code-switching) | `asr.cs.mer.aispeech_norm.wenet_mer` | `normalization/aispeech_norm` → `scoring/wenet_mer` |
+| MER | `mer_canonical` (opt-in, needs `[canonical]` extra) | `cs` | `asr.cs.mer_canonical.canonical_itn.token_mer` | `normalization/canonical_itn` → `scoring/token_mer` |
 
 ## Input Format
 
@@ -62,13 +67,15 @@ print(report.score)  # CER
 - `normalization/wetext_norm` — select with `normalizer="wetext:zh_tn"` or `normalizer="wetext:en_itn"`.
 - `scoring/sctk_sclite` — select with `scorer="sctk_sclite"`.
 
-## Canonical CER (`cer_canonical`)
+## Canonical Normalization Routes
 
-Opt-in written-form canonical CER for zh: numbers are canonicalized via ITN
-(spoken → written, many-to-one — 2024 ≡ 二零二四 ≡ 两千零二十四, 百分之五十 ≡
-50%), punctuation becomes spaces, and scoring is token-level (CJK per char,
-latin words, digits per char) with S/D/I from minimal edit operations. It
-coexists with the default WeNet-compatible `cer` and never replaces it.
+Canonical routes keep the same metric families (CER for zh, WER for en, MER
+for code-switch ASR) but change the normalization/scoring route. Text is
+canonicalized via ITN (spoken → written, many-to-one — 2024 ≡ 二零二四 ≡
+两千零二十四, 百分之五十 ≡ 50%), punctuation becomes spaces, and scoring is
+token-level (CJK per char, latin words, digits per char) with S/D/I from
+minimal edit operations. These routes coexist with the default WeNet-compatible
+routes and never replace them.
 
 ```bash
 pip install "sure-evaluation[canonical]"
@@ -82,11 +89,13 @@ engine version is recorded in each run's node trace. See
 `src/sure_eval/evaluation/nodes/normalization/canonical_itn/README.md` for
 the full chain and known limitations.
 
-`cer_canonical` is one member of the **canonical family**, which shares one
-normalization chain, one tokenizer, and one scorer:
+The canonical route selectors share one normalization chain, one tokenizer,
+and one scorer:
 
-- `cer_canonical` (zh) — CJK per char, digits per char;
-- `wer_canonical` (en) — latin words; the normalization stage additionally
+- `cer_canonical` selects canonical-normalized CER for zh — CJK per char,
+  digits per char;
+- `wer_canonical` selects canonical-normalized WER for en — latin words; the
+  normalization stage additionally
   whisper-normalizes latin spans (contraction expansion `don't` →
   `do not`, spoken numbers `fifty percent` → `50%`, spoken-filler removal,
   British→American spelling fold) using the vendored Whisper English
@@ -94,7 +103,8 @@ normalization chain, one tokenizer, and one scorer:
   restored first (`dont` → `don't`, so apostrophe-dropping outputs expand
   identically), and `'s` is collapsed instead of expanded (`it's` ≡ `its`,
   `john's` ≡ `johns`; `'s` is possessive/is/has-ambiguous);
-- `mer_canonical` (cs) — both of the above in one token stream.
+- `mer_canonical` selects canonical-normalized MER for code-switch ASR — both
+  of the above in one token stream.
 
 Scoring includes a deterministic word-spacing repair: a latin word equal to
 the concatenation of 2–4 consecutive words on the other side is split

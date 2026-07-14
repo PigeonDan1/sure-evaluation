@@ -13,7 +13,7 @@ Each line is one JSON object describing a single metric evaluation route. The fi
 | `task` | string | Canonical task name (e.g. `ASR`, `TTS`) |
 | `task_alias` | string | CLI task argument (e.g. `asr`, `tts`) |
 | `language` | string | Language profile, or `n/a` for language-independent tasks |
-| `metric` | string | Metric name reported by the route |
+| `metric` | string | CLI metric/route selector. Some selectors, such as `cer_canonical`, select an alternate normalization route for an existing metric family. |
 | `pipeline_id` | string | Resolved pipeline ID |
 | `nodes` | list | Ordered list of selected node IDs |
 | `required_roles` | list | Input roles you must provide to `sure-eval metric run` |
