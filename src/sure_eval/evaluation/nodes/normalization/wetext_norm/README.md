@@ -3,9 +3,16 @@
 `normalization/wetext_norm` is an optional wrapper around
 `WeTextProcessing==1.2.0`.
 
-It is intentionally isolated as a node-local project because WeTextProcessing
-depends on Pynini. The SURE default ASR/TTS/VC routes do not use this node unless
-a future task configuration explicitly selects it.
+It is a node-local `uv` project because WeTextProcessing depends on Pynini and
+must remain version-managed by the node rather than by the root SURE-EVAL
+environment. Mandarin ASR CER selects this node by default, while TTS/VC
+Mandarin semantic routes default to `punctuation_strip_norm`.
+
+Prepare it only when a selected route needs it:
+
+```bash
+sure-eval env setup --node normalization/wetext_norm
+```
 
 Supported profiles:
 

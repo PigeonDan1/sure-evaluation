@@ -116,6 +116,16 @@ def test_pip_runtime_node_checks_declared_imports(monkeypatch) -> None:
     assert "pip install" in result.fix
 
 
+def test_wetext_norm_env_check_uses_node_local_runtime() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+
+    assert result.runtime == "node_local_project"
+    assert result.required is True
+    assert result.details["pyproject"].endswith("wetext_norm/pyproject.toml")
+
+
 def test_transcription_node_local_envs_are_checked() -> None:
     from sure_eval.evaluation.env_check import NodeEnvChecker
 

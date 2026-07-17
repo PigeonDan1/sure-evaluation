@@ -36,6 +36,9 @@ pip install -e .
 # Check the installation
 sure-eval doctor
 
+# Inspect the route and selected node environments
+sure-eval agent plan asr --language zh --metric cer --json
+
 # Describe and run an ASR metric
 sure-eval metric describe asr --language zh --metric cer --output /tmp/asr.json
 sure-eval metric run --pipeline /tmp/asr.json \
@@ -66,6 +69,7 @@ Input files are tab-separated: `<key>\t<text>`.
 Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
 
 For a machine-readable catalog of every metric → pipeline → node mapping, see [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) and [docs/pipeline_catalog.md](./docs/pipeline_catalog.md).
+For agent-facing route and environment readiness, see [docs/agent_contract.md](./docs/agent_contract.md).
 
 Click any task in the CLI for its route:
 
@@ -88,7 +92,7 @@ pip install -e ".[dev]"
 pip install "sure-evaluation[diarization]"  # MeetEval for SD / SA-ASR
 pip install "sure-evaluation[audio]"        # Local audio helpers
 pip install "sure-evaluation[download]"     # Hugging Face / ModelScope download helpers
-pip install "sure-evaluation[wetext]"       # compatibility no-op; WeTextProcessing is included
+pip install "sure-evaluation[wetext]"       # compatibility no-op; wetext_norm uses node-local uv
 pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER routes
 
 # Put caches on a large disk
@@ -99,6 +103,7 @@ Prepare a heavy metric environment:
 
 ```bash
 sure-eval env list
+sure-eval env setup --task asr --language zh --metric cer --dry-run
 sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run
 sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos
 ```

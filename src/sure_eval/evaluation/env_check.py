@@ -331,7 +331,7 @@ class NodeEnvChecker:
                 details=details,
             )
 
-        missing_imports = [name for name in imports if importlib.util.find_spec(name) is None]
+        missing_imports = [name for name in imports if not _import_available(name)]
         if missing_imports:
             details["missing_imports"] = missing_imports
             install_specs = package_install_specs(node_env)
@@ -413,6 +413,13 @@ def _path_exists(path: Path) -> tuple[bool, str]:
         return path.exists(), ""
     except OSError as exc:
         return False, str(exc)
+
+
+def _import_available(name: str) -> bool:
+    try:
+        return importlib.util.find_spec(name) is not None
+    except ModuleNotFoundError:
+        return False
 
 
 def raise_if_environment_failed(results: list[EnvCheckResult]) -> None:

@@ -32,7 +32,6 @@ dependencies = [
     "structlog>=23.0.0",
     "typer>=0.16.0,<1.0.0",
     "tinydb>=4.8.0",
-    "WeTextProcessing==1.2.0",
 ]
 
 [project.optional-dependencies]

@@ -17,7 +17,13 @@ def test_asr_zh_cer_scores_empty_hypothesis_text_as_deletions(tmp_path: Path) ->
     _write_key_text(ref_file, [("utt1", "今天天气很好"), ("utt2", "我们一起去公园")])
     _write_key_text(hyp_file, [("utt1", "今天天气很好"), ("utt2", "")])
 
-    report = evaluate_asr_files(str(ref_file), str(hyp_file), language="zh", metric="cer")
+    report = evaluate_asr_files(
+        str(ref_file),
+        str(hyp_file),
+        language="zh",
+        metric="cer",
+        normalizer="punctuation_strip",
+    )
     result = report.details["scoring_result"]
 
     assert result["all"] == 13
@@ -33,7 +39,13 @@ def test_asr_zh_cer_scores_missing_hypothesis_utterance_as_deletions(tmp_path: P
     _write_key_text(ref_file, [("utt1", "今天天气很好"), ("utt2", "我们一起去公园")])
     _write_key_text(hyp_file, [("utt1", "今天天气很好")])
 
-    report = evaluate_asr_files(str(ref_file), str(hyp_file), language="zh", metric="cer")
+    report = evaluate_asr_files(
+        str(ref_file),
+        str(hyp_file),
+        language="zh",
+        metric="cer",
+        normalizer="punctuation_strip",
+    )
     result = report.details["scoring_result"]
 
     assert result["num_ref_utts"] == 2
@@ -54,7 +66,13 @@ def test_asr_scoring_result_reports_utterance_coverage(tmp_path: Path) -> None:
     _write_key_text(ref_file, [("utt1", "今天天气很好")])
     _write_key_text(hyp_file, [("utt1", "今天天气很好"), ("utt9", "多余的行")])
 
-    report = evaluate_asr_files(str(ref_file), str(hyp_file), language="zh", metric="cer")
+    report = evaluate_asr_files(
+        str(ref_file),
+        str(hyp_file),
+        language="zh",
+        metric="cer",
+        normalizer="punctuation_strip",
+    )
     result = report.details["scoring_result"]
 
     assert result["num_ref_utts"] == 1
@@ -74,7 +92,13 @@ def test_asr_zh_cer_rejects_inputs_without_tab_separator(tmp_path: Path) -> None
     hyp_file.write_text("utt1 今天天气很好\nutt2 我们一起去公园\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="tab-separated"):
-        evaluate_asr_files(str(ref_file), str(hyp_file), language="zh", metric="cer")
+        evaluate_asr_files(
+            str(ref_file),
+            str(hyp_file),
+            language="zh",
+            metric="cer",
+            normalizer="punctuation_strip",
+        )
 
 
 def test_asr_en_wer_rejects_inputs_that_score_zero_reference_tokens(tmp_path: Path) -> None:

@@ -6,6 +6,7 @@ import sys
 from dataclasses import dataclass
 from types import SimpleNamespace
 
+import pytest
 from typer.testing import CliRunner
 
 from sure_eval.cli import app
@@ -20,6 +21,14 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
         encoding="utf-8",
     )
+
+
+def _require_wetext_node_env() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+    if result.status != "ok":
+        pytest.skip(f"wetext_norm node-local environment is not prepared: {result.message}")
 
 
 @dataclass
@@ -98,6 +107,7 @@ def test_metric_describe_outputs_route_backed_pipeline_json(tmp_path: Path) -> N
 
 
 def test_metric_run_executes_pipeline_file_and_writes_outputs(tmp_path: Path) -> None:
+    _require_wetext_node_env()
     runner = CliRunner()
     pipeline_path = tmp_path / "asr_pipeline.json"
     ref_file = tmp_path / "ref.txt"

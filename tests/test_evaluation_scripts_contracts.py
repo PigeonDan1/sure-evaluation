@@ -21,6 +21,14 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
     )
 
 
+def _require_wetext_node_env() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+    if result.status != "ok":
+        pytest.skip(f"wetext_norm node-local environment is not prepared: {result.message}")
+
+
 @dataclass
 class _FakeErrorRate:
     error_rate: float
@@ -923,6 +931,7 @@ def test_vc_routes_declare_reference_mode_specific_semantic_nodes() -> None:
 
 
 def test_asr_script_run_writes_report_and_pipeline_description(tmp_path: Path) -> None:
+    _require_wetext_node_env()
     from sure_eval.evaluation.scripts.asr import run
 
     ref_file = tmp_path / "ref.txt"
@@ -1084,6 +1093,7 @@ def test_unified_script_entrypoint_dispatches_describe_and_run(tmp_path: Path) -
 
     description = describe_pipeline("asr", language="zh", metric="cer")
     assert description.pipeline_id == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    _require_wetext_node_env()
 
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"

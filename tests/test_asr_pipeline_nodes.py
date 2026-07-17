@@ -2,9 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 
 def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
     path.write_text("".join(f"{key}\t{text}\n" for key, text in rows), encoding="utf-8")
+
+
+def _require_wetext_node_env() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+    if result.status != "ok":
+        pytest.skip(f"wetext_norm node-local environment is not prepared: {result.message}")
 
 
 def _assert_matches_legacy(actual: dict, legacy: dict) -> None:
@@ -85,6 +95,7 @@ def _fake_sctk_sclite_cer(files):
 
 
 def test_asr_zh_cer_pipeline_uses_wetext_itn_by_default(tmp_path: Path) -> None:
+    _require_wetext_node_env()
     from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 
     ref_file = tmp_path / "ref.txt"
