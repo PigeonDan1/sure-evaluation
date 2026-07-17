@@ -27,8 +27,8 @@ Each line is one JSON object describing a single metric evaluation route. The fi
   "task_alias": "asr",
   "language": "zh",
   "metric": "cer",
-  "pipeline_id": "asr.zh.cer.aispeech_norm.wenet_cer",
-  "nodes": ["normalization/aispeech_norm", "scoring/wenet_cer"],
+  "pipeline_id": "asr.zh.cer.wetext_zh_itn.wenet_cer",
+  "nodes": ["normalization/wetext_norm", "scoring/wenet_cer"],
   "required_roles": ["hyp", "ref"],
   "optional_roles": []
 }

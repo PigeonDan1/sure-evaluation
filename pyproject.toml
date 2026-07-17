@@ -32,6 +32,7 @@ dependencies = [
     "structlog>=23.0.0",
     "typer>=0.16.0,<1.0.0",
     "tinydb>=4.8.0",
+    "WeTextProcessing==1.2.0",
 ]
 
 [project.optional-dependencies]
@@ -43,9 +44,7 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
 ]
-wetext = [
-    "WeTextProcessing==1.2.0",
-]
+wetext = []
 diarization = [
     "meeteval>=0.2.0",
 ]

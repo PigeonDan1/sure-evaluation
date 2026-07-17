@@ -9,7 +9,7 @@ sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
 
 The first migrated pipelines are:
 
-- `zh + cer`: `aispeech_norm` then `wenet_cer`
+- `zh + cer`: `wetext_norm` with profile `zh_itn`, then `wenet_cer`
 - `en + wer`: `whisper_norm` with profile `english`, then `wenet_wer`
 - `cs + mer`: `aispeech_norm` with profile `cs`, then `wenet_mer`
 
@@ -21,9 +21,10 @@ legacy references for regression checks while non-ASR tasks are migrated.
 The legacy English route remains available as `asr.en.wer.aispeech_norm.wenet_wer`
 by calling `evaluate_asr_files(..., normalizer="aispeech")`.
 
-`normalization/wetext_norm` is an optional tool node. It is selected only by
-explicit arguments such as `normalizer="wetext:zh_tn"` or
-`normalizer="wetext:en_itn"`; it is not part of any default ASR route.
+Mandarin CER defaults to `normalization/wetext_norm` with profile `zh_itn`
+before `scoring/wenet_cer`. Other WeTextProcessing profiles remain available
+through explicit arguments such as `normalizer="wetext:zh_tn"` or
+`normalizer="wetext:en_itn"`.
 
 `scoring/sctk_sclite` is an optional binary-backed scorer wrapping NIST SCTK
 `sclite`. It is selected only by explicit arguments such as

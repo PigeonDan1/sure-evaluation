@@ -10,7 +10,7 @@ default_metrics:
   en: vc_wer
 default_pipelines:
   zh:
-    vc_cer: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer
+    vc_cer: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
   en:
     vc_wer: vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer
 input_contracts:
@@ -90,6 +90,7 @@ pipeline_nodes:
   zh:
     frontend: frontend/funasr_loader_16k_mono
     transcription: transcription/paraformer_zh
+    normalization: normalization/punctuation_strip_norm
     downstream_task: ASR
     downstream_metric: cer
   en:
@@ -110,6 +111,7 @@ legacy_reference:
 notes:
   - If reference_text is present, only converted_audio is transcribed.
   - If reference_text is absent, reference_audio is transcribed and used as the ASR reference text.
+  - Mandarin semantic CER uses punctuation-only normalization before WeNet CER and does not use AISpeech number text normalization by default.
   - English semantic WER uses OpenAI Whisper English normalization before WeNet WER.
   - WeTextProcessing profiles are available only through explicit semantic_normalizer arguments and do not change default VC routes.
   - Mandarin CER keeps CV3-compatible Paraformer execution by passing original audio paths to FunASR AutoModel.generate; frontend/funasr_loader_16k_mono records the internal loader contract.

@@ -88,7 +88,7 @@ pip install -e ".[dev]"
 pip install "sure-evaluation[diarization]"  # MeetEval for SD / SA-ASR
 pip install "sure-evaluation[audio]"        # Local audio helpers
 pip install "sure-evaluation[download]"     # Hugging Face / ModelScope download helpers
-pip install "sure-evaluation[wetext]"       # WeTextProcessing normalization
+pip install "sure-evaluation[wetext]"       # compatibility no-op; WeTextProcessing is included
 pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER routes
 
 # Put caches on a large disk
@@ -117,7 +117,7 @@ SURE-EVAL exposes every metric as a declarative pipeline. The machine-readable c
 Example entries:
 
 ```jsonl
-{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.aispeech_norm.wenet_cer","nodes":["normalization/aispeech_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
+{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.wetext_zh_itn.wenet_cer","nodes":["normalization/wetext_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
 {"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","normalization/punctuation_strip_norm","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
 ```
 
@@ -137,7 +137,7 @@ from sure_eval.evaluation.scripts import describe_pipeline, run_task
 # Inspect the route
 desc = describe_pipeline("asr", language="zh", metric="cer")
 print(desc.node_ids)
-# ('normalization/aispeech_norm', 'scoring/wenet_cer')
+# ('normalization/wetext_norm', 'scoring/wenet_cer')
 
 # Run and get a report
 report = run_task(

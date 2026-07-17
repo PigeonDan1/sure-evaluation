@@ -18,13 +18,16 @@ The base package is intentionally lightweight. It must support route inspection,
 normalization, reporting, and lightweight metrics without downloading model
 weights or creating node-local environments.
 
+The base package includes WeTextProcessing because Mandarin ASR CER uses
+`normalization/wetext_norm` (`zh_itn`) by default.
+
 Optional extras:
 
 ```bash
 pip install "sure-evaluation[audio]"        # local audio helpers
 pip install "sure-evaluation[download]"     # Hugging Face / ModelScope asset download helpers
 pip install "sure-evaluation[diarization]"  # MeetEval for SD and SA-ASR
-pip install "sure-evaluation[wetext]"       # WeTextProcessing normalization
+pip install "sure-evaluation[wetext]"       # compatibility no-op; WeTextProcessing is included
 pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER routes
 ```
 

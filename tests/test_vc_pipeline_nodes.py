@@ -49,16 +49,17 @@ def test_vc_semantic_route_reuses_asr_when_reference_text_is_available() -> None
     assert report.language == "zh"
     assert report.metric == "vc_cer"
     assert report.score == 0.0
-    assert report.pipeline_id == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer"
+    assert report.pipeline_id == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
     assert transcriber.calls == [("converted.wav", "zh")]
     assert report.details["rows"][0]["semantic"]["reference_audio_transcript"] == ""
     assert report.details["rows"][0]["semantic"]["asr_metric"] == "cer"
     assert [node.node_id for node in report.pipeline_trace] == [
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
-        "normalization/aispeech_norm",
+        "normalization/punctuation_strip_norm",
         "scoring/wenet_cer",
     ]
+    assert report.details["rows"][0]["semantic"]["normalizer"] == "punctuation_strip"
     assert report.pipeline_trace[0].details["audio_path"] == "converted.wav"
     assert report.pipeline_trace[0].details["role"] == "converted_audio"
     assert report.pipeline_trace[0].details["materialized_audio_path"] is None
@@ -129,16 +130,17 @@ def test_vc_zh_audio_reference_route_records_funasr_loader_for_both_audios() -> 
         transcribers={"zh": transcriber},
     )
 
-    assert report.pipeline_id == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer"
+    assert report.pipeline_id == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
     assert transcriber.calls == [("converted.wav", "zh"), ("target.wav", "zh")]
     assert [node.node_id for node in report.pipeline_trace] == [
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
-        "normalization/aispeech_norm",
+        "normalization/punctuation_strip_norm",
         "scoring/wenet_cer",
     ]
+    assert report.details["rows"][0]["semantic"]["normalizer"] == "punctuation_strip"
     assert report.pipeline_trace[0].details["role"] == "converted_audio"
     assert report.pipeline_trace[2].details["role"] == "reference_audio"
     assert report.pipeline_trace[0].details["materialized_audio_path"] is None

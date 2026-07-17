@@ -102,8 +102,8 @@ def test_asr_routes_declare_nodes_contract_and_executor() -> None:
         if item["language"] == "zh" and item["metric"] == "cer"
     )
 
-    assert route["pipeline_id"] == "asr.zh.cer.aispeech_norm.wenet_cer"
-    assert route["nodes"] == ["normalization/aispeech_norm", "scoring/wenet_cer"]
+    assert route["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert route["nodes"] == ["normalization/wetext_norm", "scoring/wenet_cer"]
     assert route["input_contract"] == "scoring/wenet_cer"
     assert route["executor"] == "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files"
 
@@ -862,6 +862,16 @@ def test_vc_routes_declare_reference_mode_specific_semantic_nodes() -> None:
     routes = yaml.safe_load(
         Path("src/sure_eval/evaluation/tasks/vc/routes.yaml").read_text(encoding="utf-8")
     )
+    zh_text_route = next(
+        route
+        for route in routes["routes"]
+        if route.get("language") == "zh" and route["metric"] == "vc_cer" and route["reference_mode"] == "text"
+    )
+    zh_audio_route = next(
+        route
+        for route in routes["routes"]
+        if route.get("language") == "zh" and route["metric"] == "vc_cer" and route["reference_mode"] == "audio"
+    )
     text_route = next(
         route
         for route in routes["routes"]
@@ -873,6 +883,30 @@ def test_vc_routes_declare_reference_mode_specific_semantic_nodes() -> None:
         if route.get("language") == "en" and route["metric"] == "vc_wer" and route["reference_mode"] == "audio"
     )
 
+    assert (
+        zh_text_route["pipeline_id"]
+        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+    )
+    assert zh_text_route["nodes"] == [
+        "frontend/funasr_loader_16k_mono",
+        "transcription/paraformer_zh",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+    assert zh_text_route["input_contract"] == "semantic/asr_error_rate_with_text"
+    assert (
+        zh_audio_route["pipeline_id"]
+        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+    )
+    assert zh_audio_route["nodes"] == [
+        "frontend/funasr_loader_16k_mono",
+        "transcription/paraformer_zh",
+        "frontend/funasr_loader_16k_mono",
+        "transcription/paraformer_zh",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+    assert zh_audio_route["input_contract"] == "semantic/asr_error_rate_with_audio_reference"
     assert text_route["nodes"] == [
         "transcription/whisper_large_v3",
         "normalization/whisper_norm",
@@ -909,14 +943,15 @@ def test_asr_script_run_writes_report_and_pipeline_description(tmp_path: Path) -
     description_payload = json.loads((output_dir / "pipeline_description.json").read_text(encoding="utf-8"))
     assert report_payload["pipeline_id"] == report.pipeline_id
     assert report_payload["task"] == "ASR"
-    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/aispeech_norm"
-    assert description_payload["pipeline_id"] == "asr.zh.cer.aispeech_norm.wenet_cer"
+    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/wetext_norm"
+    assert report_payload["pipeline_trace"][0]["details"]["profile"] == "zh_itn"
+    assert description_payload["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
     assert description_payload["nodes"] == [
         {
-            "node_id": "normalization/aispeech_norm",
+            "node_id": "normalization/wetext_norm",
             "stage": "normalization",
             "version": "v1",
-            "manifest_path": "src/sure_eval/evaluation/nodes/normalization/aispeech_norm/manifest.yaml",
+            "manifest_path": "src/sure_eval/evaluation/nodes/normalization/wetext_norm/manifest.yaml",
         },
         {
             "node_id": "scoring/wenet_cer",
@@ -1048,7 +1083,7 @@ def test_unified_script_entrypoint_dispatches_describe_and_run(tmp_path: Path) -
     from sure_eval.evaluation.scripts.run import describe_pipeline, run_task
 
     description = describe_pipeline("asr", language="zh", metric="cer")
-    assert description.pipeline_id == "asr.zh.cer.aispeech_norm.wenet_cer"
+    assert description.pipeline_id == "asr.zh.cer.wetext_zh_itn.wenet_cer"
 
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"
@@ -1110,7 +1145,7 @@ def test_asr_script_run_uses_executor_declared_by_route(monkeypatch, tmp_path: P
             language=kwargs["language"],
             metric=kwargs["metric"],
             score=0.0,
-            pipeline_id="asr.zh.cer.aispeech_norm.wenet_cer",
+            pipeline_id="asr.zh.cer.wetext_zh_itn.wenet_cer",
             pipeline_trace=(),
         )
 

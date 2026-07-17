@@ -21,11 +21,11 @@ def test_asr_metric_modules_match_sure_evaluator(tmp_path: Path) -> None:
     task_cer = CERMetric().calculate("你好世", "你好世界", language="zh")
     assert task_cer == registry_cer
     assert task_cer.score == evaluator_cer["score"]
-    assert task_cer.details["pipeline_id"] == "asr.zh.cer.aispeech_norm.wenet_cer"
+    assert task_cer.details["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
     assert task_cer.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert task_cer.details["input_roles"] == ["ref", "hyp"]
-    assert task_cer.details["pipeline_trace"][0]["node_id"] == "normalization/aispeech_norm"
-    assert task_cer.details["pipeline_trace"][0]["profile"] == "zh"
+    assert task_cer.details["pipeline_trace"][0]["node_id"] == "normalization/wetext_norm"
+    assert task_cer.details["pipeline_trace"][0]["profile"] == "zh_itn"
 
     ref_en = tmp_path / "ref_en.txt"
     hyp_en = tmp_path / "hyp_en.txt"

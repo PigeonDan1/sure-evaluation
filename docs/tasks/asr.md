@@ -11,7 +11,8 @@ metric families.
 
 | Reported metric | Route selector | Language | Pipeline ID | Nodes |
 |:----------------|:---------------|:---------|:------------|:------|
-| CER | `cer` | `zh` | `asr.zh.cer.aispeech_norm.wenet_cer` | `normalization/aispeech_norm` → `scoring/wenet_cer` |
+| CER | `cer` | `zh` | `asr.zh.cer.wetext_zh_itn.wenet_cer` | `normalization/wetext_norm` (`zh_itn`) → `scoring/wenet_cer` |
+| CER | `cer` + `normalizer="aispeech"` | `zh` (legacy AISpeech norm) | `asr.zh.cer.aispeech_norm.wenet_cer` | `normalization/aispeech_norm` → `scoring/wenet_cer` |
 | CER | `cer_canonical` (opt-in, needs `[canonical]` extra) | `zh` | `asr.zh.cer_canonical.canonical_itn.token_cer` | `normalization/canonical_itn` → `scoring/token_cer` |
 | WER | `wer` | `en` (Whisper norm) | `asr.en.wer.whisper_norm.wenet_wer` | `normalization/whisper_norm` → `scoring/wenet_wer` |
 | WER | `wer` + `normalizer="aispeech"` | `en` (legacy AISpeech norm) | `asr.en.wer.aispeech_norm.wenet_wer` | `normalization/aispeech_norm` → `scoring/wenet_wer` |
@@ -62,9 +63,9 @@ print(report.score)  # CER
 - `report.json` — `score`, `cer` or `wer`, edit counts (`all`, `cor`, `sub`, `ins`, `del`).
 - `pipeline_description.json` — selected route and node versions.
 
-## Optional Tools
+## Additional Tools
 
-- `normalization/wetext_norm` — select with `normalizer="wetext:zh_tn"` or `normalizer="wetext:en_itn"`.
+- `normalization/wetext_norm` — Mandarin CER defaults to `wetext:zh_itn`; other profiles can be selected with `normalizer="wetext:zh_tn"` or `normalizer="wetext:en_itn"`.
 - `scoring/sctk_sclite` — select with `scorer="sctk_sclite"`.
 
 ## Canonical Normalization Routes

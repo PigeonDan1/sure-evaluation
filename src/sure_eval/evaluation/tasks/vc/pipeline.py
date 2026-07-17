@@ -23,6 +23,7 @@ from sure_eval.evaluation.nodes.scoring._audio_quality_dispatch import (
 )
 from sure_eval.evaluation.tasks.vc.types import VCSample
 
+_ZH_DEFAULT_SEMANTIC_NORMALIZER = "punctuation_strip"
 _VC_SEMANTIC_TEXT_CONTRACT = MetricInputContract(
     metric_id="semantic/asr_error_rate",
     required_roles=("converted_audio", "reference_text"),
@@ -74,12 +75,16 @@ def evaluate_vc_samples(
         expected_metric = default_semantic_metric("vc", language)
         if metric_name != expected_metric:
             raise ValueError(f"Metric {metric_name} does not match language {language}; expected {expected_metric}")
+        effective_semantic_normalizer = _effective_semantic_normalizer(
+            language=language,
+            explicit_normalizer=semantic_normalizer,
+        )
         semantic, semantic_input_contract = _evaluate_semantic(
             samples,
             rows,
             metric_name=metric_name,
             language=language,
-            semantic_normalizer=semantic_normalizer,
+            semantic_normalizer=effective_semantic_normalizer,
             transcribers=transcribers,
         )
         semantic_result = _semantic_metric_result(metric_name, semantic)
@@ -131,9 +136,7 @@ def evaluate_vc_samples(
         transcript_node = "paraformer_zh" if uses_cer(language) else "whisper_large_v3"
         asr_metric = asr_metric_for_semantic(metric, language)
         normalizer_label = _normalizer_label_from_asr_pipeline(results[metric]["asr_pipeline_id"])
-        if uses_cer(language) and semantic_normalizer is None:
-            pipeline_id = f"vc.{language}.{metric}.funasr_loader_16k_mono.{transcript_node}.asr_{asr_metric}"
-        elif uses_cer(language):
+        if uses_cer(language):
             pipeline_id = f"vc.{language}.{metric}.funasr_loader_16k_mono.{transcript_node}.{normalizer_label}.wenet_{asr_metric}"
         else:
             pipeline_id = f"vc.{language}.{metric}.{transcript_node}.{normalizer_label}.wenet_{asr_metric}"
@@ -208,6 +211,7 @@ def _evaluate_semantic(
             "reference_text": reference_text,
             "reference_audio_transcript": reference_audio_transcript,
             "asr_metric": asr_metric_for_semantic(metric_name, sample.language),
+            "normalizer": semantic_normalizer,
         }
 
     asr_metric = asr_metric_for_semantic(metric_name, language)
@@ -276,6 +280,14 @@ def _evaluate_mos(
 
 def _default_metrics(samples: list[VCSample], *, prefix: str) -> tuple[str, ...]:
     return tuple(sorted({default_semantic_metric(prefix, sample.language) for sample in samples}))
+
+
+def _effective_semantic_normalizer(*, language: str, explicit_normalizer: str | None) -> str | None:
+    if explicit_normalizer is not None:
+        return explicit_normalizer
+    if uses_cer(language):
+        return _ZH_DEFAULT_SEMANTIC_NORMALIZER
+    return None
 
 
 def _common_language(languages: list[str]) -> str:

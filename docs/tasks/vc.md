@@ -8,8 +8,8 @@ Evaluate converted speech for content preservation, speaker similarity, and qual
 
 | Metric | Language | Reference mode | Pipeline ID | Nodes |
 |:-------|:---------|:---------------|:------------|:------|
-| `vc_cer` | `zh` / `cmn` / `yue` | text | `vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `scoring/wenet_cer` |
-| `vc_cer` | `zh` / `cmn` / `yue` | audio | `vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer` | transcribes both converted and reference audio |
+| `vc_cer` | `zh` | text | `vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
+| `vc_cer` | `zh` | audio | `vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer` | transcribes both converted and reference audio, then applies `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
 | `vc_wer` | `en` | text | `vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer` | `transcription/whisper_large_v3` → `normalization/whisper_norm` → `scoring/wenet_wer` |
 | `vc_wer` | `en` | audio | `vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer` | transcribes both converted and reference audio |
 

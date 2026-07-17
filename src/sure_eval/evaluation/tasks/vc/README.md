@@ -14,7 +14,7 @@ Semantic routes:
 
 | Language | Metric | Transcription node | Normalization node | Downstream ASR metric |
 | --- | --- | --- | --- | --- |
-| `zh` / `cmn` / `yue` | `vc_cer` | `transcription/paraformer_zh` | `normalization/aispeech_norm` | `cer` |
+| `zh` | `vc_cer` | `transcription/paraformer_zh` | `normalization/punctuation_strip_norm` | `cer` |
 | `en` | `vc_wer` | `transcription/whisper_large_v3` | `normalization/whisper_norm` | `wer` |
 
 Speaker similarity and MOS routes:
@@ -32,6 +32,6 @@ Speaker similarity and MOS routes:
 metric selection plus injected providers. The report-level `sim` value is an aggregate over selected
 named speaker backends, not a standalone scoring node.
 
-`normalization/wetext_norm` can be selected explicitly with
-`evaluate_vc_samples(..., semantic_normalizer="wetext:zh_tn")`. Defaults remain
-unchanged.
+Mandarin semantic CER uses punctuation-only normalization before WeNet CER and
+does not use AISpeech number text normalization by default. `normalization/wetext_norm`
+can be selected explicitly with `evaluate_vc_samples(..., semantic_normalizer="wetext:zh_tn")`.

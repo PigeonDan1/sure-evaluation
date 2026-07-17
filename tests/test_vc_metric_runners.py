@@ -63,10 +63,11 @@ def test_vc_metric_pipeline_scores_semantic_against_reference_text_when_availabl
     assert report.results["vc_cer"].score == 0.0
     assert (
         report.results["vc_cer"].details["pipeline_id"]
-        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer"
+        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
     )
     assert report.rows[0]["semantic"]["metric"] == "vc_cer"
     assert report.rows[0]["semantic"]["asr_metric"] == "cer"
+    assert report.rows[0]["semantic"]["normalizer"] == "punctuation_strip"
 
 
 def test_vc_metric_pipeline_forwards_explicit_semantic_normalizer(monkeypatch) -> None:
@@ -126,10 +127,11 @@ def test_vc_metric_pipeline_scores_semantic_between_converted_and_reference_audi
     assert report.results["vc_cer"].score == 0.0
     assert (
         report.results["vc_cer"].details["pipeline_id"]
-        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer"
+        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
     )
     assert report.rows[0]["semantic"]["reference_audio_transcript"] == "你好世界"
     assert report.rows[0]["semantic"]["asr_metric"] == "cer"
+    assert report.rows[0]["semantic"]["normalizer"] == "punctuation_strip"
 
 
 def test_build_default_vc_metric_pipeline_wires_expected_backends() -> None:

@@ -7,7 +7,7 @@ default_metrics:
   cs: mer
 default_pipelines:
   zh:
-    cer: asr.zh.cer.aispeech_norm.wenet_cer
+    cer: asr.zh.cer.wetext_zh_itn.wenet_cer
     cer_canonical: asr.zh.cer_canonical.canonical_itn.token_cer
   en:
     wer: asr.en.wer.whisper_norm.wenet_wer
@@ -60,7 +60,8 @@ notes:
   - ASR compatibility metric classes should route through the canonical task pipeline.
   - Legacy SUREEvaluator remains the regression oracle while other tasks are migrated.
   - English WER defaults to OpenAI Whisper English normalization; the legacy AISpeech route remains available as asr.en.wer.aispeech_norm.wenet_wer.
-  - WeTextProcessing profiles are available only through explicit normalizer arguments such as normalizer="wetext:zh_tn"; no default route uses wetext_norm.
+  - Mandarin CER defaults to WeTextProcessing inverse text normalization (normalization/wetext_norm profile zh_itn) before WeNet CER.
+  - The legacy AISpeech Mandarin CER route remains available explicitly as asr.zh.cer.aispeech_norm.wenet_cer.
   - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.
   - cer_canonical is an opt-in route selector for written-form canonical CER (ITN + token-level scoring) that coexists with the default WeNet-compatible cer; it is not a separate metric family and never replaces cer. Requires the [canonical] extra (cn2an + rapidfuzz), and identical scores require an identical cn2an version (recorded in each run's node trace).
   - mer_canonical (cs) and wer_canonical (en) are opt-in route selectors for canonical-normalized MER/WER. Text without latin letters degenerates to cer_canonical and text without CJK to wer_canonical, by construction. For en/cs the normalization stage additionally whisper-normalizes latin spans (contraction expansion, spoken numbers to digits, spoken-filler removal, British-to-American spelling) using the vendored Whisper English normalizer; spans without latin letters pass through unchanged, which is what preserves the pure-Chinese degeneration.

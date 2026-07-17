@@ -88,7 +88,7 @@ pip install -e ".[dev]"
 pip install "sure-evaluation[diarization]"  # SD / SA-ASR 所需的 MeetEval
 pip install "sure-evaluation[audio]"        # 本地音频辅助库
 pip install "sure-evaluation[download]"     # Hugging Face / ModelScope 下载辅助
-pip install "sure-evaluation[wetext]"       # WeTextProcessing 归一化
+pip install "sure-evaluation[wetext]"       # 兼容空 extra；WeTextProcessing 已包含在基础依赖中
 pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER 路由
 
 # 把缓存放到大容量磁盘
@@ -117,7 +117,7 @@ SURE-EVAL 把每个指标都暴露为声明式流水线。`pipeline_catalog.json
 示例条目：
 
 ```jsonl
-{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.aispeech_norm.wenet_cer","nodes":["normalization/aispeech_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
+{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.wetext_zh_itn.wenet_cer","nodes":["normalization/wetext_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
 {"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","normalization/punctuation_strip_norm","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
 ```
 
@@ -137,7 +137,7 @@ from sure_eval.evaluation.scripts import describe_pipeline, run_task
 # 查看路由
 desc = describe_pipeline("asr", language="zh", metric="cer")
 print(desc.node_ids)
-# ('normalization/aispeech_norm', 'scoring/wenet_cer')
+# ('normalization/wetext_norm', 'scoring/wenet_cer')
 
 # 运行并获取报告
 report = run_task(
