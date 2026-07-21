@@ -58,7 +58,7 @@ def build_pipeline_spec(
     node_slots = _node_slots(description.node_ids, selected_route=selected_route, route_choices=route_choices)
     run_args = {ROLE_TO_CLI_ARG.get(role, role): None for role in description.required_roles}
     required_roles = list(description.required_roles)
-    if normalized_task in {"tts", "vc"}:
+    if normalized_task in {"tts", "vc", "tse"}:
         required_roles = ["samples_jsonl"]
         run_args.setdefault("samples_jsonl", None)
     run_args["output_dir"] = None
@@ -127,11 +127,11 @@ def run_pipeline_spec(
         "samples_jsonl": samples_jsonl,
     }
     kwargs.update({key: value for key, value in cli_values.items() if value is not None})
-    if task in {"tts", "vc"}:
+    if task in {"tts", "vc", "tse"}:
         kwargs.update(_audio_sample_kwargs(task, pipeline, samples_jsonl=samples_jsonl, device=device, cache_dir=cache_dir))
     kwargs["output_dir"] = output_dir
     _validate_required_args(pipeline, kwargs)
-    if task in {"tts", "vc"}:
+    if task in {"tts", "vc", "tse"}:
         kwargs.pop("samples_jsonl", None)
     report = run_task(task, **kwargs)
     output_path = Path(output_dir)
@@ -216,6 +216,11 @@ def _describe_kwargs(
     if task == "sa_asr":
         return {"metric": metric or "cpwer", "language": language or "en"}
     if task in {"tts", "vc"}:
+        kwargs = {"language": language or "zh"}
+        if metric:
+            kwargs["metrics"] = split_metric_csv(metric)
+        return kwargs
+    if task == "tse":
         kwargs = {"language": language or "zh"}
         if metric:
             kwargs["metrics"] = split_metric_csv(metric)
@@ -322,13 +327,13 @@ def _slot_name(stage: str, stage_index: int, node_id: str) -> str:
 def _run_kwargs_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
     task = normalize_task(str(pipeline["task"]))
     kwargs: dict[str, Any] = {}
-    if task not in {"tts", "vc"} and pipeline.get("language") and pipeline["language"] != "n/a":
+    if task not in {"tts", "vc", "tse"} and pipeline.get("language") and pipeline["language"] != "n/a":
         kwargs["language"] = pipeline["language"]
     if task == "classification":
         kwargs["task"] = pipeline.get("task_alias") or "classification"
     elif task in {"ser", "gr", "slu"}:
         pass
-    elif task in {"tts", "vc"}:
+    elif task in {"tts", "vc", "tse"}:
         if pipeline.get("metrics"):
             kwargs["metrics"] = tuple(str(metric).lower() for metric in pipeline["metrics"])
         elif pipeline.get("metric") and pipeline["metric"] != "multi":
@@ -356,7 +361,7 @@ def split_metric_csv(metric: str | None) -> tuple[str, ...]:
 
 
 def _requested_metrics(task: str, *, metric: str | None, description_metric: str) -> tuple[str, ...]:
-    if task in {"tts", "vc"} and metric:
+    if task in {"tts", "vc", "tse"} and metric:
         return split_metric_csv(metric)
     if description_metric and description_metric != "multi":
         return (description_metric,)
@@ -393,6 +398,17 @@ def _audio_sample_kwargs(
 
         samples = load_vc_samples_jsonl(samples_jsonl, metrics=metrics)
         runtime = build_vc_runtime(
+            metrics=metrics,
+            language=samples[0].language,
+            device=device,
+            cache_dir=cache_dir,
+        )
+    elif task == "tse":
+        from sure_eval.evaluation.audio_runtime import build_tse_runtime
+        from sure_eval.evaluation.audio_samples import load_tse_samples_jsonl
+
+        samples = load_tse_samples_jsonl(samples_jsonl, metrics=metrics)
+        runtime = build_tse_runtime(
             metrics=metrics,
             language=samples[0].language,
             device=device,

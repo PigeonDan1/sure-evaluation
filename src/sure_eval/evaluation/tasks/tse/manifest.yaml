@@ -1,0 +1,108 @@
+task: TSE
+language_sensitive: true
+canonical_entry: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+implemented_metric_families:
+  - signal_quality
+  - speaker_similarity
+  - mos
+  - semantic_error_rate
+default_metrics:
+  zh: si_sdr
+  en: si_sdr
+default_pipelines:
+  zh:
+    si_sdr: tse.zh.si_sdr.si_sdr
+    tse_cer: tse.zh.tse_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+  en:
+    si_sdr: tse.en.si_sdr.si_sdr
+    tse_wer: tse.en.tse_wer.whisper_large_v3.whisper_norm.wenet_wer
+input_contracts:
+  scoring/si_sdr:
+    purpose: tse_signal_quality
+    required_roles: [prediction_audio, reference_audio]
+    optional_roles: [mixed_audio, enrollment_audio]
+    row_format: audio_signal_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/wavlm_large_sim:
+    purpose: tse_speaker_similarity
+    required_roles: [prediction_audio, reference_audio]
+    optional_roles: [mixed_audio, enrollment_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/ecapa_tdnn_sim:
+    purpose: tse_speaker_similarity
+    required_roles: [prediction_audio, reference_audio]
+    optional_roles: [mixed_audio, enrollment_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/eres2net_sim:
+    purpose: tse_speaker_similarity
+    required_roles: [prediction_audio, reference_audio]
+    optional_roles: [mixed_audio, enrollment_audio]
+    row_format: speaker_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/dnsmos:
+    purpose: tse_audio_quality
+    required_roles: [prediction_audio]
+    optional_roles: [mixed_audio, enrollment_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/wv_mos:
+    purpose: tse_audio_quality
+    required_roles: [prediction_audio]
+    optional_roles: [mixed_audio, enrollment_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/utmos:
+    purpose: tse_audio_quality
+    required_roles: [prediction_audio]
+    optional_roles: [mixed_audio, enrollment_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  semantic/asr_error_rate:
+    purpose: tse_intelligibility_via_asr_transcript
+    required_roles: [prediction_audio, reference_text]
+    optional_roles: [reference_audio, mixed_audio, enrollment_audio]
+    row_format: audio_with_inline_text
+    alignment_key: sample_id
+    aggregation: corpus_edit_distance
+    main_report: true
+pipeline_nodes:
+  zh:
+    frontend: frontend/funasr_loader_16k_mono
+    transcription: transcription/paraformer_zh
+    normalization: normalization/punctuation_strip_norm
+    downstream_task: ASR
+    downstream_metric: cer
+  en:
+    transcription: transcription/whisper_large_v3
+    normalization: normalization/whisper_norm
+    downstream_task: ASR
+    downstream_metric: wer
+  speaker_similarity:
+    wavlm-large: scoring/wavlm_large_sim
+    ecapa-tdnn: scoring/ecapa_tdnn_sim
+    eres2net: scoring/eres2net_sim
+  mos:
+    dnsmos: scoring/dnsmos
+    wv-mos: scoring/wv_mos
+    utmos: scoring/utmos
+notes:
+  - SI-SDR is the default and primary metric; it is language-independent and computed on CPU.
+  - Speaker similarity and MOS use concrete backend scoring nodes with provider-backed model execution.
+  - Semantic WER/CER transcribes prediction_audio with the language-appropriate ASR model, then scores against reference_text.
+  - metrics=None defaults to si_sdr; speaker/MOS/semantic metrics are selected explicitly.

@@ -1,0 +1,20 @@
+id: scoring/si_sdr
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: audio_signal_pairs
+output_schema: si_sdr_score
+implementation: sure_eval.evaluation.nodes.scoring.si_sdr.node
+metric: si_sdr
+internal_stages:
+  - audio_load
+  - length_align
+  - si_sdr_compute
+  - mean_aggregation
+used_by:
+  - TSE signal quality
+notes:
+  - SI-SDR requires prediction and reference audio at the same sample rate.
+  - Reference and prediction are length-aligned by truncation to the shorter.
+  - Pure CPU computation; no model weights or GPU required.
+  - Higher is better. Identical signals yield positive infinity.

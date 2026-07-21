@@ -1,0 +1,13 @@
+id: scoring/si_sdr
+group: tse-signal
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+verify:
+  imports:
+    - numpy
+    - soundfile
+    - scipy

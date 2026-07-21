@@ -15,6 +15,7 @@ from sure_eval.evaluation.tasks.tts.metrics import (
     WERMetric as TTSWERMetric,
     WVMOSMetric,
 )
+from sure_eval.evaluation.tasks.tse.metrics import SISDRMetric
 from sure_eval.evaluation.tasks.vc.metrics import CERMetric as VCCERMetric
 from sure_eval.evaluation.tasks.vc.metrics import WERMetric as VCWERMetric
 
@@ -39,6 +40,7 @@ class MetricRegistry:
         "bleurt_20": BLEURT20Metric,
         "kws": KWSMetric,
         "kws_accuracy": KWSMetric,
+        "si_sdr": SISDRMetric,
     }
 
     @classmethod

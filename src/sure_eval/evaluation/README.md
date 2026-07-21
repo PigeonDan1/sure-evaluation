@@ -157,7 +157,7 @@ sure-eval metric run \
   --json
 ```
 
-For TTS and VC, use a samples JSONL instead of many per-role flags:
+For TTS, VC, and TSE, use a samples JSONL instead of many per-role flags:
 
 ```bash
 sure-eval metric describe tts \
@@ -192,6 +192,14 @@ VC rows use the converted audio, source/reference audio, and optional text:
 
 ```json
 {"sample_id":"vc_001","converted_audio":"converted.wav","source_audio":"source.wav","reference_audio":"speaker.wav","reference_text":"你好世界","language":"zh"}
+```
+
+TSE rows use extracted prediction audio plus a clean reference; optional
+`mixed_audio` enables SI-SDRi alongside SI-SDR, and `reference_text` is required
+for semantic `tse_wer`/`tse_cer`:
+
+```json
+{"sample_id":"tse_001","prediction_audio":"extracted.wav","reference_audio":"clean.wav","mixed_audio":"mix.wav","enrollment_audio":"enroll.wav","language":"en"}
 ```
 
 `output_dir` is always required. The CLI calls
@@ -301,6 +309,8 @@ multiple nodes into one pipeline. For example:
   companion metric;
 - TTS/VC: transcription -> ASR scoring for semantic metrics, plus optional
   speaker similarity or MOS scoring;
+- TSE: SI-SDR(+i) signal quality, plus optional speaker similarity, MOS, and
+  ASR-based semantic WER/CER scoring;
 - KWS/classification/SLU: task-specific loaders or normalization followed by
   scoring nodes.
 
