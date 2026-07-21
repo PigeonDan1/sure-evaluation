@@ -44,15 +44,21 @@ def describe_metric_pipeline(
     task: str = typer.Argument(..., help="Task name, e.g. asr, s2tt, kws, classification, slu"),
     language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
     metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Metric name"),
-    metrics: Optional[str] = typer.Option(None, "--metrics", help="Comma-separated metric names for multi-metric tasks"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write pipeline JSON to this path"),
+    metrics: Optional[str] = typer.Option(
+        None, "--metrics", help="Comma-separated metric names for multi-metric tasks"
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Write pipeline JSON to this path"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
 ) -> None:
     """Describe a route-backed metric pipeline without executing it."""
 
     try:
         selected_metric = metrics or metric
-        payload = build_pipeline_spec(task, language=language, metric=selected_metric, output_path=output)
+        payload = build_pipeline_spec(
+            task, language=language, metric=selected_metric, output_path=output
+        )
     except Exception as exc:
         _print_error(exc, json_output=json_output)
         raise typer.Exit(1) from exc
@@ -74,23 +80,47 @@ def describe_metric_pipeline(
 
 @metric_app.command("run")
 def run_metric_pipeline(
-    pipeline: Path = typer.Option(..., "--pipeline", "-p", help="Pipeline JSON emitted by metric describe"),
+    pipeline: Path = typer.Option(
+        ..., "--pipeline", "-p", help="Pipeline JSON emitted by metric describe"
+    ),
     output_dir: Path = typer.Option(..., "--output-dir", help="Expected output directory"),
     ref_file: Optional[str] = typer.Option(None, "--ref-file", help="Reference key-text file"),
     hyp_file: Optional[str] = typer.Option(None, "--hyp-file", help="Hypothesis key-text file"),
     src_file: Optional[str] = typer.Option(None, "--src-file", help="Source key-text file"),
-    prompt_jsonl: Optional[str] = typer.Option(None, "--prompt-jsonl", help="SLU prompt JSONL file"),
-    label_spec: Optional[str] = typer.Option(None, "--label-spec", help="Classification label spec path or id"),
-    reference_jsonl: Optional[str] = typer.Option(None, "--reference-jsonl", help="KWS reference JSONL"),
-    sample_output: Optional[str] = typer.Option(None, "--sample-output", help="KWS model output JSONL"),
-    wekws_label_file: Optional[str] = typer.Option(None, "--wekws-label-file", help="WeKWS label file"),
-    wekws_score_file: Optional[str] = typer.Option(None, "--wekws-score-file", help="WeKWS CTC score file"),
-    wekws_frame_score_file: Optional[str] = typer.Option(None, "--wekws-frame-score-file", help="WeKWS frame score file"),
+    prompt_jsonl: Optional[str] = typer.Option(
+        None, "--prompt-jsonl", help="SLU prompt JSONL file"
+    ),
+    label_spec: Optional[str] = typer.Option(
+        None, "--label-spec", help="Classification label spec path or id"
+    ),
+    reference_jsonl: Optional[str] = typer.Option(
+        None, "--reference-jsonl", help="KWS reference JSONL"
+    ),
+    sample_output: Optional[str] = typer.Option(
+        None, "--sample-output", help="KWS model output JSONL"
+    ),
+    wekws_label_file: Optional[str] = typer.Option(
+        None, "--wekws-label-file", help="WeKWS label file"
+    ),
+    wekws_score_file: Optional[str] = typer.Option(
+        None, "--wekws-score-file", help="WeKWS CTC score file"
+    ),
+    wekws_frame_score_file: Optional[str] = typer.Option(
+        None, "--wekws-frame-score-file", help="WeKWS frame score file"
+    ),
     keyword: Optional[str] = typer.Option(None, "--keyword", help="KWS keyword"),
-    samples_jsonl: Optional[str] = typer.Option(None, "--samples-jsonl", help="TTS/VC/SE samples JSONL file"),
-    device: str = typer.Option("cuda", "--device", help="Device passed to audio metric runtime builders"),
-    cache_dir: Optional[str] = typer.Option(None, "--cache-dir", help="Cache directory for audio metric runtime builders"),
-    validate_env: bool = typer.Option(False, "--validate-env", help="Validate selected node-local environments before running"),
+    samples_jsonl: Optional[str] = typer.Option(
+        None, "--samples-jsonl", help="TTS/VC/SE/TSE samples JSONL file"
+    ),
+    device: str = typer.Option(
+        "cuda", "--device", help="Device passed to audio metric runtime builders"
+    ),
+    cache_dir: Optional[str] = typer.Option(
+        None, "--cache-dir", help="Cache directory for audio metric runtime builders"
+    ),
+    validate_env: bool = typer.Option(
+        False, "--validate-env", help="Validate selected node-local environments before running"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
 ) -> None:
     """Run a previously described metric pipeline."""
@@ -146,7 +176,9 @@ def run_metric_pipeline(
 
 def _print_error(exc: Exception, *, json_output: bool) -> None:
     if json_output:
-        sys.stdout.write(json.dumps({"status": "error", "message": str(exc)}, ensure_ascii=False) + "\n")
+        sys.stdout.write(
+            json.dumps({"status": "error", "message": str(exc)}, ensure_ascii=False) + "\n"
+        )
     else:
         console.print(f"[bold red]Error:[/bold red] {exc}")
 
@@ -172,11 +204,15 @@ def _print_env_error(exc: EnvironmentCheckError, *, json_output: bool) -> None:
 @agent_app.command("plan")
 def agent_plan(
     task_arg: Optional[str] = typer.Argument(None, help="Task name, e.g. asr, tts, vc"),
-    task_opt: Optional[str] = typer.Option(None, "--task", help="Task name for non-positional callers"),
+    task_opt: Optional[str] = typer.Option(
+        None, "--task", help="Task name for non-positional callers"
+    ),
     language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
     metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Single metric name"),
     metrics: Optional[str] = typer.Option(None, "--metrics", help="Comma-separated metric names"),
-    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write plan JSON to this path"),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Write plan JSON to this path"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
 ) -> None:
     """Describe selected routes and required node environments without scoring."""
@@ -222,7 +258,9 @@ def main(
 
 
 @app.command("doctor")
-def doctor(json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON")) -> None:
+def doctor(
+    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON")
+) -> None:
     """Check root package and optional node environment status."""
 
     payload = doctor_payload()
@@ -267,13 +305,19 @@ def env_list(
 
 @env_app.command("check")
 def env_check(
-    node: Optional[str] = typer.Option(None, "--node", help="Check one node id, e.g. scoring/dnsmos"),
-    pipeline: Optional[Path] = typer.Option(None, "--pipeline", "-p", help="Check nodes selected by a pipeline JSON"),
+    node: Optional[str] = typer.Option(
+        None, "--node", help="Check one node id, e.g. scoring/dnsmos"
+    ),
+    pipeline: Optional[Path] = typer.Option(
+        None, "--pipeline", "-p", help="Check nodes selected by a pipeline JSON"
+    ),
     task: Optional[str] = typer.Option(None, "--task", help="Check nodes selected by a task route"),
     language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
     metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Single metric name"),
     metrics: Optional[str] = typer.Option(None, "--metrics", help="Comma-separated metric names"),
-    group: Optional[str] = typer.Option(None, "--group", help="Check nodes in one node_env.yaml group"),
+    group: Optional[str] = typer.Option(
+        None, "--group", help="Check nodes in one node_env.yaml group"
+    ),
     all_nodes: bool = typer.Option(False, "--all", help="Check all known nodes"),
     json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
 ) -> None:
@@ -306,15 +350,25 @@ def env_check(
 @env_app.command("setup")
 def env_setup(
     node: Optional[str] = typer.Option(None, "--node", help="Prepare one node id"),
-    task: Optional[str] = typer.Option(None, "--task", help="Prepare nodes selected by a task route"),
+    task: Optional[str] = typer.Option(
+        None, "--task", help="Prepare nodes selected by a task route"
+    ),
     language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
     metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Single metric name"),
     metrics: Optional[str] = typer.Option(None, "--metrics", help="Comma-separated metric names"),
-    group: Optional[str] = typer.Option(None, "--group", help="Prepare nodes in one node_env.yaml group"),
+    group: Optional[str] = typer.Option(
+        None, "--group", help="Prepare nodes in one node_env.yaml group"
+    ),
     all_nodes: bool = typer.Option(False, "--all", help="Prepare all known optional nodes"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print planned setup actions without running them"),
-    force: bool = typer.Option(False, "--force", help="Recreate or refresh environments even if they already exist"),
-    no_download: bool = typer.Option(False, "--no-download", help="Skip checkpoint/model downloads"),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print planned setup actions without running them"
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Recreate or refresh environments even if they already exist"
+    ),
+    no_download: bool = typer.Option(
+        False, "--no-download", help="Skip checkpoint/model downloads"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
 ) -> None:
     """Prepare node-local environments from node_env.yaml metadata."""
@@ -357,13 +411,21 @@ def env_setup(
 @env_app.command("download")
 def env_download(
     node: Optional[str] = typer.Option(None, "--node", help="Download assets for one node id"),
-    task: Optional[str] = typer.Option(None, "--task", help="Download assets for nodes selected by a task route"),
+    task: Optional[str] = typer.Option(
+        None, "--task", help="Download assets for nodes selected by a task route"
+    ),
     language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
     metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Single metric name"),
     metrics: Optional[str] = typer.Option(None, "--metrics", help="Comma-separated metric names"),
-    group: Optional[str] = typer.Option(None, "--group", help="Download assets for one node_env.yaml group"),
-    all_nodes: bool = typer.Option(False, "--all", help="Download assets for all known optional nodes"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Print planned downloads without running them"),
+    group: Optional[str] = typer.Option(
+        None, "--group", help="Download assets for one node_env.yaml group"
+    ),
+    all_nodes: bool = typer.Option(
+        False, "--all", help="Download assets for all known optional nodes"
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Print planned downloads without running them"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
 ) -> None:
     """Download model/tool assets declared by node_env.yaml when supported."""
@@ -431,11 +493,15 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
     if runtime_type == "uv":
         if python:
             command_parts.append(f"uv venv --python {python}")
-        command_parts.append("uv sync" if project == "pyproject.toml" else f"uv sync --project {project}")
+        command_parts.append(
+            "uv sync" if project == "pyproject.toml" else f"uv sync --project {project}"
+        )
     elif runtime_type == "pip":
         specs = package_install_specs(node_env)
         if specs:
-            command_parts.append("python -m pip install " + " ".join(shlex.quote(spec) for spec in specs))
+            command_parts.append(
+                "python -m pip install " + " ".join(shlex.quote(spec) for spec in specs)
+            )
         else:
             command_parts.append("# no pip packages declared")
     elif runtime_type == "binary" and runtime.get("build_script"):

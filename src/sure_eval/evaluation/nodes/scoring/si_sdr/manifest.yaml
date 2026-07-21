@@ -2,18 +2,25 @@ id: scoring/si_sdr
 version: v1
 stage: scoring
 language_sensitive: false
-input_schema: speech_enhancement_audio_pairs
-output_schema: full_reference_audio_metric
+input_schema: audio_signal_or_enhancement_pairs
+output_schema: si_sdr_score
 implementation: sure_eval.evaluation.nodes.scoring.si_sdr.node
-metric: si-sdr
+metric: si_sdr
+aliases:
+  - si-sdr
 backend: numpy-si-sdr
 internal_stages:
+  - audio_load
+  - length_align
+  - si_sdr_compute
   - audio_pair_decode
   - metric_provider
   - score_normalization
   - mean_aggregation
 used_by:
+  - TSE signal quality
   - SE full-reference speech enhancement quality
 notes:
   - Higher is better.
-  - The score is scale-invariant SDR in dB, averaged over aligned sample pairs.
+  - TSE may pass mixed_audio to report SI-SDRi.
+  - SE may inject a full-reference provider for in-process scoring.

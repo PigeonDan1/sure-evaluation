@@ -1,0 +1,82 @@
+task: TSE
+language_sensitive: true
+routes:
+  - route_id: tse.any.si_sdr.si_sdr
+    metric: si_sdr
+    family: signal_quality
+    pipeline_id: tse.{language}.si_sdr.si_sdr
+    nodes:
+      - scoring/si_sdr
+    input_contract: scoring/si_sdr
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.any.sim_wavlm_large.wavlm_large_sim
+    metric: sim/wavlm-large
+    family: speaker_similarity
+    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    nodes:
+      - scoring/wavlm_large_sim
+    input_contract: scoring/wavlm_large_sim
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.any.sim_ecapa_tdnn.ecapa_tdnn_sim
+    metric: sim/ecapa-tdnn
+    family: speaker_similarity
+    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    nodes:
+      - scoring/ecapa_tdnn_sim
+    input_contract: scoring/ecapa_tdnn_sim
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.any.sim_eres2net.eres2net_sim
+    metric: sim/eres2net
+    family: speaker_similarity
+    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    nodes:
+      - scoring/eres2net_sim
+    input_contract: scoring/eres2net_sim
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.any.dnsmos.dnsmos
+    metric: dnsmos
+    family: mos
+    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    nodes:
+      - scoring/dnsmos
+    input_contract: scoring/dnsmos
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.any.wv_mos.wv_mos
+    metric: wv-mos
+    family: mos
+    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    nodes:
+      - scoring/wv_mos
+    input_contract: scoring/wv_mos
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.any.utmos.utmos
+    metric: utmos
+    family: mos
+    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    nodes:
+      - scoring/utmos
+    input_contract: scoring/utmos
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.zh.tse_cer.text.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    language: zh
+    metric: tse_cer
+    family: semantic_error_rate
+    pipeline_id: tse.{language}.tse_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    nodes:
+      - frontend/funasr_loader_16k_mono
+      - transcription/paraformer_zh
+      - normalization/punctuation_strip_norm
+      - scoring/wenet_cer
+    input_contract: semantic/asr_error_rate
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
+  - route_id: tse.en.tse_wer.text.whisper_large_v3.whisper_norm.wenet_wer
+    language: en
+    metric: tse_wer
+    family: semantic_error_rate
+    pipeline_id: tse.{language}.tse_wer.whisper_large_v3.whisper_norm.wenet_wer
+    nodes:
+      - transcription/whisper_large_v3
+      - normalization/whisper_norm
+      - scoring/wenet_wer
+    input_contract: semantic/asr_error_rate
+    executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples

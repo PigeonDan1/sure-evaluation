@@ -39,6 +39,10 @@ ENVIRONMENT_NOTE = (
     "Check selected node directories for pyproject.toml or uv.lock when preparing a run."
 )
 
+AUDIO_SAMPLE_TASKS = {"tts", "vc", "se", "speech_enhancement", "tse"}
+SE_TASKS = {"se", "speech_enhancement"}
+SE_DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
+
 
 def build_pipeline_spec(
     task: str,
@@ -50,16 +54,20 @@ def build_pipeline_spec(
     """Describe a configured script route as a user-editable pipeline spec."""
 
     normalized_task = normalize_task(task)
-    describe_kwargs = _describe_kwargs(normalized_task, original_task=task, language=language, metric=metric)
+    describe_kwargs = _describe_kwargs(
+        normalized_task, original_task=task, language=language, metric=metric
+    )
     description = describe_pipeline(normalized_task, **describe_kwargs)
     manifest, _ = load_task_manifest(TASK_ALIASES.get(normalized_task, normalized_task))
     routes, _ = load_task_routes(TASK_ALIASES.get(normalized_task, normalized_task))
     route_choices = _route_choices(routes)
     selected_route = _match_selected_route(route_choices, description.pipeline_id)
-    node_slots = _node_slots(description.node_ids, selected_route=selected_route, route_choices=route_choices)
+    node_slots = _node_slots(
+        description.node_ids, selected_route=selected_route, route_choices=route_choices
+    )
     run_args = {ROLE_TO_CLI_ARG.get(role, role): None for role in description.required_roles}
     required_roles = list(description.required_roles)
-    if normalized_task in {"tts", "vc", "se", "speech_enhancement"}:
+    if normalized_task in AUDIO_SAMPLE_TASKS:
         required_roles = ["samples_jsonl"]
         run_args.setdefault("samples_jsonl", None)
     run_args["output_dir"] = None
@@ -70,7 +78,11 @@ def build_pipeline_spec(
         "task_alias": task,
         "language": description.language,
         "metric": description.metric,
-        "metrics": list(_requested_metrics(normalized_task, metric=metric, description_metric=description.metric)),
+        "metrics": list(
+            _requested_metrics(
+                normalized_task, metric=metric, description_metric=description.metric
+            )
+        ),
         "pipeline_id": description.pipeline_id,
         "route_id": selected_route.get("route_id", description.pipeline_id),
         "pipeline": node_slots,
@@ -128,11 +140,15 @@ def run_pipeline_spec(
         "samples_jsonl": samples_jsonl,
     }
     kwargs.update({key: value for key, value in cli_values.items() if value is not None})
-    if task in {"tts", "vc", "se", "speech_enhancement"}:
-        kwargs.update(_audio_sample_kwargs(task, pipeline, samples_jsonl=samples_jsonl, device=device, cache_dir=cache_dir))
+    if task in AUDIO_SAMPLE_TASKS:
+        kwargs.update(
+            _audio_sample_kwargs(
+                task, pipeline, samples_jsonl=samples_jsonl, device=device, cache_dir=cache_dir
+            )
+        )
     kwargs["output_dir"] = output_dir
     _validate_required_args(pipeline, kwargs)
-    if task in {"tts", "vc", "se", "speech_enhancement"}:
+    if task in AUDIO_SAMPLE_TASKS:
         kwargs.pop("samples_jsonl", None)
     report = run_task(task, **kwargs)
     output_path = Path(output_dir)
@@ -165,7 +181,9 @@ def validate_pipeline_selection(pipeline: dict[str, Any]) -> None:
                 raise ValueError(f"Pipeline slot {slot.get('slot')!r} has no default node")
             continue
         if selected not in choices:
-            raise ValueError(f"Node {selected!r} is not declared in choices for slot {slot.get('slot')!r}")
+            raise ValueError(
+                f"Node {selected!r} is not declared in choices for slot {slot.get('slot')!r}"
+            )
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -223,6 +241,11 @@ def _describe_kwargs(
         return kwargs
     if task in {"se", "speech_enhancement"}:
         kwargs = {"language": "n/a"}
+        if metric:
+            kwargs["metrics"] = split_metric_csv(metric)
+        return kwargs
+    if task == "tse":
+        kwargs = {"language": language or "zh"}
         if metric:
             kwargs["metrics"] = split_metric_csv(metric)
         return kwargs
@@ -328,27 +351,29 @@ def _slot_name(stage: str, stage_index: int, node_id: str) -> str:
 def _run_kwargs_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
     task = normalize_task(str(pipeline["task"]))
     kwargs: dict[str, Any] = {}
-    if task not in {"tts", "vc"} and pipeline.get("language") and pipeline["language"] != "n/a":
+    if (
+        task not in AUDIO_SAMPLE_TASKS
+        and pipeline.get("language")
+        and pipeline["language"] != "n/a"
+    ):
         kwargs["language"] = pipeline["language"]
     if task == "classification":
         kwargs["task"] = pipeline.get("task_alias") or "classification"
     elif task in {"ser", "gr", "slu"}:
         pass
-    elif task in {"tts", "vc", "se", "speech_enhancement"}:
-        if pipeline.get("metrics"):
-            kwargs["metrics"] = tuple(str(metric).lower() for metric in pipeline["metrics"])
-        elif pipeline.get("metric") and pipeline["metric"] != "multi":
-            kwargs["metrics"] = (str(pipeline["metric"]).lower(),)
-        else:
-            metrics = [slot.get("metric") for slot in pipeline.get("pipeline") or () if slot.get("stage") == "scoring"]
-            kwargs["metrics"] = tuple(str(metric).lower() for metric in metrics if metric)
+    elif task in AUDIO_SAMPLE_TASKS:
+        metrics = _metrics_from_pipeline(pipeline, task=task)
+        if metrics:
+            kwargs["metrics"] = metrics
     elif pipeline.get("metric"):
         kwargs["metric"] = pipeline["metric"]
     return kwargs
 
 
 def _validate_required_args(pipeline: dict[str, Any], kwargs: dict[str, Any]) -> None:
-    required_args = [ROLE_TO_CLI_ARG.get(role, role) for role in pipeline.get("required_roles") or ()]
+    required_args = [
+        ROLE_TO_CLI_ARG.get(role, role) for role in pipeline.get("required_roles") or ()
+    ]
     required_args.append("output_dir")
     missing = [arg for arg in required_args if not kwargs.get(arg)]
     if missing:
@@ -361,9 +386,13 @@ def split_metric_csv(metric: str | None) -> tuple[str, ...]:
     return tuple(item.strip().lower() for item in str(metric).split(",") if item.strip())
 
 
-def _requested_metrics(task: str, *, metric: str | None, description_metric: str) -> tuple[str, ...]:
-    if task in {"tts", "vc", "se", "speech_enhancement"} and metric:
+def _requested_metrics(
+    task: str, *, metric: str | None, description_metric: str
+) -> tuple[str, ...]:
+    if task in AUDIO_SAMPLE_TASKS and metric:
         return split_metric_csv(metric)
+    if task in SE_TASKS and description_metric == "multi":
+        return SE_DEFAULT_METRICS
     if description_metric and description_metric != "multi":
         return (description_metric,)
     return ()
@@ -380,7 +409,9 @@ def _audio_sample_kwargs(
     if not samples_jsonl:
         return {}
     metrics = tuple(_run_kwargs_from_pipeline(pipeline).get("metrics") or ())
-    if not metrics:
+    if not metrics and task in SE_TASKS:
+        metrics = SE_DEFAULT_METRICS
+    elif not metrics:
         metrics = (str(pipeline["metric"]),)
     if task == "tts":
         from sure_eval.evaluation.audio_runtime import build_tts_runtime
@@ -414,6 +445,17 @@ def _audio_sample_kwargs(
             device=device,
             cache_dir=cache_dir,
         )
+    elif task == "tse":
+        from sure_eval.evaluation.audio_runtime import build_tse_runtime
+        from sure_eval.evaluation.audio_samples import load_tse_samples_jsonl
+
+        samples = load_tse_samples_jsonl(samples_jsonl, metrics=metrics)
+        runtime = build_tse_runtime(
+            metrics=metrics,
+            language=samples[0].language,
+            device=device,
+            cache_dir=cache_dir,
+        )
     else:
         return {}
     payload = {
@@ -427,3 +469,21 @@ def _audio_sample_kwargs(
     if "reference_providers" in runtime:
         payload["reference_providers"] = runtime["reference_providers"]
     return payload
+
+
+def _metrics_from_pipeline(pipeline: dict[str, Any], *, task: str) -> tuple[str, ...]:
+    if pipeline.get("metrics"):
+        return tuple(str(metric).lower() for metric in pipeline["metrics"])
+    if pipeline.get("metric") and pipeline["metric"] != "multi":
+        return (str(pipeline["metric"]).lower(),)
+    metrics = [
+        slot.get("metric")
+        for slot in pipeline.get("pipeline") or ()
+        if slot.get("stage") == "scoring"
+    ]
+    selected = tuple(str(metric).lower() for metric in metrics if metric)
+    if selected:
+        return selected
+    if task in SE_TASKS and pipeline.get("metric") == "multi":
+        return SE_DEFAULT_METRICS
+    return ()

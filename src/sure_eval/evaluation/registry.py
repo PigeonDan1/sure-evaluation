@@ -7,7 +7,11 @@ from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSMetric
 from sure_eval.evaluation.tasks.asr.metrics import CERMetric, WERMetric
 from sure_eval.evaluation.tasks.classification.metrics import AccuracyMetric
 from sure_eval.evaluation.tasks.s2tt.metrics import BLEUMetric, BLEURT20Metric, XCOMETXLMetric
-from sure_eval.evaluation.tasks.se.metrics import PESQMetric, SISDRMetric, STOIMetric
+from sure_eval.evaluation.tasks.se.metrics import (
+    PESQMetric,
+    SISDRMetric as SESISDRMetric,
+    STOIMetric,
+)
 from sure_eval.evaluation.tasks.tts.metrics import (
     CERMetric as TTSCERMetric,
     DNSMOSMetric,
@@ -16,6 +20,7 @@ from sure_eval.evaluation.tasks.tts.metrics import (
     WERMetric as TTSWERMetric,
     WVMOSMetric,
 )
+from sure_eval.evaluation.tasks.tse.metrics import SISDRMetric as TSESISDRMetric
 from sure_eval.evaluation.tasks.vc.metrics import CERMetric as VCCERMetric
 from sure_eval.evaluation.tasks.vc.metrics import WERMetric as VCWERMetric
 
@@ -34,8 +39,8 @@ class MetricRegistry:
         "dnsmos": DNSMOSMetric,
         "wv-mos": WVMOSMetric,
         "utmos": UTMOSMetric,
-        "si-sdr": SISDRMetric,
-        "sisdr": SISDRMetric,
+        "si-sdr": SESISDRMetric,
+        "sisdr": SESISDRMetric,
         "stoi": STOIMetric,
         "pesq": PESQMetric,
         "accuracy": AccuracyMetric,
@@ -44,6 +49,7 @@ class MetricRegistry:
         "bleurt_20": BLEURT20Metric,
         "kws": KWSMetric,
         "kws_accuracy": KWSMetric,
+        "si_sdr": TSESISDRMetric,
     }
 
     @classmethod

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from sure_eval.evaluation.tasks.tts.types import TTSSample
+from sure_eval.evaluation.tasks.tse.types import TSESample
 from sure_eval.evaluation.tasks.vc.types import VCSample
 from sure_eval.evaluation.tasks.se.types import SESample
 
@@ -15,7 +16,9 @@ class SampleJsonlError(ValueError):
     """Raised when an audio samples JSONL file violates the input contract."""
 
 
-def load_tts_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None) -> list[TTSSample]:
+def load_tts_samples_jsonl(
+    path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None
+) -> list[TTSSample]:
     rows = _read_rows(Path(path))
     _validate_common(rows)
     requested = _normalize_metrics(metrics)
@@ -26,12 +29,19 @@ def load_tts_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[
         if _has_semantic_metric(requested, "tts") and not row.get("reference_text"):
             _fail(line_no, "reference_text is required for semantic metric tts_wer/tts_cer")
         if _has_speaker_metric(requested) and not row.get("reference_audio"):
-            _fail(line_no, f"reference_audio is required for speaker metric {_first_speaker_metric(requested)}")
+            _fail(
+                line_no,
+                f"reference_audio is required for speaker metric {_first_speaker_metric(requested)}",
+            )
         samples.append(
             TTSSample(
-                prediction_audio=_resolve_existing_path(row["prediction_audio"], path, line_no, "prediction_audio"),
+                prediction_audio=_resolve_existing_path(
+                    row["prediction_audio"], path, line_no, "prediction_audio"
+                ),
                 reference_text=str(row.get("reference_text", "")),
-                reference_audio=_resolve_optional_path(row.get("reference_audio"), path, line_no, "reference_audio"),
+                reference_audio=_resolve_optional_path(
+                    row.get("reference_audio"), path, line_no, "reference_audio"
+                ),
                 language=str(row["language"]),
                 sample_id=str(row["sample_id"]),
                 metadata=_metadata(row, line_no),
@@ -41,7 +51,9 @@ def load_tts_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[
     return samples
 
 
-def load_vc_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None) -> list[VCSample]:
+def load_vc_samples_jsonl(
+    path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None
+) -> list[VCSample]:
     rows = _read_rows(Path(path))
     _validate_common(rows)
     requested = _normalize_metrics(metrics)
@@ -49,15 +61,31 @@ def load_vc_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[s
     for row in rows:
         line_no = row["_line_no"]
         _require_fields(row, line_no, ("sample_id", "converted_audio", "language"))
-        if _has_semantic_metric(requested, "vc") and not row.get("reference_text") and not row.get("reference_audio"):
-            _fail(line_no, "reference_text or reference_audio is required for semantic metric vc_wer/vc_cer")
+        if (
+            _has_semantic_metric(requested, "vc")
+            and not row.get("reference_text")
+            and not row.get("reference_audio")
+        ):
+            _fail(
+                line_no,
+                "reference_text or reference_audio is required for semantic metric vc_wer/vc_cer",
+            )
         if _has_speaker_metric(requested) and not row.get("reference_audio"):
-            _fail(line_no, f"reference_audio is required for speaker metric {_first_speaker_metric(requested)}")
+            _fail(
+                line_no,
+                f"reference_audio is required for speaker metric {_first_speaker_metric(requested)}",
+            )
         samples.append(
             VCSample(
-                converted_audio=_resolve_existing_path(row["converted_audio"], path, line_no, "converted_audio"),
-                reference_audio=_resolve_optional_path(row.get("reference_audio"), path, line_no, "reference_audio"),
-                source_audio=_resolve_optional_path(row.get("source_audio"), path, line_no, "source_audio"),
+                converted_audio=_resolve_existing_path(
+                    row["converted_audio"], path, line_no, "converted_audio"
+                ),
+                reference_audio=_resolve_optional_path(
+                    row.get("reference_audio"), path, line_no, "reference_audio"
+                ),
+                source_audio=_resolve_optional_path(
+                    row.get("source_audio"), path, line_no, "source_audio"
+                ),
                 reference_text=str(row.get("reference_text", "")),
                 language=str(row["language"]),
                 sample_id=str(row["sample_id"]),
@@ -68,7 +96,9 @@ def load_vc_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[s
     return samples
 
 
-def load_se_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None) -> list[SESample]:
+def load_se_samples_jsonl(
+    path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None
+) -> list[SESample]:
     rows = _read_rows(Path(path))
     _validate_common(rows)
     requested = _normalize_metrics(metrics)
@@ -77,17 +107,64 @@ def load_se_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[s
         line_no = row["_line_no"]
         _require_fields(row, line_no, ("sample_id", "enhanced_audio"))
         if _has_full_reference_se_metric(requested) and not row.get("reference_audio"):
-            _fail(line_no, f"reference_audio is required for SE metric {_first_full_reference_se_metric(requested)}")
+            _fail(
+                line_no,
+                f"reference_audio is required for SE metric {_first_full_reference_se_metric(requested)}",
+            )
         samples.append(
             SESample(
-                enhanced_audio=_resolve_existing_path(row["enhanced_audio"], path, line_no, "enhanced_audio"),
-                noisy_audio=_resolve_optional_path(row.get("noisy_audio"), path, line_no, "noisy_audio"),
-                reference_audio=_resolve_optional_path(row.get("reference_audio"), path, line_no, "reference_audio"),
+                enhanced_audio=_resolve_existing_path(
+                    row["enhanced_audio"], path, line_no, "enhanced_audio"
+                ),
+                noisy_audio=_resolve_optional_path(
+                    row.get("noisy_audio"), path, line_no, "noisy_audio"
+                ),
+                reference_audio=_resolve_optional_path(
+                    row.get("reference_audio"), path, line_no, "reference_audio"
+                ),
                 language=str(row.get("language", "n/a") or "n/a"),
                 sample_id=str(row["sample_id"]),
                 metadata=_metadata(row, line_no),
             )
         )
+    return samples
+
+
+def load_tse_samples_jsonl(
+    path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None
+) -> list[TSESample]:
+    rows = _read_rows(Path(path))
+    _validate_common(rows)
+    requested = _normalize_metrics(metrics)
+    samples: list[TSESample] = []
+    for row in rows:
+        line_no = row["_line_no"]
+        _require_fields(
+            row, line_no, ("sample_id", "prediction_audio", "reference_audio", "language")
+        )
+        if _has_semantic_metric(requested, "tse") and not row.get("reference_text"):
+            _fail(line_no, "reference_text is required for semantic metric tse_wer/tse_cer")
+        samples.append(
+            TSESample(
+                prediction_audio=_resolve_existing_path(
+                    row["prediction_audio"], path, line_no, "prediction_audio"
+                ),
+                reference_audio=_resolve_existing_path(
+                    row["reference_audio"], path, line_no, "reference_audio"
+                ),
+                mixed_audio=_resolve_optional_path(
+                    row.get("mixed_audio"), path, line_no, "mixed_audio"
+                ),
+                enrollment_audio=_resolve_optional_path(
+                    row.get("enrollment_audio"), path, line_no, "enrollment_audio"
+                ),
+                reference_text=str(row.get("reference_text", "")),
+                language=str(row["language"]),
+                sample_id=str(row["sample_id"]),
+                metadata=_metadata(row, line_no),
+            )
+        )
+    _validate_single_language(samples=[sample.language for sample in samples])
     return samples
 
 
@@ -203,7 +280,9 @@ def _normalize_se_metric(metric: str) -> str:
 def _validate_single_language(*, samples: list[str]) -> None:
     languages = {language for language in samples if language}
     if len(languages) != 1:
-        raise SampleJsonlError(f"samples_jsonl must contain exactly one language, got: {sorted(languages)}")
+        raise SampleJsonlError(
+            f"samples_jsonl must contain exactly one language, got: {sorted(languages)}"
+        )
 
 
 def _fail(line_no: int, message: str) -> None:

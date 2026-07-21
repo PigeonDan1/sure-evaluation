@@ -11,6 +11,7 @@ For a machine-readable catalog of every metric → pipeline → node mapping, se
 - [TTS — Text-to-Speech](./tts.md)
 - [VC — Voice Conversion](./vc.md)
 - [SE — Speech Enhancement](./se.md)
+- [TSE — Target Speaker Extraction](./tse.md)
 - [Classification / SER / GR](./classification.md)
 - [KWS — Keyword Spotting](./kws.md)
 - [SLU — Spoken Language Understanding](./slu.md)

@@ -19,6 +19,7 @@ _TASK_MODULES = {
     "speech_enhancement": "sure_eval.evaluation.scripts.se",
     "tts": "sure_eval.evaluation.scripts.tts",
     "vc": "sure_eval.evaluation.scripts.vc",
+    "tse": "sure_eval.evaluation.scripts.tse",
 }
 
 

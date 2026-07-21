@@ -63,6 +63,7 @@ Input files are tab-separated: `<key>\t<text>`.
 | **TTS** | CER/WER, speaker similarity, MOS | Optional transcription + scoring nodes | [docs/tasks/tts.md](./docs/tasks/tts.md) |
 | **VC** | CER/WER, speaker similarity, MOS | Optional transcription + scoring nodes | [docs/tasks/vc.md](./docs/tasks/vc.md) |
 | **SE** | SI-SDR, STOI, PESQ, MOS | Full-reference + no-reference enhancement quality | [docs/tasks/se.md](./docs/tasks/se.md) |
+| **TSE** | SI-SDR, speaker similarity, MOS, WER/CER | Signal + optional sim/MOS/ASR nodes | [docs/tasks/tse.md](./docs/tasks/tse.md) |
 | **Classification / SER / GR** | Accuracy | Text-only, base install | [docs/tasks/classification.md](./docs/tasks/classification.md) |
 | **SLU** | Accuracy | Text-only, base install | [docs/tasks/slu.md](./docs/tasks/slu.md) |
 | **KWS** | accuracy, precision, recall, F1, FRR, FAR | Base + optional node | [docs/tasks/kws.md](./docs/tasks/kws.md) |

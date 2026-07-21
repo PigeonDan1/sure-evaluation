@@ -160,3 +160,61 @@ def test_sure_eval_metric_describe_run_se_si_sdr(tmp_path: Path) -> None:
     report = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report["pipeline_id"] == "se.si_sdr.si_sdr"
     assert report["details"]["results"]["si-sdr"]["score"] == report["score"]
+
+
+def test_metric_describe_run_se_default_metrics_with_injected_runtime(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import sure_eval.evaluation.audio_runtime as audio_runtime
+    from sure_eval.evaluation.cli_adapters import build_pipeline_spec, run_pipeline_spec
+
+    expected_metrics = ["si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos"]
+    enhanced = tmp_path / "enhanced.wav"
+    reference = tmp_path / "reference.wav"
+    samples_jsonl = tmp_path / "samples.jsonl"
+    enhanced.write_bytes(b"fake")
+    reference.write_bytes(b"fake")
+    samples_jsonl.write_text(
+        json.dumps(
+            {
+                "sample_id": "utt1",
+                "enhanced_audio": "enhanced.wav",
+                "reference_audio": "reference.wav",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def fake_build_se_runtime(*, metrics, device="cuda", cache_dir=None):
+        assert list(metrics) == expected_metrics
+        return {
+            "reference_providers": {
+                "si-sdr": lambda prediction, reference, **kwargs: {"si_sdr": 8.0},
+                "stoi": lambda prediction, reference, **kwargs: {"stoi": 0.91},
+                "pesq": lambda prediction, reference, **kwargs: {"pesq": 2.8},
+            },
+            "mos_providers": {
+                "dnsmos": lambda prediction, reference="", **kwargs: {"OVRL": 3.1},
+                "wv-mos": lambda prediction, reference="", **kwargs: {"mos": 3.4},
+                "utmos": lambda prediction, reference="", **kwargs: {"utmos": 3.2},
+            },
+        }
+
+    monkeypatch.setattr(audio_runtime, "build_se_runtime", fake_build_se_runtime)
+
+    pipeline = build_pipeline_spec("se")
+    assert pipeline["metric"] == "multi"
+    assert pipeline["metrics"] == expected_metrics
+
+    summary = run_pipeline_spec(
+        pipeline,
+        samples_jsonl=str(samples_jsonl),
+        output_dir=str(tmp_path / "out"),
+        device="cpu",
+    )
+
+    assert summary["task"] == "SE"
+    assert summary["metric"] == "multi"
+    report = json.loads((tmp_path / "out" / "report.json").read_text(encoding="utf-8"))
+    assert list(report["details"]["results"]) == expected_metrics

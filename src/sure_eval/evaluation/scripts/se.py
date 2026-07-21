@@ -22,7 +22,9 @@ from sure_eval.evaluation.tasks.se.types import SESample
 DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
 
 
-def describe_pipeline(*, metrics: str | list[str] | tuple[str, ...] | None = None, language: str = "n/a"):
+def describe_pipeline(
+    *, metrics: str | list[str] | tuple[str, ...] | None = None, language: str = "n/a"
+):
     manifest, manifest_path, routes, requested_metrics = _select_routes(metrics=metrics)
     return _describe_from_routes(
         manifest=manifest,
@@ -69,8 +71,7 @@ def _select_routes(*, metrics: str | list[str] | tuple[str, ...] | None = None):
     requested_metrics = normalize_metric_list(metrics, DEFAULT_METRICS)
     requested_metrics = tuple(_normalize_metric(metric) for metric in requested_metrics)
     selected_routes = [
-        find_metric_route(routes_config, metric=metric)
-        for metric in requested_metrics
+        find_metric_route(routes_config, metric=metric) for metric in requested_metrics
     ]
     return manifest, manifest_path, tuple(selected_routes), requested_metrics
 
@@ -87,8 +88,14 @@ def run(
 ):
     if not output_dir:
         raise ValueError("output_dir is required")
-    requested_metrics = tuple(_normalize_metric(metric) for metric in metrics) if metrics is not None else None
-    manifest, manifest_path, selected_routes, normalized_metrics = _select_routes(metrics=requested_metrics)
+    requested_metrics = (
+        tuple(_normalize_metric(metric) for metric in metrics) if metrics is not None else None
+    )
+    if not requested_metrics:
+        requested_metrics = None
+    manifest, manifest_path, selected_routes, normalized_metrics = _select_routes(
+        metrics=requested_metrics
+    )
     description = _describe_from_routes(
         manifest=manifest,
         manifest_path=manifest_path,
