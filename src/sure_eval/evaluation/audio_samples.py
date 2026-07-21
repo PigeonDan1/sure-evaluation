@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from sure_eval.evaluation.tasks.tts.types import TTSSample
+from sure_eval.evaluation.tasks.tse.types import TSESample
 from sure_eval.evaluation.tasks.vc.types import VCSample
 
 
@@ -57,6 +58,32 @@ def load_vc_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[s
                 converted_audio=_resolve_existing_path(row["converted_audio"], path, line_no, "converted_audio"),
                 reference_audio=_resolve_optional_path(row.get("reference_audio"), path, line_no, "reference_audio"),
                 source_audio=_resolve_optional_path(row.get("source_audio"), path, line_no, "source_audio"),
+                reference_text=str(row.get("reference_text", "")),
+                language=str(row["language"]),
+                sample_id=str(row["sample_id"]),
+                metadata=_metadata(row, line_no),
+            )
+        )
+    _validate_single_language(samples=[sample.language for sample in samples])
+    return samples
+
+
+def load_tse_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None) -> list[TSESample]:
+    rows = _read_rows(Path(path))
+    _validate_common(rows)
+    requested = _normalize_metrics(metrics)
+    samples: list[TSESample] = []
+    for row in rows:
+        line_no = row["_line_no"]
+        _require_fields(row, line_no, ("sample_id", "prediction_audio", "reference_audio", "language"))
+        if _has_semantic_metric(requested, "tse") and not row.get("reference_text"):
+            _fail(line_no, "reference_text is required for semantic metric tse_wer/tse_cer")
+        samples.append(
+            TSESample(
+                prediction_audio=_resolve_existing_path(row["prediction_audio"], path, line_no, "prediction_audio"),
+                reference_audio=_resolve_existing_path(row["reference_audio"], path, line_no, "reference_audio"),
+                mixed_audio=_resolve_optional_path(row.get("mixed_audio"), path, line_no, "mixed_audio"),
+                enrollment_audio=_resolve_optional_path(row.get("enrollment_audio"), path, line_no, "enrollment_audio"),
                 reference_text=str(row.get("reference_text", "")),
                 language=str(row["language"]),
                 sample_id=str(row["sample_id"]),

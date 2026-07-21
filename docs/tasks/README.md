@@ -10,6 +10,7 @@ For a machine-readable catalog of every metric → pipeline → node mapping, se
 - [SA-ASR — Speaker-Aware ASR](./sa_asr.md)
 - [TTS — Text-to-Speech](./tts.md)
 - [VC — Voice Conversion](./vc.md)
+- [TSE — Target Speaker Extraction](./tse.md)
 - [Classification / SER / GR](./classification.md)
 - [KWS — Keyword Spotting](./kws.md)
 - [SLU — Spoken Language Understanding](./slu.md)

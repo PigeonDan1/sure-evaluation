@@ -43,6 +43,23 @@ def build_vc_runtime(
     )
 
 
+def build_tse_runtime(
+    *,
+    metrics: tuple[str, ...] | list[str],
+    language: str,
+    device: str = "cuda",
+    cache_dir: str | Path | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Build the injected runtime objects needed by ``evaluate_tse_samples``."""
+
+    return _build_audio_runtime(
+        metrics=tuple(metrics),
+        language=language,
+        device=device,
+        cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("tse"),
+    )
+
+
 def _build_audio_runtime(
     *,
     metrics: tuple[str, ...],
@@ -55,7 +72,7 @@ def _build_audio_runtime(
     speaker_providers: dict[str, Any] = {}
     mos_providers: dict[str, Any] = {}
 
-    if requested & {"tts_wer", "tts_cer", "vc_wer", "vc_cer"}:
+    if requested & {"tts_wer", "tts_cer", "vc_wer", "vc_cer", "tse_wer", "tse_cer"}:
         if language.lower().startswith(("zh", "cmn", "yue")):
             from sure_eval.evaluation.nodes.transcription.common.providers import NodeLocalTranscriber
 
