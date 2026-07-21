@@ -87,7 +87,7 @@ def run_metric_pipeline(
     wekws_score_file: Optional[str] = typer.Option(None, "--wekws-score-file", help="WeKWS CTC score file"),
     wekws_frame_score_file: Optional[str] = typer.Option(None, "--wekws-frame-score-file", help="WeKWS frame score file"),
     keyword: Optional[str] = typer.Option(None, "--keyword", help="KWS keyword"),
-    samples_jsonl: Optional[str] = typer.Option(None, "--samples-jsonl", help="TTS/VC samples JSONL file"),
+    samples_jsonl: Optional[str] = typer.Option(None, "--samples-jsonl", help="TTS/VC/SE samples JSONL file"),
     device: str = typer.Option("cuda", "--device", help="Device passed to audio metric runtime builders"),
     cache_dir: Optional[str] = typer.Option(None, "--cache-dir", help="Cache directory for audio metric runtime builders"),
     validate_env: bool = typer.Option(False, "--validate-env", help="Validate selected node-local environments before running"),

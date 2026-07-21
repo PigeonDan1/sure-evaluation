@@ -31,6 +31,7 @@ TASK_ALIASES = {
     "ser": "classification",
     "gr": "classification",
     "sa-asr": "sa_asr",
+    "speech_enhancement": "se",
 }
 
 ENVIRONMENT_NOTE = (
@@ -58,7 +59,7 @@ def build_pipeline_spec(
     node_slots = _node_slots(description.node_ids, selected_route=selected_route, route_choices=route_choices)
     run_args = {ROLE_TO_CLI_ARG.get(role, role): None for role in description.required_roles}
     required_roles = list(description.required_roles)
-    if normalized_task in {"tts", "vc"}:
+    if normalized_task in {"tts", "vc", "se", "speech_enhancement"}:
         required_roles = ["samples_jsonl"]
         run_args.setdefault("samples_jsonl", None)
     run_args["output_dir"] = None
@@ -127,11 +128,11 @@ def run_pipeline_spec(
         "samples_jsonl": samples_jsonl,
     }
     kwargs.update({key: value for key, value in cli_values.items() if value is not None})
-    if task in {"tts", "vc"}:
+    if task in {"tts", "vc", "se", "speech_enhancement"}:
         kwargs.update(_audio_sample_kwargs(task, pipeline, samples_jsonl=samples_jsonl, device=device, cache_dir=cache_dir))
     kwargs["output_dir"] = output_dir
     _validate_required_args(pipeline, kwargs)
-    if task in {"tts", "vc"}:
+    if task in {"tts", "vc", "se", "speech_enhancement"}:
         kwargs.pop("samples_jsonl", None)
     report = run_task(task, **kwargs)
     output_path = Path(output_dir)
@@ -217,6 +218,11 @@ def _describe_kwargs(
         return {"metric": metric or "cpwer", "language": language or "en"}
     if task in {"tts", "vc"}:
         kwargs = {"language": language or "zh"}
+        if metric:
+            kwargs["metrics"] = split_metric_csv(metric)
+        return kwargs
+    if task in {"se", "speech_enhancement"}:
+        kwargs = {"language": "n/a"}
         if metric:
             kwargs["metrics"] = split_metric_csv(metric)
         return kwargs
@@ -328,7 +334,7 @@ def _run_kwargs_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
         kwargs["task"] = pipeline.get("task_alias") or "classification"
     elif task in {"ser", "gr", "slu"}:
         pass
-    elif task in {"tts", "vc"}:
+    elif task in {"tts", "vc", "se", "speech_enhancement"}:
         if pipeline.get("metrics"):
             kwargs["metrics"] = tuple(str(metric).lower() for metric in pipeline["metrics"])
         elif pipeline.get("metric") and pipeline["metric"] != "multi":
@@ -356,7 +362,7 @@ def split_metric_csv(metric: str | None) -> tuple[str, ...]:
 
 
 def _requested_metrics(task: str, *, metric: str | None, description_metric: str) -> tuple[str, ...]:
-    if task in {"tts", "vc"} and metric:
+    if task in {"tts", "vc", "se", "speech_enhancement"} and metric:
         return split_metric_csv(metric)
     if description_metric and description_metric != "multi":
         return (description_metric,)
@@ -398,11 +404,26 @@ def _audio_sample_kwargs(
             device=device,
             cache_dir=cache_dir,
         )
+    elif task in {"se", "speech_enhancement"}:
+        from sure_eval.evaluation.audio_runtime import build_se_runtime
+        from sure_eval.evaluation.audio_samples import load_se_samples_jsonl
+
+        samples = load_se_samples_jsonl(samples_jsonl, metrics=metrics)
+        runtime = build_se_runtime(
+            metrics=metrics,
+            device=device,
+            cache_dir=cache_dir,
+        )
     else:
         return {}
-    return {
+    payload = {
         "samples": samples,
-        "transcribers": runtime["transcribers"],
-        "speaker_providers": runtime["speaker_providers"],
-        "mos_providers": runtime["mos_providers"],
+        "mos_providers": runtime.get("mos_providers", {}),
     }
+    if "transcribers" in runtime:
+        payload["transcribers"] = runtime["transcribers"]
+    if "speaker_providers" in runtime:
+        payload["speaker_providers"] = runtime["speaker_providers"]
+    if "reference_providers" in runtime:
+        payload["reference_providers"] = runtime["reference_providers"]
+    return payload

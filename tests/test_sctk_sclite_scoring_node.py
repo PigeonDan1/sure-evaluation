@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 
@@ -9,7 +10,7 @@ def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
 
 def _write_fake_sclite(path: Path) -> None:
     path.write_text(
-        """#!/usr/bin/env python3
+        f"""#!{sys.executable}
 from __future__ import annotations
 
 import sys
@@ -19,18 +20,18 @@ args = sys.argv[1:]
 out_dir = Path(args[args.index("-O") + 1])
 root = args[args.index("-n") + 1]
 metric = "cer" if "-c" in args else "wer"
-(out_dir / f"{root}.dtl").write_text(
+(out_dir / f"{{root}}.dtl").write_text(
     "\\n".join([
         "Fake SCTK sclite detail report",
         "id: sure-000001",
         "Scores: (#C #S #D #I) 2 1 0 1",
         "id: sure-000002",
         "Scores: (#C #S #D #I) 3 0 1 0",
-        f"metric={metric}",
+        f"metric={{metric}}",
     ]) + "\\n",
     encoding="utf-8",
 )
-(out_dir / f"{root}.sys").write_text("Percent Total Error = 50.0%\\n", encoding="utf-8")
+(out_dir / f"{{root}}.sys").write_text("Percent Total Error = 50.0%\\n", encoding="utf-8")
 print("fake sclite ok")
 """,
         encoding="utf-8",

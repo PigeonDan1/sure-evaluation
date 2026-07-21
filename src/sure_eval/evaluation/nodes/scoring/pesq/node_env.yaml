@@ -1,0 +1,12 @@
+id: scoring/pesq
+group: se-full-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+packages:
+  - name: pesq
+    version: ">=0.0.4"
+verify:
+  imports:
+    - pesq
