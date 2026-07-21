@@ -15,6 +15,8 @@ _TASK_MODULES = {
     "slu": "sure_eval.evaluation.scripts.slu",
     "sd": "sure_eval.evaluation.scripts.sd",
     "sa_asr": "sure_eval.evaluation.scripts.sa_asr",
+    "se": "sure_eval.evaluation.scripts.se",
+    "speech_enhancement": "sure_eval.evaluation.scripts.se",
     "tts": "sure_eval.evaluation.scripts.tts",
     "vc": "sure_eval.evaluation.scripts.vc",
 }

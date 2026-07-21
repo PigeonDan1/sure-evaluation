@@ -7,6 +7,7 @@ from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSMetric
 from sure_eval.evaluation.tasks.asr.metrics import CERMetric, WERMetric
 from sure_eval.evaluation.tasks.classification.metrics import AccuracyMetric
 from sure_eval.evaluation.tasks.s2tt.metrics import BLEUMetric, BLEURT20Metric, XCOMETXLMetric
+from sure_eval.evaluation.tasks.se.metrics import PESQMetric, SISDRMetric, STOIMetric
 from sure_eval.evaluation.tasks.tts.metrics import (
     CERMetric as TTSCERMetric,
     DNSMOSMetric,
@@ -33,6 +34,10 @@ class MetricRegistry:
         "dnsmos": DNSMOSMetric,
         "wv-mos": WVMOSMetric,
         "utmos": UTMOSMetric,
+        "si-sdr": SISDRMetric,
+        "sisdr": SISDRMetric,
+        "stoi": STOIMetric,
+        "pesq": PESQMetric,
         "accuracy": AccuracyMetric,
         "bleu": BLEUMetric,
         "xcomet_xl": XCOMETXLMetric,

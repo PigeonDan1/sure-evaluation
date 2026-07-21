@@ -51,6 +51,10 @@ audio = [
     "soundfile>=0.12.0",
     "librosa>=0.10.0",
 ]
+se = [
+    "pystoi>=0.4.1",
+    "pesq>=0.0.4",
+]
 download = [
     "huggingface-hub>=0.20.0",
     "modelscope>=1.10.0",

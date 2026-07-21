@@ -43,6 +43,40 @@ def build_vc_runtime(
     )
 
 
+def build_se_runtime(
+    *,
+    metrics: tuple[str, ...] | list[str],
+    device: str = "cuda",
+    cache_dir: str | Path | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Build injected runtime objects needed by ``evaluate_se_samples``."""
+
+    requested = {_normalize_se_metric(metric) for metric in metrics}
+    runtime = _build_audio_runtime(
+        metrics=tuple(requested & {"dnsmos", "wv-mos", "utmos"}),
+        language="n/a",
+        device=device,
+        cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("se"),
+    )
+    reference_providers: dict[str, Any] = {}
+    if "si-sdr" in requested:
+        from sure_eval.evaluation.nodes.scoring._full_reference_audio import SISDRProvider
+
+        reference_providers["si-sdr"] = SISDRProvider()
+    if "stoi" in requested:
+        from sure_eval.evaluation.nodes.scoring._full_reference_audio import STOIProvider
+
+        reference_providers["stoi"] = STOIProvider()
+    if "pesq" in requested:
+        from sure_eval.evaluation.nodes.scoring._full_reference_audio import PESQProvider
+
+        reference_providers["pesq"] = PESQProvider()
+    return {
+        "mos_providers": runtime["mos_providers"],
+        "reference_providers": reference_providers,
+    }
+
+
 def _build_audio_runtime(
     *,
     metrics: tuple[str, ...],
@@ -128,3 +162,13 @@ def _build_audio_runtime(
 
 def _default_cache_dir(task: str) -> Path:
     return get_cache_dir(f"{task}-metrics")
+
+
+def _normalize_se_metric(metric: str) -> str:
+    normalized = str(metric).strip().lower().replace("_", "-")
+    return {
+        "sisdr": "si-sdr",
+        "si-sdr": "si-sdr",
+        "wvmos": "wv-mos",
+        "wv-mos": "wv-mos",
+    }.get(normalized, normalized)

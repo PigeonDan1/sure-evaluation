@@ -179,6 +179,36 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     assert runtime["mos_providers"]["utmos"].node_id == "scoring/utmos"
 
 
+def test_se_runtime_uses_in_process_full_reference_and_node_local_mos() -> None:
+    from sure_eval.evaluation.audio_runtime import build_se_runtime
+    from sure_eval.evaluation.nodes.scoring._full_reference_audio import PESQProvider, SISDRProvider, STOIProvider
+    from sure_eval.evaluation.nodes.scoring.common.node_local import NodeLocalMOSProvider
+
+    runtime = build_se_runtime(
+        metrics=("si-sdr", "stoi", "pesq", "dnsmos"),
+        device="cpu",
+    )
+
+    assert isinstance(runtime["reference_providers"]["si-sdr"], SISDRProvider)
+    assert isinstance(runtime["reference_providers"]["stoi"], STOIProvider)
+    assert isinstance(runtime["reference_providers"]["pesq"], PESQProvider)
+    assert isinstance(runtime["mos_providers"]["dnsmos"], NodeLocalMOSProvider)
+    assert runtime["mos_providers"]["dnsmos"].node_id == "scoring/dnsmos"
+
+
+def test_se_pip_runtime_nodes_are_declared() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    checker = NodeEnvChecker()
+    stoi = checker.check_node("scoring/stoi")
+    pesq = checker.check_node("scoring/pesq")
+
+    assert stoi.runtime == "pip_optional"
+    assert pesq.runtime == "pip_optional"
+    assert "pystoi" in stoi.details["packages"][0]
+    assert "pesq" in pesq.details["packages"][0]
+
+
 def test_cache_dir_uses_sure_eval_cache_dir(monkeypatch, tmp_path: Path) -> None:
     from sure_eval.evaluation.cache import get_cache_dir
 

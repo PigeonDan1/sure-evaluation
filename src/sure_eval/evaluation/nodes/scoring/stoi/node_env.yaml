@@ -1,0 +1,12 @@
+id: scoring/stoi
+group: se-full-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+packages:
+  - name: pystoi
+    version: ">=0.4.1"
+verify:
+  imports:
+    - pystoi

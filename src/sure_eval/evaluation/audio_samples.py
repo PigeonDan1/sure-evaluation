@@ -8,6 +8,7 @@ from typing import Any
 
 from sure_eval.evaluation.tasks.tts.types import TTSSample
 from sure_eval.evaluation.tasks.vc.types import VCSample
+from sure_eval.evaluation.tasks.se.types import SESample
 
 
 class SampleJsonlError(ValueError):
@@ -64,6 +65,29 @@ def load_vc_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[s
             )
         )
     _validate_single_language(samples=[sample.language for sample in samples])
+    return samples
+
+
+def load_se_samples_jsonl(path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None) -> list[SESample]:
+    rows = _read_rows(Path(path))
+    _validate_common(rows)
+    requested = _normalize_metrics(metrics)
+    samples: list[SESample] = []
+    for row in rows:
+        line_no = row["_line_no"]
+        _require_fields(row, line_no, ("sample_id", "enhanced_audio"))
+        if _has_full_reference_se_metric(requested) and not row.get("reference_audio"):
+            _fail(line_no, f"reference_audio is required for SE metric {_first_full_reference_se_metric(requested)}")
+        samples.append(
+            SESample(
+                enhanced_audio=_resolve_existing_path(row["enhanced_audio"], path, line_no, "enhanced_audio"),
+                noisy_audio=_resolve_optional_path(row.get("noisy_audio"), path, line_no, "noisy_audio"),
+                reference_audio=_resolve_optional_path(row.get("reference_audio"), path, line_no, "reference_audio"),
+                language=str(row.get("language", "n/a") or "n/a"),
+                sample_id=str(row["sample_id"]),
+                metadata=_metadata(row, line_no),
+            )
+        )
     return samples
 
 
@@ -154,6 +178,26 @@ def _has_speaker_metric(metrics: tuple[str, ...]) -> bool:
 
 def _first_speaker_metric(metrics: tuple[str, ...]) -> str:
     return next((metric for metric in metrics if metric.startswith("sim/")), "sim/*")
+
+
+def _has_full_reference_se_metric(metrics: tuple[str, ...]) -> bool:
+    normalized = {_normalize_se_metric(metric) for metric in metrics}
+    return bool(normalized & {"si-sdr", "stoi", "pesq"})
+
+
+def _first_full_reference_se_metric(metrics: tuple[str, ...]) -> str:
+    normalized = [_normalize_se_metric(metric) for metric in metrics]
+    return next((metric for metric in normalized if metric in {"si-sdr", "stoi", "pesq"}), "si-sdr")
+
+
+def _normalize_se_metric(metric: str) -> str:
+    normalized = str(metric).lower().replace("_", "-")
+    return {
+        "sisdr": "si-sdr",
+        "si-sdr": "si-sdr",
+        "wvmos": "wv-mos",
+        "wv-mos": "wv-mos",
+    }.get(normalized, normalized)
 
 
 def _validate_single_language(*, samples: list[str]) -> None:

@@ -1,0 +1,51 @@
+task: SE
+language_sensitive: false
+routes:
+  - route_id: se.si_sdr.si_sdr
+    metric: si-sdr
+    family: full_reference_quality
+    pipeline_id: se.si_sdr.si_sdr
+    nodes:
+      - scoring/si_sdr
+    input_contract: scoring/si_sdr
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  - route_id: se.stoi.stoi
+    metric: stoi
+    family: full_reference_quality
+    pipeline_id: se.stoi.stoi
+    nodes:
+      - scoring/stoi
+    input_contract: scoring/stoi
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  - route_id: se.pesq.pesq
+    metric: pesq
+    family: full_reference_quality
+    pipeline_id: se.pesq.pesq
+    nodes:
+      - scoring/pesq
+    input_contract: scoring/pesq
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  - route_id: se.dnsmos.dnsmos
+    metric: dnsmos
+    family: no_reference_quality
+    pipeline_id: se.dnsmos.dnsmos
+    nodes:
+      - scoring/dnsmos
+    input_contract: scoring/dnsmos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  - route_id: se.wv_mos.wv_mos
+    metric: wv-mos
+    family: no_reference_quality
+    pipeline_id: se.wv_mos.wv_mos
+    nodes:
+      - scoring/wv_mos
+    input_contract: scoring/wv_mos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  - route_id: se.utmos.utmos
+    metric: utmos
+    family: no_reference_quality
+    pipeline_id: se.utmos.utmos
+    nodes:
+      - scoring/utmos
+    input_contract: scoring/utmos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples

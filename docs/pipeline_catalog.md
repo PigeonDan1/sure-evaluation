@@ -66,5 +66,5 @@ The script runs `describe_pipeline` for every supported combination and writes `
 
 ## Notes
 
-- Multi-metric audio routes (e.g. `tts_cer + sim/wavlm-large + dnsmos`) use the same `pipeline_id` but include all selected nodes.
-- Node-local environments are required for heavy nodes such as `scoring/xcomet_xl`, `scoring/dnsmos`, and `transcription/whisper_large_v3`. Use `sure-eval env setup --node <node>` to prepare them.
+- Multi-metric audio routes (e.g. `tts_cer + sim/wavlm-large + dnsmos` or `si-sdr + pesq + dnsmos`) use the same `pipeline_id` but include all selected nodes.
+- Node-local environments are required for heavy nodes such as `scoring/xcomet_xl`, `scoring/dnsmos`, and `transcription/whisper_large_v3`. Optional pip packages are required for nodes such as `scoring/stoi` and `scoring/pesq`. Use `sure-eval env setup --node <node>` to prepare them.

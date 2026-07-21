@@ -59,6 +59,7 @@ cat /tmp/asr_eval/report.json | grep score
 | **SA-ASR** | cpWER、DER | 需 `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
 | **TTS** | CER/WER、说话人相似度、MOS | 可选转录 + 打分节点 | [docs/tasks/tts.md](./docs/tasks/tts.md) |
 | **VC** | CER/WER、说话人相似度、MOS | 可选转录 + 打分节点 | [docs/tasks/vc.md](./docs/tasks/vc.md) |
+| **SE** | SI-SDR、STOI、PESQ、MOS | 有参考 + 无参考语音增强质量评测 | [docs/tasks/se.md](./docs/tasks/se.md) |
 | **分类 / SER / GR** | Accuracy | 纯文本，基础包可用 | [docs/tasks/classification.md](./docs/tasks/classification.md) |
 | **SLU** | Accuracy | 纯文本，基础包可用 | [docs/tasks/slu.md](./docs/tasks/slu.md) |
 | **KWS** | accuracy、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
