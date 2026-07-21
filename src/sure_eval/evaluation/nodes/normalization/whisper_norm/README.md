@@ -15,5 +15,6 @@ Profiles:
 - `basic`: Whisper `BasicTextNormalizer`; available for explicit future routes,
   but not a default for multilingual evaluation.
 
-ASR Chinese CER and code-switch MER continue to use `normalization/aispeech_norm`
-by default. TTS Mandarin CER uses `normalization/punctuation_strip_norm`.
+ASR Chinese CER defaults to `normalization/wetext_norm` with profile `zh_itn`,
+while code-switch MER continues to use `normalization/aispeech_norm`. TTS
+Mandarin CER uses `normalization/punctuation_strip_norm`.

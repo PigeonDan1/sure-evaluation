@@ -35,7 +35,7 @@ from sure_eval.evaluation.scripts import describe_pipeline, run_task
 
 description = describe_pipeline("asr", language="zh", metric="cer")
 print(description.node_ids)
-# ("normalization/aispeech_norm", "scoring/wenet_cer")
+# ("normalization/wetext_norm", "scoring/wenet_cer")
 
 report = run_task(
     "asr",
@@ -49,19 +49,19 @@ report = run_task(
 
 The selected task is always a pipeline, even when the requested metric name
 looks like a scoring metric. For the ASR example above, the script selects
-AISpeech text normalization first, then WeNet-style CER scoring. The generated
+WeTextProcessing Chinese ITN first, then WeNet-style CER scoring. The generated
 `pipeline_description.json` records both nodes:
 
 ```json
 {
-  "pipeline_id": "asr.zh.cer.aispeech_norm.wenet_cer",
-  "node_ids": ["normalization/aispeech_norm", "scoring/wenet_cer"],
+  "pipeline_id": "asr.zh.cer.wetext_zh_itn.wenet_cer",
+  "node_ids": ["normalization/wetext_norm", "scoring/wenet_cer"],
   "nodes": [
     {
-      "node_id": "normalization/aispeech_norm",
+      "node_id": "normalization/wetext_norm",
       "stage": "normalization",
       "version": "v1",
-      "manifest_path": "src/sure_eval/evaluation/nodes/normalization/aispeech_norm/manifest.yaml"
+      "manifest_path": "src/sure_eval/evaluation/nodes/normalization/wetext_norm/manifest.yaml"
     },
     {
       "node_id": "scoring/wenet_cer",
@@ -114,14 +114,14 @@ formats before deterministic scoring. A shortened ASR example looks like this:
   "task": "asr",
   "language": "zh",
   "metric": "cer",
-  "pipeline_id": "asr.zh.cer.aispeech_norm.wenet_cer",
+  "pipeline_id": "asr.zh.cer.wetext_zh_itn.wenet_cer",
   "pipeline": [
     {
       "slot": "normalization",
       "selected": "default",
-      "default": "normalization/aispeech_norm",
+      "default": "normalization/wetext_norm",
       "nullable": true,
-      "choices": ["normalization/aispeech_norm"]
+      "choices": ["normalization/wetext_norm"]
     },
     {
       "slot": "scoring",
@@ -220,12 +220,12 @@ With `--json`, stdout remains machine-readable for agents:
   "task": "ASR",
   "metric": "cer",
   "score": 0.3,
-  "pipeline_id": "asr.zh.cer.aispeech_norm.wenet_cer",
+  "pipeline_id": "asr.zh.cer.wetext_zh_itn.wenet_cer",
   "report_path": "/tmp/sure_eval/asr_eval/report.json",
   "pipeline_description_path": "/tmp/sure_eval/asr_eval/pipeline_description.json",
   "environment_note": "node-local environments are not validated unless --validate-env is set. Check selected node directories for pyproject.toml or uv.lock when preparing a run.",
   "node_config_paths": [
-    "src/sure_eval/evaluation/nodes/normalization/aispeech_norm/manifest.yaml",
+    "src/sure_eval/evaluation/nodes/normalization/wetext_norm/manifest.yaml",
     "src/sure_eval/evaluation/nodes/scoring/wenet_wer/manifest.yaml"
   ]
 }

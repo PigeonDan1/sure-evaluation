@@ -32,5 +32,6 @@ upstream:
     - normalization_impl/LICENSE.openai-whisper
 notes:
   - The English profile is only the default for English WER routes.
-  - ASR Chinese CER and code-switch MER stay on normalization/aispeech_norm by default.
+  - ASR Chinese CER defaults to normalization/wetext_norm with profile zh_itn.
+  - ASR code-switch MER stays on normalization/aispeech_norm by default.
   - TTS Mandarin CER uses normalization/punctuation_strip_norm by default.

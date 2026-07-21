@@ -6,7 +6,12 @@ environment can import node metadata without installing the node-local project.
 
 from __future__ import annotations
 
+import argparse
+import json
+import subprocess
+import sys
 import tempfile
+from contextlib import redirect_stdout
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib import metadata
@@ -14,11 +19,17 @@ from pathlib import Path
 from typing import Any
 
 from sure_eval.evaluation.core.types import KeyTextFiles, PipelineNodeResult
+from sure_eval.evaluation.nodes.common.node_local_python import (
+    build_node_local_env,
+    resolve_node_local_python,
+)
 
 NODE_ID = "normalization/wetext_norm"
 NODE_VERSION = "v1"
 PACKAGE_NAME = "WeTextProcessing"
 PINNED_PACKAGE_VERSION = "1.2.0"
+NODE_DIR = Path(__file__).resolve().parent
+MODULE_NAME = "sure_eval.evaluation.nodes.normalization.wetext_norm.node"
 
 
 @dataclass(frozen=True)
@@ -50,6 +61,24 @@ def normalize_wetext_text(
 ) -> str:
     """Normalize one text string with a supported WeTextProcessing profile."""
 
+    _profile(profile)
+    return _normalize_wetext_text_node_local(
+        text,
+        profile=profile,
+        cache_dir=cache_dir,
+        overwrite_cache=overwrite_cache,
+        options=options,
+    )
+
+
+def _normalize_wetext_text_in_process(
+    text: str,
+    *,
+    profile: str,
+    cache_dir: str | None = None,
+    overwrite_cache: bool = False,
+    options: dict[str, Any] | None = None,
+) -> str:
     normalizer = _normalizer(
         profile,
         cache_dir=cache_dir,
@@ -69,6 +98,24 @@ def normalize_wetext_key_text_files(
 ) -> tuple[KeyTextFiles, PipelineNodeResult]:
     """Normalize reference and hypothesis key-text files with WeTextProcessing."""
 
+    _profile(profile)
+    return _normalize_wetext_key_text_files_node_local(
+        files,
+        profile=profile,
+        cache_dir=cache_dir,
+        overwrite_cache=overwrite_cache,
+        options=options,
+    )
+
+
+def _normalize_wetext_key_text_files_in_process(
+    files: KeyTextFiles,
+    *,
+    profile: str,
+    cache_dir: str | None = None,
+    overwrite_cache: bool = False,
+    options: dict[str, Any] | None = None,
+) -> tuple[KeyTextFiles, PipelineNodeResult]:
     spec = _profile(profile)
     normalizer = _normalizer(
         spec.name,
@@ -115,6 +162,107 @@ def normalize_wetext_key_text_files(
             internal_stages=("key_text_parse", f"wetext_{spec.direction}", "key_text_write"),
         ),
     )
+
+
+def _normalize_wetext_text_node_local(
+    text: str,
+    *,
+    profile: str,
+    cache_dir: str | None,
+    overwrite_cache: bool,
+    options: dict[str, Any] | None,
+) -> str:
+    payload = _run_node_local_json(
+        [
+            "--text",
+            text,
+            "--profile",
+            profile,
+            "--options-json",
+            json.dumps(options or {}, ensure_ascii=False),
+            *(_optional_arg("--cache-dir", cache_dir)),
+            *(["--overwrite-cache"] if overwrite_cache else []),
+        ]
+    )
+    return str(payload["normalized_text"])
+
+
+def _normalize_wetext_key_text_files_node_local(
+    files: KeyTextFiles,
+    *,
+    profile: str,
+    cache_dir: str | None,
+    overwrite_cache: bool,
+    options: dict[str, Any] | None,
+) -> tuple[KeyTextFiles, PipelineNodeResult]:
+    payload = _run_node_local_json(
+        [
+            "--ref-file",
+            files.ref_file,
+            "--hyp-file",
+            files.hyp_file,
+            "--profile",
+            profile,
+            "--options-json",
+            json.dumps(options or {}, ensure_ascii=False),
+            *(_optional_arg("--cache-dir", cache_dir)),
+            *(["--overwrite-cache"] if overwrite_cache else []),
+        ]
+    )
+    normalized = payload.get("normalized_files")
+    trace = payload.get("trace")
+    if not isinstance(normalized, dict) or not isinstance(trace, dict):
+        raise RuntimeError(f"{NODE_ID} returned invalid payload: {payload}")
+    return (
+        KeyTextFiles(ref_file=str(normalized["ref_file"]), hyp_file=str(normalized["hyp_file"])),
+        PipelineNodeResult(
+            stage="normalization",
+            node_id=NODE_ID,
+            version=NODE_VERSION,
+            details=dict(trace.get("details") or {}),
+            internal_stages=tuple(trace.get("internal_stages") or ()),
+        ),
+    )
+
+
+def _run_node_local_json(args: list[str]) -> dict[str, Any]:
+    repo_root = NODE_DIR.parents[5]
+    try:
+        python_runtime = resolve_node_local_python(NODE_DIR, NODE_ID)
+    except RuntimeError as exc:
+        raise RuntimeError(
+            f"{NODE_ID} requires its node-local environment. "
+            f"Run: sure-eval env setup --node {NODE_ID}"
+        ) from exc
+    env = build_node_local_env(
+        repo_src=repo_root / "src",
+        extra_pythonpath=python_runtime.extra_pythonpath,
+        inherit_pythonpath=python_runtime.inherit_pythonpath,
+    )
+    completed = subprocess.run(
+        [*python_runtime.command_prefix, "-m", MODULE_NAME, *args, "--json"],
+        cwd=repo_root,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"{NODE_ID} failed with exit code {completed.returncode}: "
+            f"{completed.stderr.strip() or completed.stdout.strip()}"
+        )
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{NODE_ID} did not return JSON: {completed.stdout[:500]}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"{NODE_ID} returned non-object JSON: {completed.stdout[:500]}")
+    return payload
+
+
+def _optional_arg(name: str, value: str | None) -> list[str]:
+    return [name, value] if value is not None else []
 
 
 def wetext_runtime_details(profile: str) -> dict[str, Any]:
@@ -198,3 +346,99 @@ def _new_temp_file() -> str:
     path = handle.name
     handle.close()
     return path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Normalize text with WeTextProcessing.")
+    parser.add_argument("--text")
+    parser.add_argument("--ref-file")
+    parser.add_argument("--hyp-file")
+    parser.add_argument("--profile", required=True)
+    parser.add_argument("--cache-dir")
+    parser.add_argument("--overwrite-cache", action="store_true")
+    parser.add_argument("--options-json", default="{}")
+    parser.add_argument("--json", action="store_true", dest="json_output")
+    args = parser.parse_args(argv)
+
+    if bool(args.text is not None) == bool(args.ref_file or args.hyp_file):
+        parser.error("provide either --text or both --ref-file/--hyp-file")
+    if bool(args.ref_file) != bool(args.hyp_file):
+        parser.error("--ref-file and --hyp-file must be provided together")
+
+    options = json.loads(args.options_json)
+    if not isinstance(options, dict):
+        parser.error("--options-json must decode to an object")
+
+    if args.text is not None:
+        if args.json_output:
+            with redirect_stdout(sys.stderr):
+                normalized_text = _normalize_wetext_text_in_process(
+                    args.text,
+                    profile=args.profile,
+                    cache_dir=args.cache_dir,
+                    overwrite_cache=args.overwrite_cache,
+                    options=options,
+                )
+        else:
+            normalized_text = _normalize_wetext_text_in_process(
+                args.text,
+                profile=args.profile,
+                cache_dir=args.cache_dir,
+                overwrite_cache=args.overwrite_cache,
+                options=options,
+            )
+        payload = {
+            "node_id": NODE_ID,
+            "version": NODE_VERSION,
+            "profile": args.profile,
+            "normalized_text": normalized_text,
+            "details": wetext_runtime_details(args.profile),
+        }
+    else:
+        files = KeyTextFiles(ref_file=str(args.ref_file), hyp_file=str(args.hyp_file))
+        if args.json_output:
+            with redirect_stdout(sys.stderr):
+                normalized_files, trace = _normalize_wetext_key_text_files_in_process(
+                    files,
+                    profile=args.profile,
+                    cache_dir=args.cache_dir,
+                    overwrite_cache=args.overwrite_cache,
+                    options=options,
+                )
+        else:
+            normalized_files, trace = _normalize_wetext_key_text_files_in_process(
+                files,
+                profile=args.profile,
+                cache_dir=args.cache_dir,
+                overwrite_cache=args.overwrite_cache,
+                options=options,
+            )
+        payload = {
+            "node_id": NODE_ID,
+            "version": NODE_VERSION,
+            "profile": args.profile,
+            "normalized_files": {
+                "ref_file": normalized_files.ref_file,
+                "hyp_file": normalized_files.hyp_file,
+            },
+            "trace": {
+                "stage": trace.stage,
+                "node_id": trace.node_id,
+                "version": trace.version,
+                "details": trace.details,
+                "internal_stages": list(trace.internal_stages),
+            },
+        }
+
+    if args.json_output:
+        sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    else:
+        if args.text is not None:
+            print(payload["normalized_text"])
+        else:
+            print(json.dumps(payload["normalized_files"], ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

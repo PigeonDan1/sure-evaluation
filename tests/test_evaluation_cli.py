@@ -6,6 +6,7 @@ import sys
 from dataclasses import dataclass
 from types import SimpleNamespace
 
+import pytest
 from typer.testing import CliRunner
 
 from sure_eval.cli import app
@@ -20,6 +21,14 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
         encoding="utf-8",
     )
+
+
+def _require_wetext_node_env() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+    if result.status != "ok":
+        pytest.skip(f"wetext_norm node-local environment is not prepared: {result.message}")
 
 
 @dataclass
@@ -84,27 +93,28 @@ def test_metric_describe_outputs_route_backed_pipeline_json(tmp_path: Path) -> N
     assert result.exit_code == 0, result.stdout
     payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
     assert payload["task"] == "asr"
-    assert payload["pipeline_id"] == "asr.zh.cer.aispeech_norm.wenet_cer"
+    assert payload["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
     assert payload["run_args"]["output_dir"] is None
     assert payload["run_args"]["ref_file"] is None
     assert payload["run_args"]["hyp_file"] is None
     assert [slot["slot"] for slot in payload["pipeline"]] == ["normalization", "scoring"]
     assert payload["pipeline"][0]["nullable"] is True
     assert payload["pipeline"][0]["selected"] == "default"
-    assert payload["pipeline"][0]["default"] == "normalization/aispeech_norm"
+    assert payload["pipeline"][0]["default"] == "normalization/wetext_norm"
     assert payload["pipeline"][1]["nullable"] is False
     assert payload["pipeline"][1]["metric"] == "cer"
     assert "scoring/wenet_cer" in payload["pipeline"][1]["choices"]
 
 
 def test_metric_run_executes_pipeline_file_and_writes_outputs(tmp_path: Path) -> None:
+    _require_wetext_node_env()
     runner = CliRunner()
     pipeline_path = tmp_path / "asr_pipeline.json"
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"
     output_dir = tmp_path / "metric_out"
-    _write_key_text(ref_file, [("utt1", "我有2个苹果。"), ("utt2", "你好世界")])
-    _write_key_text(hyp_file, [("utt1", "我有两个苹果"), ("utt2", "你好")])
+    _write_key_text(ref_file, [("utt1", "你好世界"), ("utt2", "今天天气")])
+    _write_key_text(hyp_file, [("utt1", "你好世界"), ("utt2", "今天天气")])
 
     describe_result = runner.invoke(
         app,
@@ -143,18 +153,19 @@ def test_metric_run_executes_pipeline_file_and_writes_outputs(tmp_path: Path) ->
     assert run_result.exit_code == 0, run_result.stdout
     stdout_payload = json.loads(run_result.stdout)
     assert stdout_payload["status"] == "ok"
-    assert stdout_payload["pipeline_id"] == "asr.zh.cer.aispeech_norm.wenet_cer"
+    assert stdout_payload["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
     assert stdout_payload["report_path"] == str(output_dir / "report.json")
     assert "node-local environments are not validated" in stdout_payload["environment_note"]
     assert stdout_payload["node_config_paths"] == [
-        "src/sure_eval/evaluation/nodes/normalization/aispeech_norm/manifest.yaml",
+        "src/sure_eval/evaluation/nodes/normalization/wetext_norm/manifest.yaml",
         "src/sure_eval/evaluation/nodes/scoring/wenet_wer/manifest.yaml",
     ]
     assert (output_dir / "report.json").exists()
     assert (output_dir / "pipeline_description.json").exists()
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
-    assert report_payload["score"] == 0.3
-    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/aispeech_norm"
+    assert report_payload["score"] == 0.0
+    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/wetext_norm"
+    assert report_payload["pipeline_trace"][0]["details"]["profile"] == "zh_itn"
 
 
 def test_metric_run_rejects_node_choice_not_declared_by_describe(tmp_path: Path) -> None:

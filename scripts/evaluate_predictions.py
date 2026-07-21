@@ -17,11 +17,9 @@ import math
 import os
 import platform
 import shutil
-import string
 import subprocess
 import sys
 import tempfile
-import unicodedata
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -258,7 +256,7 @@ def _is_chinese_family_language(language: str) -> bool:
     return str(language).lower().startswith(("zh", "cmn", "yue"))
 
 
-def _dataset_task_language(dataset_manager: DatasetManager, dataset_name: str) -> tuple[str, str]:
+def _dataset_task_language(dataset_manager: Any, dataset_name: str) -> tuple[str, str]:
     jsonl_path = dataset_manager.get_jsonl_path(dataset_name)
     if not jsonl_path.exists():
         jsonl_path = dataset_manager.download_and_convert(dataset_name)
@@ -630,8 +628,8 @@ def _write_annotation_file(rows: list[str], *, suffix: str) -> str:
 
 
 def _get_s2tt_source_text(sample: dict[str, Any]) -> str:
-    for field in ("source", "src", "source_text", "transcript", "speech_text"):
-        value = sample.get(field)
+    for field_name in ("source", "src", "source_text", "transcript", "speech_text"):
+        value = sample.get(field_name)
         if value is not None:
             return str(value)
     return ""
@@ -653,7 +651,7 @@ def _materialize_meeteval_annotations(
 
 
 def _annotation_from_sample(sample: dict[str, Any]) -> str | list[str]:
-    for field in (
+    for field_name in (
         "annotation",
         "annotation_text",
         "reference_annotation",
@@ -662,8 +660,8 @@ def _annotation_from_sample(sample: dict[str, Any]) -> str | list[str]:
         "stm",
         "target",
     ):
-        if sample.get(field) is not None:
-            return _annotation_value_to_rows(sample[field])
+        if sample.get(field_name) is not None:
+            return _annotation_value_to_rows(sample[field_name])
     segments = sample.get("segments") or sample.get("target_segments") or sample.get("reference_segments")
     if segments is not None:
         return _annotation_value_to_rows(segments)
@@ -694,9 +692,9 @@ def _annotation_value_to_rows(value: Any) -> str | list[str]:
 
 
 def _segment_to_annotation_row(segment: dict[str, Any]) -> str:
-    for field in ("line", "annotation", "rttm", "stm"):
-        if segment.get(field) is not None:
-            return str(segment[field])
+    for field_name in ("line", "annotation", "rttm", "stm"):
+        if segment.get(field_name) is not None:
+            return str(segment[field_name])
     session = segment.get("session_id", segment.get("session", segment.get("recording_id", segment.get("key", "session"))))
     channel = segment.get("channel", "1")
     speaker = segment.get("speaker", segment.get("speaker_id", "speaker"))
@@ -798,8 +796,8 @@ def _describe_evaluation_context(task: str, language: str, metric: str, metric_s
             {
                 "postprocessing": "sure_eval.evaluation.scripts.run_task",
                 "task_route": "src/sure_eval/evaluation/tasks/asr/routes.yaml",
-                "normalization_node": "normalization/aispeech_norm",
-                "scoring_node": "scoring/wenet_wer",
+                "normalization_node": _asr_normalization_node(language=language, metric=metric),
+                "scoring_node": _asr_scoring_node(language=language, metric=metric),
                 "punctuation_policy": "evaluation-pipeline clean_marks.strip_all_punct compatible",
                 "tokenization": "code_switch_mer_wer_cer" if language == "cs" else "character" if metric == "cer" or language == "zh" else "word",
                 "case_sensitive": False,
@@ -852,8 +850,24 @@ def _describe_evaluation_context(task: str, language: str, metric: str, metric_s
     return context
 
 
+def _asr_normalization_node(*, language: str, metric: str) -> str:
+    if language == "zh" and metric == "cer":
+        return "normalization/wetext_norm"
+    if language == "en" and metric == "wer":
+        return "normalization/whisper_norm"
+    return "normalization/aispeech_norm"
+
+
+def _asr_scoring_node(*, language: str, metric: str) -> str:
+    if language == "cs" or metric == "mer":
+        return "scoring/wenet_mer"
+    if metric == "cer" or language == "zh":
+        return "scoring/wenet_cer"
+    return "scoring/wenet_wer"
+
+
 def evaluate_prediction_file(
-    dataset_manager: DatasetManager,
+    dataset_manager: Any,
     sota_manager: SOTAManager,
     dataset_name: str,
     prediction_path: Path,

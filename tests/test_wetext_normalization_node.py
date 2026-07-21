@@ -5,9 +5,12 @@ from pathlib import Path
 import pytest
 
 
-pytest.importorskip("pynini")
-pytest.importorskip("tn")
-pytest.importorskip("itn")
+def _require_wetext_node_env() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+    if result.status != "ok":
+        pytest.skip(f"wetext_norm node-local environment is not prepared: {result.message}")
 
 
 def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
@@ -28,6 +31,7 @@ def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
 def test_wetext_chinese_demo_cases(profile: str, text: str, expected: str, tmp_path: Path) -> None:
     from sure_eval.evaluation.nodes.normalization.wetext_norm import normalize_wetext_text
 
+    _require_wetext_node_env()
     assert normalize_wetext_text(text, profile=profile, cache_dir=str(tmp_path)) == expected
 
 
@@ -43,6 +47,7 @@ def test_wetext_chinese_demo_cases(profile: str, text: str, expected: str, tmp_p
 def test_wetext_english_demo_cases(profile: str, text: str, expected: str, tmp_path: Path) -> None:
     from sure_eval.evaluation.nodes.normalization.wetext_norm import normalize_wetext_text
 
+    _require_wetext_node_env()
     assert normalize_wetext_text(text, profile=profile, cache_dir=str(tmp_path)) == expected
 
 
@@ -56,6 +61,7 @@ def test_wetext_english_demo_cases(profile: str, text: str, expected: str, tmp_p
 def test_wetext_japanese_profiles_smoke(profile: str, text: str, tmp_path: Path) -> None:
     from sure_eval.evaluation.nodes.normalization.wetext_norm import normalize_wetext_text
 
+    _require_wetext_node_env()
     normalized = normalize_wetext_text(text, profile=profile, cache_dir=str(tmp_path))
     assert isinstance(normalized, str)
     assert normalized
@@ -66,6 +72,7 @@ def test_wetext_key_text_files_preserve_keys_and_trace_runtime(tmp_path: Path) -
     from sure_eval.evaluation.core.types import KeyTextFiles
     from sure_eval.evaluation.nodes.normalization.wetext_norm import normalize_wetext_key_text_files
 
+    _require_wetext_node_env()
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"
     _write_key_text(ref_file, [("utt1", "2002/01/28"), ("utt2", "价格是$13.5")])

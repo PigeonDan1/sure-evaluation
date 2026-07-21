@@ -229,6 +229,8 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
     if not normalized:
         if language == "en" and metric == "wer":
             return "whisper"
+        if language == "zh" and metric == "cer":
+            return "wetext:zh_itn"
         return "aispeech"
     if normalized.startswith("wetext:"):
         profile = normalized.split(":", 1)[1]

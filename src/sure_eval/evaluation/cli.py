@@ -20,6 +20,7 @@ from sure_eval.evaluation.cli_adapters import (
     read_json,
     run_pipeline_spec,
 )
+from sure_eval.evaluation.agent_plan import build_agent_plan, write_agent_plan
 from sure_eval.evaluation.cache import get_cache_root
 from sure_eval.evaluation.env_check import (
     EnvironmentCheckError,
@@ -33,6 +34,7 @@ from sure_eval.evaluation.env_check import (
 
 metric_app = typer.Typer(help="Describe and run deterministic evaluation pipelines")
 env_app = typer.Typer(help="Inspect and prepare optional node-local environments")
+agent_app = typer.Typer(help="Plan route selection and environment readiness for agents")
 app = typer.Typer(help="SURE-EVAL deterministic speech and audio evaluation")
 console = Console()
 
@@ -165,6 +167,43 @@ def _print_env_error(exc: EnvironmentCheckError, *, json_output: bool) -> None:
             console.print(f"  [red]FAIL[/red] {result.node_id or result.name}: {result.message}")
             if result.fix:
                 console.print(f"       Fix: {result.fix}")
+
+
+@agent_app.command("plan")
+def agent_plan(
+    task_arg: Optional[str] = typer.Argument(None, help="Task name, e.g. asr, tts, vc"),
+    task_opt: Optional[str] = typer.Option(None, "--task", help="Task name for non-positional callers"),
+    language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
+    metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Single metric name"),
+    metrics: Optional[str] = typer.Option(None, "--metrics", help="Comma-separated metric names"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write plan JSON to this path"),
+    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
+) -> None:
+    """Describe selected routes and required node environments without scoring."""
+
+    selected_task = task_opt or task_arg
+    if not selected_task:
+        raise typer.BadParameter("Task is required as an argument or --task")
+    if metric and metrics:
+        raise typer.BadParameter("Use only one of --metric or --metrics")
+
+    try:
+        payload = build_agent_plan(
+            selected_task,
+            language=language,
+            metric=metric,
+            metrics=metrics,
+        )
+    except Exception as exc:
+        _print_error(exc, json_output=json_output)
+        raise typer.Exit(1) from exc
+
+    if output:
+        write_agent_plan(output, payload)
+    if json_output:
+        sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+        return
+    _print_agent_plan_table(payload, output=output)
 
 
 @app.callback(invoke_without_command=True)
@@ -664,5 +703,37 @@ def _print_check_table(title: str, checks: list[dict[str, object]]) -> None:
     console.print(table)
 
 
+def _print_agent_plan_table(payload: dict[str, object], *, output: Path | None) -> None:
+    table = Table(title="SURE-EVAL Agent Plan")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Pipeline")
+    table.add_column("Env")
+    table.add_column("Ready")
+    table.add_column("Setup")
+    for route in payload.get("selected_routes") or []:
+        if not isinstance(route, dict):
+            continue
+        setup_nodes = [
+            str(check.get("node_id"))
+            for check in route.get("env_checks") or []
+            if isinstance(check, dict) and check.get("blocking")
+        ]
+        table.add_row(
+            str(route.get("metric")),
+            str(route.get("pipeline_id")),
+            str(route.get("environment_status")),
+            "yes" if route.get("can_run_now") else "no",
+            ", ".join(setup_nodes),
+        )
+    console.print(table)
+    if output:
+        console.print(f"plan_json: {output}")
+    if payload.get("blocking_issues"):
+        console.print("[yellow]Blocking issues:[/yellow]")
+        for issue in payload["blocking_issues"]:
+            console.print(f"  - {issue}")
+
+
 app.add_typer(metric_app, name="metric")
 app.add_typer(env_app, name="env")
+app.add_typer(agent_app, name="agent")

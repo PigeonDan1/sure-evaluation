@@ -2,12 +2,23 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 
 def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
     path.write_text("".join(f"{key}\t{text}\n" for key, text in rows), encoding="utf-8")
 
 
+def _require_wetext_node_env() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+    if result.status != "ok":
+        pytest.skip(f"wetext_norm node-local environment is not prepared: {result.message}")
+
+
 def test_asr_metric_modules_match_sure_evaluator(tmp_path: Path) -> None:
+    _require_wetext_node_env()
     from sure_eval.evaluation.registry import MetricRegistry
     from sure_eval.evaluation.sure_evaluator import SUREEvaluator
     from sure_eval.evaluation.tasks.asr.metrics import CERMetric, WERMetric
@@ -21,11 +32,11 @@ def test_asr_metric_modules_match_sure_evaluator(tmp_path: Path) -> None:
     task_cer = CERMetric().calculate("你好世", "你好世界", language="zh")
     assert task_cer == registry_cer
     assert task_cer.score == evaluator_cer["score"]
-    assert task_cer.details["pipeline_id"] == "asr.zh.cer.aispeech_norm.wenet_cer"
+    assert task_cer.details["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
     assert task_cer.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert task_cer.details["input_roles"] == ["ref", "hyp"]
-    assert task_cer.details["pipeline_trace"][0]["node_id"] == "normalization/aispeech_norm"
-    assert task_cer.details["pipeline_trace"][0]["profile"] == "zh"
+    assert task_cer.details["pipeline_trace"][0]["node_id"] == "normalization/wetext_norm"
+    assert task_cer.details["pipeline_trace"][0]["profile"] == "zh_itn"
 
     ref_en = tmp_path / "ref_en.txt"
     hyp_en = tmp_path / "hyp_en.txt"

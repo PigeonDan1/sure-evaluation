@@ -2,9 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 
 def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
     path.write_text("".join(f"{key}\t{text}\n" for key, text in rows), encoding="utf-8")
+
+
+def _require_wetext_node_env() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    result = NodeEnvChecker().check_node("normalization/wetext_norm")
+    if result.status != "ok":
+        pytest.skip(f"wetext_norm node-local environment is not prepared: {result.message}")
 
 
 def _assert_matches_legacy(actual: dict, legacy: dict) -> None:
@@ -84,7 +94,35 @@ def _fake_sctk_sclite_cer(files):
     )
 
 
-def test_asr_zh_cer_pipeline_matches_sure_evaluator(tmp_path: Path) -> None:
+def test_asr_zh_cer_pipeline_uses_wetext_itn_by_default(tmp_path: Path) -> None:
+    _require_wetext_node_env()
+    from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
+
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    _write_key_text(ref_file, [("utt1", "同比增长6.3%"), ("utt2", "你好世界")])
+    _write_key_text(hyp_file, [("utt1", "同比增长百分之六点三"), ("utt2", "你好世界")])
+
+    report = evaluate_asr_files(str(ref_file), str(hyp_file), language="zh", metric="cer")
+
+    assert report.task == "ASR"
+    assert report.language == "zh"
+    assert report.metric == "cer"
+    assert report.score == 0.0
+    assert report.pipeline_id == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
+    assert report.details["input_contract"]["aggregation"] == "corpus_edit_distance"
+    assert report.details["input_files"] == {"ref": str(ref_file), "hyp": str(hyp_file)}
+    assert report.pipeline_trace[0].stage == "normalization"
+    assert report.pipeline_trace[0].node_id == "normalization/wetext_norm"
+    assert report.pipeline_trace[0].details["profile"] == "zh_itn"
+    assert report.pipeline_trace[0].details["direction"] == "itn"
+    assert report.pipeline_trace[1].stage == "scoring"
+    assert report.pipeline_trace[1].node_id == "scoring/wenet_cer"
+    assert report.pipeline_trace[1].internal_stages == ("tokenization", "case_normalization", "edit_distance")
+
+
+def test_asr_zh_cer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Path) -> None:
     from sure_eval.evaluation.sure_evaluator import SUREEvaluator
     from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 
@@ -94,22 +132,19 @@ def test_asr_zh_cer_pipeline_matches_sure_evaluator(tmp_path: Path) -> None:
     _write_key_text(hyp_file, [("utt1", "我有两个苹果"), ("utt2", "你好世")])
 
     legacy = SUREEvaluator(language="zh").evaluate("ASR", str(ref_file), str(hyp_file), tochar=True)
-    report = evaluate_asr_files(str(ref_file), str(hyp_file), language="zh", metric="cer")
+    report = evaluate_asr_files(
+        str(ref_file),
+        str(hyp_file),
+        language="zh",
+        metric="cer",
+        normalizer="aispeech",
+    )
 
-    assert report.task == "ASR"
-    assert report.language == "zh"
-    assert report.metric == "cer"
     assert report.score == legacy["score"]
     _assert_matches_legacy(report.details["scoring_result"], legacy)
-    assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
-    assert report.details["input_contract"]["aggregation"] == "corpus_edit_distance"
-    assert report.details["input_files"] == {"ref": str(ref_file), "hyp": str(hyp_file)}
-    assert report.pipeline_trace[0].stage == "normalization"
+    assert report.pipeline_id == "asr.zh.cer.aispeech_norm.wenet_cer"
     assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
     assert report.pipeline_trace[0].details["profile"] == "zh"
-    assert report.pipeline_trace[1].stage == "scoring"
-    assert report.pipeline_trace[1].node_id == "scoring/wenet_cer"
-    assert report.pipeline_trace[1].internal_stages == ("tokenization", "case_normalization", "edit_distance")
 
 
 def test_asr_en_wer_pipeline_uses_whisper_normalization_by_default(tmp_path: Path) -> None:

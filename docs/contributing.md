@@ -10,6 +10,7 @@ Before opening a PR:
 
 ```bash
 sure-eval doctor
+sure-eval agent plan asr --language zh --metric cer --json
 sure-eval metric describe asr --language zh --metric cer --json
 pytest -q
 ```

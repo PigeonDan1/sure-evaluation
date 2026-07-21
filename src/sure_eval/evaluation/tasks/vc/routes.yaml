@@ -1,29 +1,31 @@
 task: VC
 language_sensitive: true
 routes:
-  - route_id: vc.zh.vc_cer.text.funasr_loader_16k_mono.paraformer_zh.asr_cer
+  - route_id: vc.zh.vc_cer.text.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
     language: zh
     metric: vc_cer
     family: semantic_error_rate
     reference_mode: text
-    pipeline_id: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer
+    pipeline_id: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
     nodes:
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
+      - normalization/punctuation_strip_norm
       - scoring/wenet_cer
     input_contract: semantic/asr_error_rate_with_text
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.zh.vc_cer.audio.funasr_loader_16k_mono.paraformer_zh.asr_cer
+  - route_id: vc.zh.vc_cer.audio.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
     language: zh
     metric: vc_cer
     family: semantic_error_rate
     reference_mode: audio
-    pipeline_id: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.asr_cer
+    pipeline_id: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
     nodes:
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
+      - normalization/punctuation_strip_norm
       - scoring/wenet_cer
     input_contract: semantic/asr_error_rate_with_audio_reference
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples

@@ -39,6 +39,6 @@ profiles:
     normalizer_class: itn.japanese.inverse_normalizer.InverseNormalizer
 default_for: []
 notes:
-  - Optional tool node only; this node does not replace ASR/TTS/VC default routes.
-  - WeTextProcessing is node-local because pynini is a heavy runtime dependency.
+  - This node is the default Mandarin ASR CER normalizer with profile zh_itn.
+  - Other ASR/TTS/VC routes select this node only through explicit normalizer arguments.
   - Use temporary cache directories for demos/tests to avoid writing FST cache files into the source tree.

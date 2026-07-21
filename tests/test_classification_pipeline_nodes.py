@@ -170,16 +170,34 @@ def test_classification_task_routes_ser_and_gr_through_classify_node(tmp_path: P
     assert gr_report.score == 1.0
 
 
-def test_slu_task_pipeline_matches_sure_evaluator_on_kimi_artifacts() -> None:
+def test_slu_task_pipeline_matches_sure_evaluator(tmp_path: Path) -> None:
     from sure_eval.evaluation.sure_evaluator import SUREEvaluator
     from sure_eval.evaluation.tasks.slu.pipeline import evaluate_slu_files
 
-    ref_file = "src/sure_eval/models/moonshotai__Kimi-Audio-7B-Instruct/artifacts/ref_slu.txt"
-    hyp_file = "src/sure_eval/models/moonshotai__Kimi-Audio-7B-Instruct/artifacts/hyp_slu.txt"
-    prompt_file = "src/sure_eval/models/moonshotai__Kimi-Audio-7B-Instruct/artifacts/prompt_slu.jsonl"
+    prompt_file = tmp_path / "prompt_slu.jsonl"
+    prompt_file.write_text(
+        json.dumps(
+            {
+                "key": "q1",
+                "prompt": "请作答\nA. 北京\nB. 上海\nC. 广州\nD. 深圳",
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    ref_file = tmp_path / "ref_slu.txt"
+    hyp_file = tmp_path / "hyp_slu.txt"
+    _write_key_text(ref_file, [("q1", "C")])
+    _write_key_text(hyp_file, [("q1", "答案是 C")])
 
-    legacy = SUREEvaluator(language="zh").evaluate("slu", ref_file, hyp_file, prompt_jsonl=prompt_file)
-    report = evaluate_slu_files(ref_file, hyp_file, prompt_jsonl=prompt_file)
+    legacy = SUREEvaluator(language="zh").evaluate(
+        "slu",
+        str(ref_file),
+        str(hyp_file),
+        prompt_jsonl=str(prompt_file),
+    )
+    report = evaluate_slu_files(str(ref_file), str(hyp_file), prompt_jsonl=str(prompt_file))
 
     assert report.task == "SLU"
     assert report.score == legacy

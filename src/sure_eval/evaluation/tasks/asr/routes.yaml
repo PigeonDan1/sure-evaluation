@@ -1,6 +1,15 @@
 task: ASR
 language_sensitive: true
 routes:
+  - route_id: asr.zh.cer.wetext_zh_itn.wenet_cer
+    language: zh
+    metric: cer
+    pipeline_id: asr.zh.cer.wetext_zh_itn.wenet_cer
+    nodes:
+      - normalization/wetext_norm
+      - scoring/wenet_cer
+    input_contract: scoring/wenet_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
   - route_id: asr.zh.cer.aispeech_norm.wenet_cer
     language: zh
     metric: cer
@@ -10,6 +19,7 @@ routes:
       - scoring/wenet_cer
     input_contract: scoring/wenet_cer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+    compatibility: legacy_sure_evaluator
   - route_id: asr.en.wer.whisper_norm.wenet_wer
     language: en
     metric: wer

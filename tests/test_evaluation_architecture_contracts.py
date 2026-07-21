@@ -51,7 +51,7 @@ def test_tts_vc_speaker_routes_use_named_backend_nodes() -> None:
 
 
 def test_root_architecture_points_to_new_evaluation_layout() -> None:
-    content = (REPO_ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    content = (REPO_ROOT / "ARCHITECTURE.source.md").read_text(encoding="utf-8")
 
     for old_path in (
         "src/sure_eval/evaluation/asr/",

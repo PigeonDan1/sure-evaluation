@@ -146,15 +146,53 @@ def test_kws_file_route_declares_wekws_score_input_contract(tmp_path: Path) -> N
     ]
 
 
-def test_kws_runner_outputs_pipeline_metadata(capsys) -> None:
+def test_kws_runner_outputs_pipeline_metadata(tmp_path: Path, capsys) -> None:
     from scripts.run_kws_metric_pipeline import main
+
+    gt = tmp_path / "gt.jsonl"
+    gt.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "key": "pos",
+                        "expected": "detect",
+                        "text": "嗨小问",
+                        "duration": 1.0,
+                    },
+                    ensure_ascii=False,
+                ),
+                json.dumps(
+                    {
+                        "key": "neg",
+                        "expected": "reject",
+                        "duration": 2.0,
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sample_output = tmp_path / "sample_output.json"
+    sample_output.write_text(
+        json.dumps(
+            [
+                {"key": "pos", "result": {"detected": True, "keyword": "嗨小问", "score": 0.91}},
+                {"key": "neg", "result": {"detected": False, "keyword": None, "score": None}},
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
 
     rc = main(
         [
             "--reference-jsonl",
-            "fixtures/tasks/kws/wenwen_smoke/kws/gt.jsonl",
+            str(gt),
             "--sample-output",
-            "src/sure_eval/models/daydream-factory__keyword-spot-fsmn-ctc-wenwen/artifacts/sample_output.json",
+            str(sample_output),
             "--threshold",
             "0.5",
         ]

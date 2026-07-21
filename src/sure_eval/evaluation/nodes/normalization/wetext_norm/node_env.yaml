@@ -8,7 +8,7 @@ runtime:
   gpu: false
 packages:
   - name: WeTextProcessing
-    version: "1.2.0"
+    version: "==1.2.0"
 verify:
   imports:
     - tn.chinese.normalizer
@@ -16,4 +16,3 @@ verify:
     - tn.japanese.normalizer
     - pynini
   files: []
-
