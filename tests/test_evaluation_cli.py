@@ -225,7 +225,9 @@ def test_metric_describe_lists_dynamic_route_choices_from_routes_yaml() -> None:
     payload = json.loads(result.stdout)
     route_metrics = {route["metric"] for route in payload["route_choices"]}
     assert {"bleu", "bleu_char", "chrf", "xcomet_xl", "bleurt_20"}.issubset(route_metrics)
-    scoring_choices = next(slot for slot in payload["pipeline"] if slot["slot"] == "scoring")["choices"]
+    scoring_choices = next(slot for slot in payload["pipeline"] if slot["slot"] == "scoring")[
+        "choices"
+    ]
     assert "scoring/sacrebleu" in scoring_choices
 
 
@@ -426,6 +428,85 @@ def test_metric_run_executes_slu_prompt_norm_pipeline(tmp_path: Path) -> None:
     assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/prompt_norm"
 
 
+def test_metric_run_executes_kws_macro_recall_pipeline(tmp_path: Path) -> None:
+    runner = CliRunner()
+    pipeline_path = tmp_path / "kws_pipeline.json"
+    reference_jsonl = tmp_path / "reference.jsonl"
+    sample_output = tmp_path / "sample_output.json"
+    output_dir = tmp_path / "kws_out"
+    _write_jsonl(
+        reference_jsonl,
+        [
+            {"key": "pos_high", "expected": "detect", "text": "嗨小问", "duration": 1.0},
+            {"key": "pos_low", "expected": "detect", "text": "嗨小问", "duration": 1.0},
+            {"key": "neg_high", "expected": "reject", "duration": 3600.0},
+        ],
+    )
+    sample_output.write_text(
+        json.dumps(
+            [
+                {
+                    "key": "pos_high",
+                    "result": {"detected": True, "keyword": "嗨小问", "score": 0.9},
+                },
+                {"key": "pos_low", "result": {"detected": True, "keyword": "嗨小问", "score": 0.7}},
+                {
+                    "key": "neg_high",
+                    "result": {"detected": True, "keyword": "嗨小问", "score": 0.8},
+                },
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "kws",
+            "--metric",
+            "macro-recall",
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+    description_payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
+    assert description_payload["metric"] == "macro-recall"
+    assert description_payload["pipeline_id"] == "kws.sure_json.macro-recall.wekws_det"
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--reference-jsonl",
+            str(reference_jsonl),
+            "--sample-output",
+            str(sample_output),
+            "--macro-recall-false-alarms",
+            "0",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    payload = json.loads(run_result.stdout)
+    assert payload["metric"] == "macro-recall"
+    assert payload["score"] == 0.5
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report_payload["score"] == 0.5
+    assert report_payload["details"]["results"]["accuracy"]["score"] == pytest.approx(2 / 3)
+    assert report_payload["details"]["results"]["macro-recall"]["score"] == 0.5
+
+
 def test_metric_run_human_mode_prints_environment_note(tmp_path: Path) -> None:
     runner = CliRunner()
     pipeline_path = tmp_path / "asr_pipeline.json"
@@ -502,7 +583,9 @@ def test_metric_describe_tts_accepts_metrics_alias_and_samples_role(tmp_path: Pa
     assert "transcription/paraformer_zh" in [slot["default"] for slot in payload["pipeline"]]
 
 
-def test_metric_run_executes_tts_samples_jsonl_with_standard_outputs(monkeypatch, tmp_path: Path) -> None:
+def test_metric_run_executes_tts_samples_jsonl_with_standard_outputs(
+    monkeypatch, tmp_path: Path
+) -> None:
     from sure_eval.evaluation.nodes.transcription import StaticTranscriber
 
     import sure_eval.evaluation.audio_runtime as audio_runtime
@@ -581,7 +664,9 @@ def test_metric_run_executes_tts_samples_jsonl_with_standard_outputs(monkeypatch
     assert (output_dir / "pipeline_description.json").exists()
 
 
-def test_metric_run_executes_vc_samples_jsonl_with_standard_outputs(monkeypatch, tmp_path: Path) -> None:
+def test_metric_run_executes_vc_samples_jsonl_with_standard_outputs(
+    monkeypatch, tmp_path: Path
+) -> None:
     from sure_eval.evaluation.nodes.transcription import StaticTranscriber
 
     import sure_eval.evaluation.audio_runtime as audio_runtime

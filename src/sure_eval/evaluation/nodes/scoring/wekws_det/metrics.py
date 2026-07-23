@@ -71,7 +71,9 @@ def _is_correct_at_threshold(sample: KWSSample, threshold: float) -> bool:
             return False
         if sample.expected_keyword is None:
             return True
-        return normalize_keyword(sample.predicted_keyword) == normalize_keyword(sample.expected_keyword)
+        return normalize_keyword(sample.predicted_keyword) == normalize_keyword(
+            sample.expected_keyword
+        )
     return not predicts_positive
 
 
@@ -113,11 +115,14 @@ def compute_det_curve(
             if not _predicts_positive_at_threshold(sample, threshold)
             or (
                 sample.expected_keyword is not None
-                and normalize_keyword(sample.predicted_keyword) != normalize_keyword(sample.expected_keyword)
+                and normalize_keyword(sample.predicted_keyword)
+                != normalize_keyword(sample.expected_keyword)
             )
         )
         true_detects = len(positives) - false_rejects
-        false_alarms = sum(1 for sample in negatives if _predicts_positive_at_threshold(sample, threshold))
+        false_alarms = sum(
+            1 for sample in negatives if _predicts_positive_at_threshold(sample, threshold)
+        )
         false_reject_rate = false_rejects / len(positives) if positives else 0.0
         true_detect_rate = true_detects / len(positives) if positives else 0.0
         false_alarm_rate = false_alarms / len(negatives) if negatives else 0.0
@@ -194,7 +199,13 @@ class KWSMetric:
 
     def calculate(self, prediction: str, reference: str, **kwargs) -> MetricResult:
         """Calculate KWS accuracy for one string prediction/reference pair."""
-        pred_detected = str(prediction).strip().lower() in {"detect", "detected", "true", "1", "yes"}
+        pred_detected = str(prediction).strip().lower() in {
+            "detect",
+            "detected",
+            "true",
+            "1",
+            "yes",
+        }
         ref_detected = str(reference).strip().lower() in {"detect", "detected", "true", "1", "yes"}
         sample = KWSSample(
             key="sample1",
@@ -212,8 +223,20 @@ class KWSMetric:
     ) -> MetricResult:
         samples = []
         for index, (prediction, reference) in enumerate(zip(predictions, references), start=1):
-            pred_detected = str(prediction).strip().lower() in {"detect", "detected", "true", "1", "yes"}
-            ref_detected = str(reference).strip().lower() in {"detect", "detected", "true", "1", "yes"}
+            pred_detected = str(prediction).strip().lower() in {
+                "detect",
+                "detected",
+                "true",
+                "1",
+                "yes",
+            }
+            ref_detected = str(reference).strip().lower() in {
+                "detect",
+                "detected",
+                "true",
+                "1",
+                "yes",
+            }
             samples.append(
                 KWSSample(
                     key=f"sample{index}",
@@ -242,7 +265,9 @@ class KWSMetric:
         precision = true_positives / precision_denominator if precision_denominator else 0.0
         recall = true_positives / recall_denominator if recall_denominator else 0.0
         f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-        negative_hours = _duration_hours(sample for sample in samples if not sample.expected_detected)
+        negative_hours = _duration_hours(
+            sample for sample in samples if not sample.expected_detected
+        )
         det_points = compute_det_curve(samples, thresholds=thresholds, step=threshold_step)
         macro_recall = compute_macro_recall_at_false_alarms(
             det_points,
@@ -271,6 +296,18 @@ class KWSMetric:
                 "macro_recall": macro_recall["score"],
                 "macro_recall_operating_point": macro_recall,
             },
+        )
+
+
+class KWSMacroRecallMetric(KWSMetric):
+    """Aggregate keyword spotting macro-recall as the primary metric."""
+
+    def calculate_samples(self, samples: list[KWSSample], **kwargs) -> MetricResult:
+        accuracy_result = super().calculate_samples(samples, **kwargs)
+        return MetricResult(
+            metric_name="macro-recall",
+            score=float(accuracy_result.details["macro_recall"]),
+            details=dict(accuracy_result.details),
         )
 
 
@@ -318,12 +355,15 @@ def summarize_det_curve(points: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def mean_score(samples: list[KWSSample]) -> float | None:
-    scores = [sample.detection_score for sample in samples if sample.score is not None or sample.scores]
+    scores = [
+        sample.detection_score for sample in samples if sample.score is not None or sample.scores
+    ]
     return fmean(scores) if scores else None
 
 
 __all__ = [
     "KWSMetric",
+    "KWSMacroRecallMetric",
     "KWSSample",
     "build_rows",
     "compute_det_curve",

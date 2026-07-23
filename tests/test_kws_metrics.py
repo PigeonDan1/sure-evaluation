@@ -68,8 +68,12 @@ def test_kws_macro_recall_at_false_alarm_budget() -> None:
             predicted_keyword="嗨小问",
             score=0.7,
         ),
-        KWSSample(key="neg_high", expected_detected=False, detected=True, score=0.8, duration=3600.0),
-        KWSSample(key="neg_low", expected_detected=False, detected=True, score=0.2, duration=3600.0),
+        KWSSample(
+            key="neg_high", expected_detected=False, detected=True, score=0.8, duration=3600.0
+        ),
+        KWSSample(
+            key="neg_low", expected_detected=False, detected=True, score=0.2, duration=3600.0
+        ),
     ]
 
     zero_fa = KWSMetricPipeline(
@@ -90,7 +94,9 @@ def test_kws_macro_recall_at_false_alarm_budget() -> None:
 
 
 def test_kws_macro_recall_rejects_negative_false_alarm_budget() -> None:
-    from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import compute_macro_recall_at_false_alarms
+    from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import (
+        compute_macro_recall_at_false_alarms,
+    )
 
     with pytest.raises(ValueError, match="non-negative"):
         compute_macro_recall_at_false_alarms([], false_alarm_budget=-1)
@@ -123,6 +129,49 @@ def test_kws_macro_recall_without_positive_samples_is_zero() -> None:
     )
 
     assert report.results["macro-recall"].score == 0.0
+
+
+def test_kws_macro_recall_registry_metric_uses_macro_recall_score() -> None:
+    from sure_eval.evaluation.registry import MetricRegistry
+    from sure_eval.evaluation.tasks.kws import KWSSample
+
+    samples = [
+        KWSSample(
+            key="pos_high",
+            expected_detected=True,
+            expected_keyword="嗨小问",
+            detected=True,
+            predicted_keyword="嗨小问",
+            score=0.9,
+        ),
+        KWSSample(
+            key="pos_low",
+            expected_detected=True,
+            expected_keyword="嗨小问",
+            detected=True,
+            predicted_keyword="嗨小问",
+            score=0.7,
+        ),
+        KWSSample(key="neg_high", expected_detected=False, detected=True, score=0.8),
+        KWSSample(key="neg_low", expected_detected=False, detected=True, score=0.2),
+    ]
+
+    accuracy = MetricRegistry.get_metric("kws_accuracy").calculate_samples(
+        samples,
+        thresholds=[0.5, 0.75, 0.85],
+        macro_recall_false_alarms=0,
+    )
+    macro_recall = MetricRegistry.get_metric("macro-recall").calculate_samples(
+        samples,
+        thresholds=[0.5, 0.75, 0.85],
+        macro_recall_false_alarms=0,
+    )
+
+    assert accuracy.metric_name == "kws_accuracy"
+    assert accuracy.score == 0.75
+    assert macro_recall.metric_name == "macro-recall"
+    assert macro_recall.score == 0.5
+    assert macro_recall.details["macro_recall"] == 0.5
 
 
 def test_kws_pipeline_penalizes_wrong_keyword() -> None:

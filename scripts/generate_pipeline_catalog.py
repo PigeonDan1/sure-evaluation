@@ -64,8 +64,12 @@ COMBINATIONS = [
     ("ser", {}),
     ("gr", {}),
     ("slu", {}),
-    ("kws", {"metric": "accuracy"}),
-    ("kws", {"metric": "macro-recall"}),
+    ("kws", {"metric": "accuracy", "input_mode": "sure_json"}),
+    ("kws", {"metric": "macro-recall", "input_mode": "sure_json"}),
+    ("kws", {"metric": "accuracy", "input_mode": "wekws_score_ctc"}),
+    ("kws", {"metric": "macro-recall", "input_mode": "wekws_score_ctc"}),
+    ("kws", {"metric": "accuracy", "input_mode": "wekws_frame_score"}),
+    ("kws", {"metric": "macro-recall", "input_mode": "wekws_frame_score"}),
 ]
 
 

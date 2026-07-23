@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from sure_eval.evaluation.base import Metric
-from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSMetric
+from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSMacroRecallMetric, KWSMetric
 from sure_eval.evaluation.tasks.asr.metrics import CERMetric, WERMetric
 from sure_eval.evaluation.tasks.classification.metrics import AccuracyMetric
 from sure_eval.evaluation.tasks.s2tt.metrics import BLEUMetric, BLEURT20Metric, XCOMETXLMetric
@@ -49,8 +49,8 @@ class MetricRegistry:
         "bleurt_20": BLEURT20Metric,
         "kws": KWSMetric,
         "kws_accuracy": KWSMetric,
-        "kws_macro_recall": KWSMetric,
-        "macro-recall": KWSMetric,
+        "kws_macro_recall": KWSMacroRecallMetric,
+        "macro-recall": KWSMacroRecallMetric,
         "si_sdr": TSESISDRMetric,
     }
 
