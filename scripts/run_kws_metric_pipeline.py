@@ -64,6 +64,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--thresholds", help="Comma-separated thresholds. Defaults to 0.00..1.00.")
     parser.add_argument("--threshold-step", type=float, default=0.01)
+    parser.add_argument("--metric", choices=("accuracy", "macro-recall"), default="accuracy")
+    parser.add_argument("--macro-recall-false-alarms", type=int, default=0)
     parser.add_argument("--output", type=Path)
     return parser.parse_args(argv)
 
@@ -78,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
             threshold=args.threshold,
             thresholds=_split_thresholds(args.thresholds),
             threshold_step=args.threshold_step,
+            metric=args.metric,
+            macro_recall_false_alarms=args.macro_recall_false_alarms,
         )
     elif args.wekws_label_file and args.wekws_score_file and args.keyword:
         input_mode = "wekws_score_ctc"
@@ -88,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
             threshold=args.threshold,
             thresholds=_split_thresholds(args.thresholds),
             threshold_step=args.threshold_step,
+            metric=args.metric,
+            macro_recall_false_alarms=args.macro_recall_false_alarms,
         )
     elif args.wekws_label_file and args.wekws_frame_score_file and args.keyword:
         input_mode = "wekws_frame_score"
@@ -98,6 +104,8 @@ def main(argv: list[str] | None = None) -> int:
             threshold=args.threshold,
             thresholds=_split_thresholds(args.thresholds),
             threshold_step=args.threshold_step,
+            metric=args.metric,
+            macro_recall_false_alarms=args.macro_recall_false_alarms,
         )
     else:
         raise SystemExit(
@@ -110,6 +118,9 @@ def main(argv: list[str] | None = None) -> int:
         "ok": True,
         "input_mode": input_mode,
         "threshold": args.threshold,
+        "metric": report.metric,
+        "score": report.score,
+        "macro_recall_false_alarms": args.macro_recall_false_alarms,
         "pipeline_id": report.pipeline_id,
         "input_contract": report.details["input_contract"],
         "input_files": report.details["input_files"],

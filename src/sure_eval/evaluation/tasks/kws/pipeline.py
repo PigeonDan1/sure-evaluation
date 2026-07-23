@@ -42,6 +42,8 @@ _WEKWS_FRAME_SCORE_CONTRACT = MetricInputContract(
     purpose="keyword_detection_quality",
 )
 
+_SUPPORTED_PRIMARY_METRICS = {"accuracy", "macro-recall"}
+
 
 def evaluate_kws_samples(
     samples: list[KWSSample],
@@ -49,6 +51,7 @@ def evaluate_kws_samples(
     threshold: float = 0.5,
     thresholds: list[float] | None = None,
     threshold_step: float = 0.01,
+    macro_recall_false_alarms: int = 0,
     profile: str = "default",
     metric: str = "accuracy",
     input_mode: str = "samples",
@@ -57,7 +60,8 @@ def evaluate_kws_samples(
 ) -> EvaluationReport:
     """Evaluate aligned KWS samples through the configured task pipeline."""
 
-    if metric != "accuracy":
+    metric = metric.lower()
+    if metric not in _SUPPORTED_PRIMARY_METRICS:
         raise ValueError(f"Unsupported KWS primary metric: {metric}")
     input_contract = input_contract or _WEKWS_DET_CONTRACT
     if input_files is not None:
@@ -67,6 +71,7 @@ def evaluate_kws_samples(
         threshold=threshold,
         thresholds=thresholds,
         threshold_step=threshold_step,
+        macro_recall_false_alarms=macro_recall_false_alarms,
     )
     results = scoring_result.details["results"]
     return EvaluationReport(
@@ -101,6 +106,8 @@ def evaluate_kws_files(
     threshold: float = 0.5,
     thresholds: list[float] | None = None,
     threshold_step: float = 0.01,
+    metric: str = "accuracy",
+    macro_recall_false_alarms: int = 0,
 ) -> EvaluationReport:
     """Load supported KWS input files and evaluate them through the task route."""
 
@@ -162,7 +169,9 @@ def evaluate_kws_files(
         threshold=threshold,
         thresholds=thresholds,
         threshold_step=threshold_step,
+        macro_recall_false_alarms=macro_recall_false_alarms,
         profile=input_mode,
+        metric=metric,
         input_mode=input_mode,
         input_contract=input_contract,
         input_files=input_files,

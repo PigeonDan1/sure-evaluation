@@ -136,6 +136,49 @@ def compute_det_curve(
     return points
 
 
+def compute_macro_recall_at_false_alarms(
+    points: list[dict[str, Any]],
+    *,
+    false_alarm_budget: int = 0,
+) -> dict[str, Any]:
+    """Return max recall from DET points within a false-alarm count budget."""
+    if false_alarm_budget < 0:
+        raise ValueError("macro-recall false alarm budget must be non-negative")
+
+    candidates = [point for point in points if int(point["false_alarms"]) <= false_alarm_budget]
+    if not candidates:
+        return {
+            "score": 0.0,
+            "false_alarm_budget": false_alarm_budget,
+            "threshold": None,
+            "achieved_false_alarms": None,
+            "achieved_false_alarm_per_hour": None,
+            "true_detect_rate": 0.0,
+            "false_reject_rate": None,
+            "feasible": False,
+        }
+
+    best = max(
+        candidates,
+        key=lambda point: (
+            float(point["true_detect_rate"]),
+            -int(point["false_alarms"]),
+            -float(point["false_alarm_per_hour"]),
+            -abs(float(point["threshold"]) - 0.5),
+        ),
+    )
+    return {
+        "score": float(best["true_detect_rate"]),
+        "false_alarm_budget": false_alarm_budget,
+        "threshold": best["threshold"],
+        "achieved_false_alarms": best["false_alarms"],
+        "achieved_false_alarm_per_hour": best["false_alarm_per_hour"],
+        "true_detect_rate": best["true_detect_rate"],
+        "false_reject_rate": best["false_reject_rate"],
+        "feasible": True,
+    }
+
+
 class KWSMetric:
     """Aggregate keyword spotting metrics at a selected threshold."""
 
@@ -185,6 +228,7 @@ class KWSMetric:
         threshold = float(kwargs.get("threshold", self.threshold))
         thresholds = kwargs.get("thresholds", self.thresholds)
         threshold_step = float(kwargs.get("threshold_step", self.threshold_step))
+        macro_recall_false_alarms = int(kwargs.get("macro_recall_false_alarms", 0))
         rows = build_rows(samples, threshold=threshold)
         total = len(rows)
         correct = sum(1 for row in rows if row["correct"])
@@ -200,6 +244,10 @@ class KWSMetric:
         f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
         negative_hours = _duration_hours(sample for sample in samples if not sample.expected_detected)
         det_points = compute_det_curve(samples, thresholds=thresholds, step=threshold_step)
+        macro_recall = compute_macro_recall_at_false_alarms(
+            det_points,
+            false_alarm_budget=macro_recall_false_alarms,
+        )
 
         return MetricResult(
             metric_name="kws_accuracy",
@@ -220,6 +268,8 @@ class KWSMetric:
                 "false_alarm_rate": false_alarms / len(negatives) if negatives else 0.0,
                 "false_alarm_per_hour": false_alarms / negative_hours if negative_hours else 0.0,
                 "det_curve": det_points,
+                "macro_recall": macro_recall["score"],
+                "macro_recall_operating_point": macro_recall,
             },
         )
 
@@ -277,6 +327,7 @@ __all__ = [
     "KWSSample",
     "build_rows",
     "compute_det_curve",
+    "compute_macro_recall_at_false_alarms",
     "mean_score",
     "normalize_keyword",
     "summarize_det_curve",

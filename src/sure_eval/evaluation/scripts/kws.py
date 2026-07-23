@@ -32,8 +32,8 @@ def run(*, output_dir: str, **kwargs):
     input_mode = _infer_input_mode(kwargs)
     metric = kwargs.pop("metric", "accuracy")
     description = describe_pipeline(metric=metric, input_mode=input_mode)
-    _, _, route, _ = _select_route(metric=metric, input_mode=input_mode)
-    report = call_route_executor(route, **kwargs)
+    _, _, route, normalized_metric = _select_route(metric=metric, input_mode=input_mode)
+    report = call_route_executor(route, metric=normalized_metric, **kwargs)
     return write_route_run_outputs(report=report, description=description, output_dir=output_dir)
 
 

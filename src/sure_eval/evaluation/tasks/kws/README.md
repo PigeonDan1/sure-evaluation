@@ -53,10 +53,11 @@ pipeline_trace
 
 ## Metrics
 
-The route reports `accuracy` as the primary score and also includes:
+The route reports `accuracy` by default and can also use `macro-recall` as a primary score. Reported metrics include:
 
 - `precision`
 - `recall`
+- `macro-recall`
 - `f1`
 - `false_reject_rate`
 - `false_alarm_rate`
@@ -67,4 +68,8 @@ The pipeline id records the scoring version:
 
 ```text
 kws.default.accuracy.wekws_det
+kws.default.macro-recall.wekws_det
 ```
+
+`macro-recall` is the maximum true detect rate on the DET threshold grid with
+`false_alarms <= macro_recall_false_alarms` (default `0`).

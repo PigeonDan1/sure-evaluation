@@ -63,7 +63,7 @@ cat /tmp/asr_eval/report.json | grep score
 | **TSE** | SI-SDR、说话人相似度、MOS、WER/CER | 信号质量 + 可选相似度/MOS/ASR 节点 | [docs/tasks/tse.md](./docs/tasks/tse.md) |
 | **分类 / SER / GR** | Accuracy | 纯文本，基础包可用 | [docs/tasks/classification.md](./docs/tasks/classification.md) |
 | **SLU** | Accuracy | 纯文本，基础包可用 | [docs/tasks/slu.md](./docs/tasks/slu.md) |
-| **KWS** | accuracy、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
+| **KWS** | accuracy、macro-recall、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
 
 每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 

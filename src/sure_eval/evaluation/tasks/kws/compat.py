@@ -35,10 +35,12 @@ class KWSMetricPipeline:
         threshold: float = 0.5,
         thresholds: list[float] | None = None,
         threshold_step: float = 0.01,
+        macro_recall_false_alarms: int = 0,
     ) -> None:
         self.threshold = threshold
         self.thresholds = thresholds
         self.threshold_step = threshold_step
+        self.macro_recall_false_alarms = macro_recall_false_alarms
 
     def evaluate(self, samples: list[KWSSample]) -> KWSMetricReport:
         from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_samples
@@ -48,6 +50,7 @@ class KWSMetricPipeline:
             threshold=self.threshold,
             thresholds=self.thresholds,
             threshold_step=self.threshold_step,
+            macro_recall_false_alarms=self.macro_recall_false_alarms,
         )
         results = report.details["results"]
         return KWSMetricReport(
@@ -59,6 +62,7 @@ class KWSMetricPipeline:
                 "false_reject_rate": _metric_from_dict(results["false_reject_rate"]),
                 "false_alarm_rate": _metric_from_dict(results["false_alarm_rate"]),
                 "false_alarm_per_hour": _metric_from_dict(results["false_alarm_per_hour"]),
+                "macro-recall": _metric_from_dict(results["macro-recall"]),
                 "det_curve": MetricResult(
                     metric_name="det_curve",
                     score=float(results["det_curve"]["score"]),

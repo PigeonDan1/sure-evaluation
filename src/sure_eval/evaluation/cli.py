@@ -109,6 +109,9 @@ def run_metric_pipeline(
         None, "--wekws-frame-score-file", help="WeKWS frame score file"
     ),
     keyword: Optional[str] = typer.Option(None, "--keyword", help="KWS keyword"),
+    macro_recall_false_alarms: int = typer.Option(
+        0, "--macro-recall-false-alarms", help="False alarm count budget for KWS macro-recall"
+    ),
     samples_jsonl: Optional[str] = typer.Option(
         None, "--samples-jsonl", help="TTS/VC/SE/TSE samples JSONL file"
     ),
@@ -144,6 +147,7 @@ def run_metric_pipeline(
             wekws_score_file=wekws_score_file,
             wekws_frame_score_file=wekws_frame_score_file,
             keyword=keyword,
+            macro_recall_false_alarms=macro_recall_false_alarms,
             samples_jsonl=samples_jsonl,
             device=device,
             cache_dir=cache_dir,

@@ -29,6 +29,7 @@ def score_wekws_det(
     threshold: float = 0.5,
     thresholds: list[float] | None = None,
     threshold_step: float = 0.01,
+    macro_recall_false_alarms: int = 0,
 ) -> PipelineNodeResult:
     """Score aligned KWS samples with the existing WekWS-style DET semantics."""
 
@@ -36,16 +37,21 @@ def score_wekws_det(
         threshold=threshold,
         thresholds=thresholds,
         threshold_step=threshold_step,
-    ).calculate_samples(samples)
+    ).calculate_samples(samples, macro_recall_false_alarms=macro_recall_false_alarms)
     details = metric.details
     det_points = details["det_curve"]
     rows = build_rows(samples, threshold=threshold)
+    macro_recall = details["macro_recall_operating_point"]
     summary = {
         "threshold": threshold,
         "num_samples": len(samples),
         "num_positive": details["positive_samples"],
         "num_negative": details["negative_samples"],
         "mean_score": mean_score(samples),
+        "macro_recall_false_alarm_budget": macro_recall["false_alarm_budget"],
+        "macro_recall": macro_recall["score"],
+        "macro_recall_threshold": macro_recall["threshold"],
+        "macro_recall_achieved_false_alarms": macro_recall["achieved_false_alarms"],
         **summarize_det_curve(det_points),
     }
     results = {
@@ -78,6 +84,17 @@ def score_wekws_det(
             float(details["false_alarm_per_hour"]),
             false_alarms=details["false_alarms"],
             threshold=threshold,
+        ),
+        "macro-recall": _metric_dict(
+            "macro-recall",
+            float(macro_recall["score"]),
+            false_alarm_budget=macro_recall["false_alarm_budget"],
+            threshold=macro_recall["threshold"],
+            achieved_false_alarms=macro_recall["achieved_false_alarms"],
+            achieved_false_alarm_per_hour=macro_recall["achieved_false_alarm_per_hour"],
+            true_detect_rate=macro_recall["true_detect_rate"],
+            false_reject_rate=macro_recall["false_reject_rate"],
+            feasible=macro_recall["feasible"],
         ),
         "det_curve": {
             "metric_name": "det_curve",

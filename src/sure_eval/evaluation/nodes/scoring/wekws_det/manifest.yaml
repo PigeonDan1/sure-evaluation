@@ -12,6 +12,7 @@ metrics:
   - accuracy
   - precision
   - recall
+  - macro-recall
   - f1
   - false_reject_rate
   - false_alarm_rate
@@ -26,3 +27,4 @@ notes:
   - Positive samples below threshold or with wrong keyword count as false rejects.
   - Negative samples above threshold count as false alarms.
   - False alarm per hour uses negative audio duration when available.
+  - Macro-recall is the maximum true detect rate under a fixed false alarm count budget.

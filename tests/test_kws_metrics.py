@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 
 def test_kws_pipeline_scores_detection_samples() -> None:
     from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
@@ -43,6 +45,84 @@ def test_kws_pipeline_scores_detection_samples() -> None:
         "false_rejects": 0,
     }
     assert report.summary["best_threshold"] == 0.5
+    assert report.results["macro-recall"].score == 1.0
+
+
+def test_kws_macro_recall_at_false_alarm_budget() -> None:
+    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
+
+    samples = [
+        KWSSample(
+            key="pos_high",
+            expected_detected=True,
+            expected_keyword="嗨小问",
+            detected=True,
+            predicted_keyword="嗨小问",
+            score=0.9,
+        ),
+        KWSSample(
+            key="pos_low",
+            expected_detected=True,
+            expected_keyword="嗨小问",
+            detected=True,
+            predicted_keyword="嗨小问",
+            score=0.7,
+        ),
+        KWSSample(key="neg_high", expected_detected=False, detected=True, score=0.8, duration=3600.0),
+        KWSSample(key="neg_low", expected_detected=False, detected=True, score=0.2, duration=3600.0),
+    ]
+
+    zero_fa = KWSMetricPipeline(
+        thresholds=[0.5, 0.75, 0.85],
+        macro_recall_false_alarms=0,
+    ).evaluate(samples)
+    one_fa = KWSMetricPipeline(
+        thresholds=[0.5, 0.75, 0.85],
+        macro_recall_false_alarms=1,
+    ).evaluate(samples)
+
+    assert zero_fa.results["macro-recall"].score == 0.5
+    assert zero_fa.results["macro-recall"].details["threshold"] == 0.85
+    assert zero_fa.results["macro-recall"].details["achieved_false_alarms"] == 0
+    assert one_fa.results["macro-recall"].score == 1.0
+    assert one_fa.results["macro-recall"].details["threshold"] == 0.5
+    assert one_fa.results["macro-recall"].details["achieved_false_alarms"] == 1
+
+
+def test_kws_macro_recall_rejects_negative_false_alarm_budget() -> None:
+    from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import compute_macro_recall_at_false_alarms
+
+    with pytest.raises(ValueError, match="non-negative"):
+        compute_macro_recall_at_false_alarms([], false_alarm_budget=-1)
+
+
+def test_kws_macro_recall_penalizes_wrong_keyword() -> None:
+    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
+
+    report = KWSMetricPipeline(thresholds=[0.5], macro_recall_false_alarms=0).evaluate(
+        [
+            KWSSample(
+                key="pos",
+                expected_detected=True,
+                expected_keyword="嗨小问",
+                detected=True,
+                predicted_keyword="你好问问",
+                score=0.99,
+            )
+        ]
+    )
+
+    assert report.results["macro-recall"].score == 0.0
+
+
+def test_kws_macro_recall_without_positive_samples_is_zero() -> None:
+    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
+
+    report = KWSMetricPipeline(thresholds=[0.5], macro_recall_false_alarms=0).evaluate(
+        [KWSSample(key="neg", expected_detected=False, detected=False, score=0.1)]
+    )
+
+    assert report.results["macro-recall"].score == 0.0
 
 
 def test_kws_pipeline_penalizes_wrong_keyword() -> None:

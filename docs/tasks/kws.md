@@ -1,18 +1,20 @@
 # KWS — Keyword Spotting
 
-Evaluate keyword spotting outputs with accuracy, precision, recall, F1, and false-alarm/reject rates.
+Evaluate keyword spotting outputs with accuracy, macro-recall, precision, recall, F1, and false-alarm/reject rates.
 
 ## Metrics
 
 | Primary metric | Pipeline ID | Nodes |
 |:---------------|:------------|:------|
 | `accuracy` | `kws.<input_mode>.accuracy.wekws_det` | `scoring/wekws_det` |
+| `macro-recall` | `kws.<input_mode>.macro-recall.wekws_det` | `scoring/wekws_det` |
 
 Reported metrics:
 
 - `accuracy`
 - `precision`
 - `recall`
+- `macro-recall`
 - `f1`
 - `false_reject_rate`
 - `false_alarm_rate`
@@ -40,6 +42,16 @@ sure-eval metric run --pipeline /tmp/kws.json \
   --output-dir /tmp/kws_eval
 ```
 
+For recall under a fixed false-alarm-count budget, select `macro-recall`:
+
+```bash
+sure-eval metric describe kws --metric macro-recall --output /tmp/kws.json
+sure-eval metric run --pipeline /tmp/kws.json \
+  --reference-jsonl ref.jsonl --sample-output pred.jsonl \
+  --macro-recall-false-alarms 0 \
+  --output-dir /tmp/kws_eval
+```
+
 ### WeKWS CTC score mode
 
 ```bash
@@ -58,7 +70,7 @@ report = run_task(
     "kws",
     reference_jsonl="ref.jsonl",
     sample_output="pred.jsonl",
-    metric="accuracy",
+    metric="macro-recall",
     output_dir="/tmp/kws_eval",
 )
 print(report.score)
@@ -66,7 +78,8 @@ print(report.score)
 
 ## Output
 
-- `report.json` — `score` (accuracy), plus precision, recall, F1, FRR, FAR, and per-row details.
+- `report.json` — `score` for the selected primary metric, plus precision, recall, macro-recall, F1, FRR, FAR, DET curve, and per-row details.
+- `macro-recall` is computed as the maximum DET true detect rate with `false_alarms <= macro_recall_false_alarms` (default `0`).
 - `pipeline_description.json` — selected route, `input_mode`, node versions.
 
 ## Environment Notes

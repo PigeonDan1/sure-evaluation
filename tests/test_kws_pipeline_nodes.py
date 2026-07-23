@@ -50,6 +50,23 @@ def test_kws_task_route_uses_wekws_det_scoring_node() -> None:
     assert report.input_contract.required_roles == ("samples",)
 
 
+def test_kws_task_route_supports_macro_recall_primary_metric() -> None:
+    from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_samples
+
+    report = evaluate_kws_samples(
+        _samples(),
+        metric="macro-recall",
+        threshold=0.5,
+        thresholds=[0.0, 0.5, 0.95],
+        macro_recall_false_alarms=0,
+    )
+
+    assert report.metric == "macro-recall"
+    assert report.score == report.details["results"]["macro-recall"]["score"]
+    assert report.pipeline_id == "kws.default.macro-recall.wekws_det"
+    assert report.details["summary"]["macro_recall_false_alarm_budget"] == 0
+
+
 def test_legacy_kws_pipeline_matches_task_route() -> None:
     from sure_eval.evaluation.tasks.kws import KWSMetricPipeline
     from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_samples
@@ -62,6 +79,7 @@ def test_legacy_kws_pipeline_matches_task_route() -> None:
     assert legacy.results["false_alarm_per_hour"].score == (
         routed.details["results"]["false_alarm_per_hour"]["score"]
     )
+    assert legacy.results["macro-recall"].score == routed.details["results"]["macro-recall"]["score"]
     assert legacy.rows == routed.details["rows"]
     assert legacy.summary == routed.details["summary"]
 
@@ -107,9 +125,17 @@ def test_kws_file_route_declares_sure_json_input_contract(tmp_path: Path) -> Non
         encoding="utf-8",
     )
 
-    report = evaluate_kws_files(reference_jsonl=gt, sample_output=outputs, threshold=0.5)
+    report = evaluate_kws_files(
+        reference_jsonl=gt,
+        sample_output=outputs,
+        threshold=0.5,
+        metric="macro-recall",
+        macro_recall_false_alarms=0,
+    )
 
+    assert report.metric == "macro-recall"
     assert report.score == 1.0
+    assert report.pipeline_id == "kws.sure_json.macro-recall.wekws_det"
     assert report.details["input_mode"] == "sure_json"
     assert report.details["input_contract"]["required_roles"] == ["reference_jsonl", "sample_output"]
     assert report.details["input_files"] == {
@@ -195,12 +221,18 @@ def test_kws_runner_outputs_pipeline_metadata(tmp_path: Path, capsys) -> None:
             str(sample_output),
             "--threshold",
             "0.5",
+            "--metric",
+            "macro-recall",
+            "--macro-recall-false-alarms",
+            "0",
         ]
     )
     payload = json.loads(capsys.readouterr().out)
 
     assert rc == 0
     assert payload["ok"] is True
-    assert payload["pipeline_id"] == "kws.sure_json.accuracy.wekws_det"
+    assert payload["metric"] == "macro-recall"
+    assert payload["pipeline_id"] == "kws.sure_json.macro-recall.wekws_det"
+    assert "macro-recall" in payload["metrics"]
     assert payload["input_contract"]["metric_id"] == "scoring/wekws_det"
     assert payload["pipeline_trace"][0]["node_id"] == "scoring/wekws_det"

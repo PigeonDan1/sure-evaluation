@@ -114,6 +114,7 @@ def run_pipeline_spec(
     wekws_score_file: str | None = None,
     wekws_frame_score_file: str | None = None,
     keyword: str | None = None,
+    macro_recall_false_alarms: int = 0,
     samples_jsonl: str | None = None,
     device: str = "cuda",
     cache_dir: str | None = None,
@@ -140,6 +141,8 @@ def run_pipeline_spec(
         "samples_jsonl": samples_jsonl,
     }
     kwargs.update({key: value for key, value in cli_values.items() if value is not None})
+    if task == "kws":
+        kwargs["macro_recall_false_alarms"] = macro_recall_false_alarms
     if task in AUDIO_SAMPLE_TASKS:
         kwargs.update(
             _audio_sample_kwargs(

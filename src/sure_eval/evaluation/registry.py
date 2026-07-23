@@ -49,6 +49,8 @@ class MetricRegistry:
         "bleurt_20": BLEURT20Metric,
         "kws": KWSMetric,
         "kws_accuracy": KWSMetric,
+        "kws_macro_recall": KWSMetric,
+        "macro-recall": KWSMetric,
         "si_sdr": TSESISDRMetric,
     }
 

@@ -6,6 +6,9 @@ routes:
   accuracy:
     pipeline_id: kws.default.accuracy.wekws_det
     scoring: scoring/wekws_det
+  macro-recall:
+    pipeline_id: kws.default.macro-recall.wekws_det
+    scoring: scoring/wekws_det
 input_contracts:
   sure_json:
     required_roles:
@@ -25,6 +28,7 @@ metrics:
   - accuracy
   - precision
   - recall
+  - macro-recall
   - f1
   - false_reject_rate
   - false_alarm_rate

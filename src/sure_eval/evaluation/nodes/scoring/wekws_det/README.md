@@ -8,7 +8,8 @@ The node keeps WekWS-style threshold sweep semantics:
 - positive samples below threshold count as false rejects;
 - positive samples with the wrong keyword count as false rejects;
 - negative samples above threshold count as false alarms;
-- false alarms per hour use negative audio duration when available.
+- false alarms per hour use negative audio duration when available;
+- `macro-recall` selects the maximum true detect rate under a fixed false-alarm-count budget.
 
 ## Input
 
@@ -31,6 +32,30 @@ Optional but important fields:
 
 If `expected_keyword` is set and the model triggers a different keyword, the
 sample is counted as `wrong_keyword`, which contributes to false reject rate.
+
+## Metrics
+
+The node reports threshold metrics at the selected threshold plus DET-derived
+metrics:
+
+- `accuracy`
+- `precision`
+- `recall`
+- `macro-recall`
+- `f1`
+- `false_reject_rate`
+- `false_alarm_rate`
+- `false_alarm_per_hour`
+- `det_curve`
+
+`macro-recall` is computed on the same DET threshold grid as `det_curve`:
+
+```text
+max true_detect_rate(threshold)
+where false_alarms(threshold) <= macro_recall_false_alarms
+```
+
+The default false-alarm-count budget is `0`.
 
 ## Runtime
 

@@ -65,6 +65,7 @@ COMBINATIONS = [
     ("gr", {}),
     ("slu", {}),
     ("kws", {"metric": "accuracy"}),
+    ("kws", {"metric": "macro-recall"}),
 ]
 
 
