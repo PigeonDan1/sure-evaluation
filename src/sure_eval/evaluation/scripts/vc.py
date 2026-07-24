@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from sure_eval.evaluation.pipeline_identity import build_bundle_pipeline_id, canonical_metric
 from sure_eval.evaluation.scripts.contracts import (
     call_executor_path,
     contract_from_manifest,
@@ -13,7 +14,9 @@ from sure_eval.evaluation.scripts.contracts import (
     load_task_manifest,
     load_task_routes,
     normalize_metric_list,
-    route_pipeline_id,
+    route_computation_node_ids,
+    route_execution_metrics,
+    route_member_pipeline_ids,
     write_route_run_outputs,
 )
 from sure_eval.evaluation.tasks.vc.types import VCSample
@@ -25,7 +28,7 @@ def describe_pipeline(
     metrics: str | list[str] | tuple[str, ...] | None = None,
     reference_mode: str = "text",
 ):
-    manifest, manifest_path, routes, requested_metrics = _select_routes(
+    manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(
         language=language,
         metrics=metrics,
         reference_mode=reference_mode,
@@ -34,6 +37,7 @@ def describe_pipeline(
         language=language,
         manifest=manifest,
         manifest_path=manifest_path,
+        routes_path=routes_path,
         selected_routes=routes,
         requested_metrics=requested_metrics,
     )
@@ -44,6 +48,7 @@ def _describe_from_routes(
     language: str,
     manifest: dict[str, Any],
     manifest_path,
+    routes_path,
     selected_routes: tuple[dict[str, Any], ...],
     requested_metrics: tuple[str, ...],
 ):
@@ -54,11 +59,13 @@ def _describe_from_routes(
         node_ids.extend(route["nodes"])
         contracts.append(contract_from_manifest(manifest, route["input_contract"]))
 
-    pipeline_metric = requested_metrics[0] if len(requested_metrics) == 1 else "multi"
+    pipeline_metric = canonical_metric(requested_metrics[0]) if len(requested_metrics) == 1 else "multi"
+    member_pipeline_ids = route_member_pipeline_ids(selected_routes, language=language)
+    pipeline_kind = "atomic" if len(selected_routes) == 1 else "bundle"
     pipeline_id = (
-        route_pipeline_id(selected_routes[0], language=language)
-        if len(selected_routes) == 1
-        else f"vc.{language}.multi.audio_metric_nodes"
+        member_pipeline_ids[0]
+        if pipeline_kind == "atomic"
+        else build_bundle_pipeline_id("vc", language, member_pipeline_ids)
     )
     return describe_from_contracts(
         task="VC",
@@ -68,6 +75,13 @@ def _describe_from_routes(
         node_ids=_dedupe(node_ids),
         contracts=tuple(contracts),
         task_config_path=manifest_path,
+        route_config_path=routes_path,
+        pipeline_kind=pipeline_kind,
+        member_pipeline_ids=() if pipeline_kind == "atomic" else member_pipeline_ids,
+        computation_node_ids=route_computation_node_ids(selected_routes),
+        execution_metrics=requested_metrics,
+        script_module=__name__,
+        executor=_shared_executor_path(selected_routes),
     )
 
 
@@ -78,7 +92,7 @@ def _select_routes(
     reference_mode: str = "text",
 ):
     manifest, manifest_path = load_task_manifest("vc")
-    routes_config, _ = load_task_routes("vc")
+    routes_config, routes_path = load_task_routes("vc")
     requested_metrics = normalize_metric_list(metrics, (manifest["default_metrics"][language],))
     selected_routes: list[dict[str, Any]] = []
 
@@ -86,7 +100,7 @@ def _select_routes(
         selectors = {"reference_mode": reference_mode} if metric in {"vc_wer", "vc_cer"} else {}
         selected_routes.append(find_metric_route(routes_config, metric=metric, language=language, **selectors))
 
-    return manifest, manifest_path, tuple(selected_routes), requested_metrics
+    return manifest, manifest_path, routes_path, tuple(selected_routes), route_execution_metrics(tuple(selected_routes))
 
 
 def run(
@@ -103,7 +117,7 @@ def run(
     language = _common_language([sample.language for sample in samples])
     requested_metrics = tuple(metric.lower() for metric in metrics) if metrics is not None else None
     reference_mode = "text" if all(bool(sample.reference_text) for sample in samples) else "audio"
-    manifest, manifest_path, selected_routes, normalized_metrics = _select_routes(
+    manifest, manifest_path, routes_path, selected_routes, normalized_metrics = _select_routes(
         language=language,
         metrics=requested_metrics,
         reference_mode=reference_mode,
@@ -112,6 +126,7 @@ def run(
         language=language,
         manifest=manifest,
         manifest_path=manifest_path,
+        routes_path=routes_path,
         selected_routes=selected_routes,
         requested_metrics=normalized_metrics,
     )

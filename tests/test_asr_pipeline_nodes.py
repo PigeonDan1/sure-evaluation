@@ -109,7 +109,7 @@ def test_asr_zh_cer_pipeline_uses_wetext_itn_by_default(tmp_path: Path) -> None:
     assert report.language == "zh"
     assert report.metric == "cer"
     assert report.score == 0.0
-    assert report.pipeline_id == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert report.pipeline_id == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert report.details["input_contract"]["aggregation"] == "corpus_edit_distance"
     assert report.details["input_files"] == {"ref": str(ref_file), "hyp": str(hyp_file)}
@@ -142,7 +142,7 @@ def test_asr_zh_cer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Pat
 
     assert report.score == legacy["score"]
     _assert_matches_legacy(report.details["scoring_result"], legacy)
-    assert report.pipeline_id == "asr.zh.cer.aispeech_norm.wenet_cer"
+    assert report.pipeline_id == "asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1"
     assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
     assert report.pipeline_trace[0].details["profile"] == "zh"
 
@@ -161,7 +161,7 @@ def test_asr_en_wer_pipeline_uses_whisper_normalization_by_default(tmp_path: Pat
     assert report.language == "en"
     assert report.metric == "wer"
     assert report.score == 0.0
-    assert report.pipeline_id == "asr.en.wer.whisper_norm.wenet_wer"
+    assert report.pipeline_id == "asr.en.wer.whisper_norm_english_v1.wenet_wer_v1"
     assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert report.details["input_contract"]["metric_id"] == "scoring/wenet_wer"
     assert report.pipeline_trace[0].node_id == "normalization/whisper_norm"
@@ -190,7 +190,7 @@ def test_asr_en_wer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Pat
 
     assert report.score == legacy["score"]
     _assert_matches_legacy(report.details["scoring_result"], legacy)
-    assert report.pipeline_id == "asr.en.wer.aispeech_norm.wenet_wer"
+    assert report.pipeline_id == "asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1"
     assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
     assert report.pipeline_trace[0].details["profile"] == "en"
 
@@ -212,7 +212,7 @@ def test_asr_can_explicitly_use_sctk_sclite_scorer(tmp_path: Path, monkeypatch) 
         scorer="sctk_sclite",
     )
 
-    assert report.pipeline_id == "asr.en.wer.whisper_norm.sctk_sclite_wer"
+    assert report.pipeline_id == "asr.en.wer.whisper_norm_english_v1.sctk_sclite_v1"
     assert report.score == 0.0
     assert [node.node_id for node in report.pipeline_trace] == [
         "normalization/whisper_norm",
@@ -239,7 +239,7 @@ def test_asr_can_combine_wetext_normalizer_and_sctk_sclite_scorer(tmp_path: Path
         scorer="sctk_sclite",
     )
 
-    assert report.pipeline_id == "asr.zh.cer.wetext_zh_tn.sctk_sclite_cer"
+    assert report.pipeline_id == "asr.zh.cer.wetext_norm_zh_tn_v1.sctk_sclite_v1"
     assert [node.node_id for node in report.pipeline_trace] == [
         "normalization/wetext_norm",
         "scoring/sctk_sclite",
@@ -285,7 +285,7 @@ def test_asr_can_explicitly_use_wetext_normalizer_without_changing_defaults(tmp_
         normalizer="wetext:zh_tn",
     )
 
-    assert report.pipeline_id == "asr.zh.cer.wetext_zh_tn.wenet_cer"
+    assert report.pipeline_id == "asr.zh.cer.wetext_norm_zh_tn_v1.wenet_cer_v1"
     assert report.score == 0.0
     assert [node.node_id for node in report.pipeline_trace] == [
         "normalization/wetext_norm",
@@ -310,7 +310,7 @@ def test_asr_can_explicitly_use_punctuation_strip_normalizer(tmp_path: Path) -> 
         normalizer="punctuation_strip",
     )
 
-    assert report.pipeline_id == "asr.zh.cer.punctuation_strip_norm.wenet_cer"
+    assert report.pipeline_id == "asr.zh.cer.punctuation_strip_norm_v1.wenet_cer_v1"
     assert report.score == 0.0
     assert [node.node_id for node in report.pipeline_trace] == [
         "normalization/punctuation_strip_norm",
@@ -375,7 +375,7 @@ def test_asr_metric_class_forwards_explicit_normalizer(tmp_path: Path, monkeypat
     result = CERMetric().calculate("你好世界", "你好世界", language="zh", normalizer="wetext:zh_tn")
 
     assert result.score == 0.0
-    assert result.details["pipeline_id"] == "asr.zh.cer.wetext_zh_tn.wenet_cer"
+    assert result.details["pipeline_id"] == "asr.zh.cer.wetext_norm_zh_tn_v1.wenet_cer_v1"
     assert result.details["pipeline_trace"][0]["node_id"] == "normalization/wetext_norm"
     assert result.details["pipeline_trace"][0]["profile"] == "zh_tn"
 

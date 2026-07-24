@@ -19,7 +19,7 @@ def test_wavlm_large_sim_node_scores_named_backend() -> None:
 
     assert result.stage == "scoring"
     assert result.node_id == "scoring/wavlm_large_sim"
-    assert result.details["metric"] == "sim/wavlm-large"
+    assert result.details["metric"] == "spk_sim"
     assert result.details["result"]["score"] == 0.8
     assert result.details["result"]["per_sample"][0]["ASV"] == 0.7
     assert "prediction_audio" not in result.details["result"]["per_sample"][0]

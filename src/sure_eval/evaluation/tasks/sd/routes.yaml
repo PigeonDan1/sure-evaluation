@@ -1,9 +1,9 @@
 task: SD
 language_sensitive: false
 routes:
-  - route_id: sd.der.meeteval
+  -
     metric: der
-    pipeline_id: sd.der.meeteval
+    pipeline_id: sd.any.der.meeteval_v1
     nodes:
       - scoring/meeteval
     input_contract: scoring/meeteval

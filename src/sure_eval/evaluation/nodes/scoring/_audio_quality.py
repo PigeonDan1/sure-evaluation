@@ -44,7 +44,7 @@ _RUNTIME_DETAIL_KEYS = {
 
 
 def _score_key(metric_name: str) -> str:
-    if metric_name.startswith("sim/") or metric_name == "sim":
+    if metric_name.startswith("sim/") or metric_name in {"sim", "spk_sim"}:
         return "ASV"
     if metric_name == "dnsmos":
         return "OVRL"
@@ -109,7 +109,7 @@ def _aggregate_rows(metric_name: str, rows: list[dict[str, Any]]) -> dict[str, A
             values = [float(row[key]) for row in rows for key in aliases if key in row]
             if values:
                 result[f"mean_{output_key}"] = fmean(values)
-    if metric_name.startswith("sim/") or metric_name == "sim":
+    if metric_name.startswith("sim/") or metric_name in {"sim", "spk_sim"}:
         if all("ref_score" in row for row in rows):
             result["mean_ref_similarity"] = fmean(float(row["ref_score"]) for row in rows)
         variance_values = [

@@ -63,7 +63,7 @@ cat /tmp/asr_eval/report.json | grep score
 | **TSE** | SI-SDR、说话人相似度、MOS、WER/CER | 信号质量 + 可选相似度/MOS/ASR 节点 | [docs/tasks/tse.md](./docs/tasks/tse.md) |
 | **分类 / SER / GR** | Accuracy | 纯文本，基础包可用 | [docs/tasks/classification.md](./docs/tasks/classification.md) |
 | **SLU** | Accuracy | 纯文本，基础包可用 | [docs/tasks/slu.md](./docs/tasks/slu.md) |
-| **KWS** | accuracy、macro-recall、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
+| **KWS** | accuracy、macro_recall、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
 
 每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 
@@ -101,8 +101,8 @@ export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
 
 ```bash
 sure-eval env list
-sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run
-sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos
+sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
+sure-eval env setup --task tts --language zh --metrics cer,dnsmos
 ```
 
 详见 [docs/installation.md](docs/installation.md) 和 [docs/environment.md](docs/environment.md)。
@@ -111,16 +111,42 @@ sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos
 
 ## 📑 流水线路由目录
 
-SURE-EVAL 把每个指标都暴露为声明式流水线。`pipeline_catalog.jsonl` 将每个支持的 `任务 + 语言 + 指标` 映射到所选节点和必填输入角色：
+SURE-EVAL 把每个指标都暴露为声明式流水线。`pipeline_catalog.jsonl`
+将每个支持的 `任务 + 语言 + 指标` 映射到所选节点、必填输入角色、
+相对路由配置路径和 Python 入口函数：
 
 - [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) — 每行一个 JSON 对象
 - [docs/pipeline_catalog.md](./docs/pipeline_catalog.md) — schema 和使用说明
 
+`pipeline_id` 表示具体计算流程，格式为
+`任务.语种.metric.节点版本...`。`metric` 是规范化后的报告指标
+（如 `cer`、`wer`、`spk_sim`、`wv_mos`、`macro_recall`）。
+当任务需要兼容旧选择器或指定具体方法时，`execution_metrics` 会记录
+实际执行选择器，例如 `tts_cer`、`sim/wavlm-large`、`wv-mos`。
+多指标行使用 `pipeline_kind=bundle`，并在 `member_pipeline_ids` 中列出
+原子成员。`task_config_path` 和 `route_config_path` 使用仓库相对路径；
+`script_entrypoint` 和 `executor` 将路由连接到可执行代码。
+
 示例条目：
 
-```jsonl
-{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.wetext_zh_itn.wenet_cer","nodes":["normalization/wetext_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
-{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","normalization/punctuation_strip_norm","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
+```json
+{
+  "task": "ASR",
+  "language": "zh",
+  "metric": "cer",
+  "pipeline_id": "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
+  "pipeline_kind": "atomic",
+  "member_pipeline_ids": [],
+  "execution_metrics": ["cer"],
+  "nodes": ["normalization/wetext_norm", "scoring/wenet_cer"],
+  "computation_node_ids": ["normalization/wetext_norm", "scoring/wenet_cer"],
+  "task_config_path": "src/sure_eval/evaluation/tasks/asr/manifest.yaml",
+  "route_config_path": "src/sure_eval/evaluation/tasks/asr/routes.yaml",
+  "describe_entrypoint": "sure_eval.evaluation.scripts.asr.describe_pipeline",
+  "script_entrypoint": "sure_eval.evaluation.scripts.asr.run",
+  "executor": "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files",
+  "required_roles": ["hyp", "ref"]
+}
 ```
 
 添加新路由后可重新生成：

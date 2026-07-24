@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from sure_eval.evaluation.core.types import EvaluationFiles, EvaluationReport, MetricInputContract
 from sure_eval.evaluation.nodes.scoring.meeteval import score_meeteval
+from sure_eval.evaluation.pipeline_identity import build_atomic_pipeline_id, component_trace_ids, node_component
 
 _SD_CONTRACT = MetricInputContract(
     metric_id="scoring/meeteval",
@@ -36,15 +37,18 @@ def evaluate_sd_files(
         collar=collar,
     )
     result = scoring_result.details["result"]
+    components = (node_component("scoring/meeteval"),)
+    pipeline_id = build_atomic_pipeline_id("sd", "any", "der", components)
     return EvaluationReport(
         task="SD",
         language="n/a",
         metric="der",
         score=float(result["der"]),
-        pipeline_id="sd.der.meeteval",
+        pipeline_id=pipeline_id,
         pipeline_trace=(scoring_result,),
         input_contract=_SD_CONTRACT,
         input_files=input_files,
+        computation_node_ids=component_trace_ids(components),
         details={
             "scoring_result": result,
             "input_contract": _SD_CONTRACT.as_dict(),

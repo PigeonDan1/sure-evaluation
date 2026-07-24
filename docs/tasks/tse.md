@@ -4,21 +4,24 @@ Evaluates target-speaker-extraction models that take mixed speech + speaker enro
 
 ## Metrics
 
-| Metric family | Route selector | Node chain | Language-sensitive | Higher is better |
-|:--------------|:---------------|:-----------|:-------------------|:-----------------|
-| Signal quality | `si_sdr` | `scoring/si_sdr` | No | Yes |
-| Speaker similarity | `sim/wavlm-large` | `scoring/wavlm_large_sim` | No | Yes |
-| Speaker similarity | `sim/ecapa-tdnn` | `scoring/ecapa_tdnn_sim` | No | Yes |
-| Speaker similarity | `sim/eres2net` | `scoring/eres2net_sim` | No | Yes |
-| MOS | `dnsmos` | `scoring/dnsmos` | No | Yes |
-| MOS | `wv-mos` | `scoring/wv_mos` | No | Yes |
-| MOS | `utmos` | `scoring/utmos` | No | Yes |
-| Semantic error rate | `tse_cer` (zh) | `frontend/funasr_loader_16k_mono → transcription/paraformer_zh → normalization/punctuation_strip_norm → scoring/wenet_cer` | Yes (zh→CER) | No |
-| Semantic error rate | `tse_wer` (en) | `transcription/whisper_large_v3 → normalization/whisper_norm → scoring/wenet_wer` | Yes (en→WER) | No |
+| Canonical metric | Execution selector | Pipeline ID | Node chain | Higher is better |
+|:--------------|:---------------|:------------|:-----------|:-----------------|
+| `si_sdr` | `si_sdr` | `tse.<language>.si_sdr.si_sdr_v1` | `scoring/si_sdr` | Yes |
+| `spk_sim` | `spk_sim` or `sim/wavlm-large` | `tse.<language>.spk_sim.wavlm_large_sim_v1` | `scoring/wavlm_large_sim` | Yes |
+| `spk_sim` | `sim/ecapa-tdnn` | `tse.<language>.spk_sim.ecapa_tdnn_sim_v1` | `scoring/ecapa_tdnn_sim` | Yes |
+| `spk_sim` | `sim/eres2net` | `tse.<language>.spk_sim.eres2net_sim_v1` | `scoring/eres2net_sim` | Yes |
+| `dnsmos` | `dnsmos` | `tse.<language>.dnsmos.dnsmos_v1` | `scoring/dnsmos` | Yes |
+| `wv_mos` | `wv_mos` or `wv-mos` | `tse.<language>.wv_mos.wv_mos_v1` | `scoring/wv_mos` | Yes |
+| `utmos` | `utmos` | `tse.<language>.utmos.utmos_v1` | `scoring/utmos` | Yes |
+| `cer` | `cer` or `tse_cer` (zh) | `tse.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1` | `frontend/funasr_loader_16k_mono → transcription/paraformer_zh → normalization/punctuation_strip_norm → scoring/wenet_cer` | No |
+| `wer` | `wer` or `tse_wer` (en) | `tse.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1` | `transcription/whisper_large_v3 → normalization/whisper_norm → scoring/wenet_wer` | No |
 
 > **SI-SDRi**: when a sample provides `mixed_audio`, the `si_sdr` route additionally reports
 > `si_sdri` (`SI-SDR(prediction, clean) − SI-SDR(mixture, clean)`, higher is better) alongside
 > `si_sdr` — no separate route is needed. Samples without `mixed_audio` report `si_sdr` only.
+
+Multi-metric selections use bundle IDs built from atomic member tails, such as
+`tse.zh.multi.si_sdr.si_sdr_v1__spk_sim.wavlm_large_sim_v1__dnsmos.dnsmos_v1`.
 
 ## Input Format
 
@@ -32,7 +35,7 @@ TSE uses a JSONL file (one JSON object per line):
 | `language` | Yes | Language code (e.g. `zh`, `en`) |
 | `mixed_audio` | No | Path to the mixed speech input |
 | `enrollment_audio` | No | Path to the speaker enrollment/clue audio |
-| `reference_text` | Required for `tse_cer`/`tse_wer` | Reference transcript for semantic evaluation |
+| `reference_text` | Required for `cer`/`wer` semantic evaluation | Reference transcript |
 | `metadata` | No | Arbitrary metadata object |
 
 Paths may be absolute or relative to the JSONL file location.
@@ -51,7 +54,7 @@ Example JSONL:
 sure-eval metric describe tse --language zh --metric si_sdr
 
 # Describe a multi-metric pipeline
-sure-eval metric describe tse --language zh --metrics si_sdr,sim/wavlm-large,dnsmos
+sure-eval metric describe tse --language zh --metrics si_sdr,spk_sim,dnsmos
 
 # Run a pipeline
 sure-eval metric run --pipeline /tmp/tse.json \
@@ -80,4 +83,12 @@ print(report.score)
 
 ## Output
 
-Each run writes `report.json` and `pipeline_description.json` to the output directory.
+Each run writes `report.json` and `pipeline_description.json` to the output
+directory.
+
+- `report.json` — `score` for the first selected metric, canonical
+  `details.results` keys, and per-sample details.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `pipeline_kind`, `member_pipeline_ids`, `execution_metrics`,
+  `computation_node_ids`, relative `task_config_path` / `route_config_path`,
+  `script_entrypoint`, `executor`, and node versions.

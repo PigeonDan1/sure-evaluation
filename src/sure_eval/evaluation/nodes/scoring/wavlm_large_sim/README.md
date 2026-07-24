@@ -1,6 +1,8 @@
 # WavLM-Large SIM Scoring Node
 
-`scoring/wavlm_large_sim` scores speaker similarity with a WavLM-large style provider and reports `sim/wavlm-large`.
+`scoring/wavlm_large_sim` scores speaker similarity with a WavLM-large style
+provider. It reports the canonical metric `spk_sim`; `sim/wavlm-large` is the
+method selector recorded in `execution_metrics`.
 
 The default provider follows the Seed-TTS-Eval WavLM-large speaker verification path:
 `wavlm_large_finetune.pth` is loaded from this node's `checkpoints/` directory,

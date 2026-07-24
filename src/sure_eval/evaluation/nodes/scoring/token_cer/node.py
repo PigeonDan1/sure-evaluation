@@ -60,7 +60,7 @@ def score_key_text_tokens(
     version: str,
     internal_stages: tuple[str, ...],
 ) -> tuple[KeyTextFiles, PipelineNodeResult]:
-    """Shared token-level scorer for the canonical metric family."""
+    """Shared token-level scorer for canonical ASR routes."""
 
     levenshtein = _require_rapidfuzz()
 

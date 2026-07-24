@@ -8,7 +8,7 @@ supported_metrics:
   - chrf
   - xcomet_xl
   - bleurt_20
-default_pipeline: s2tt.{tokenizer_profile}.{metric}.sacrebleu
+default_pipeline: s2tt.{language}.bleu.sacrebleu_{language}_v1
 input_contracts:
   scoring/sacrebleu:
     purpose: traditional_reproducible_anchor

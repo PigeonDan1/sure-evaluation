@@ -6,11 +6,11 @@ Score speech-to-text translation hypotheses against references.
 
 | Metric | Languages | Pipeline ID | Nodes |
 |:-------|:----------|:------------|:------|
-| `bleu` | `zh`, `en` | `s2tt.<lang>.bleu.sacrebleu` | `scoring/sacrebleu` |
-| `bleu_char` | `zh`, `en` | `s2tt.<lang>.bleu_char.sacrebleu` | `scoring/sacrebleu` |
-| `chrf` | `zh`, `en` | `s2tt.<lang>.chrf.sacrebleu` | `scoring/sacrebleu` |
-| `xcomet_xl` | `zh`, `en` | `s2tt.<lang>.xcomet_xl.xcomet_xl` | `scoring/xcomet_xl` |
-| `bleurt_20` | `zh`, `en` | `s2tt.<lang>.bleurt_20.bleurt_20` | `scoring/bleurt_20` |
+| `bleu` | `zh`, `en` | `s2tt.<lang>.bleu.sacrebleu_<lang>_v1` | `scoring/sacrebleu` |
+| `bleu_char` | `zh`, `en` | `s2tt.<lang>.bleu_char.sacrebleu_<lang>_v1` | `scoring/sacrebleu` |
+| `chrf` | `zh`, `en` | `s2tt.<lang>.chrf.sacrebleu_<lang>_v1` | `scoring/sacrebleu` |
+| `xcomet_xl` | `zh`, `en` | `s2tt.<lang>.xcomet_xl.xcomet_xl_v1` | `scoring/xcomet_xl` |
+| `bleurt_20` | `zh`, `en` | `s2tt.<lang>.bleurt_20.bleurt_20_v1` | `scoring/bleurt_20` |
 
 SacreBLEU is lightweight and included in the base install. XCOMET-XL and BLEURT-20 require optional node-local environments.
 
@@ -74,7 +74,9 @@ print(report.score)
 ## Output
 
 - `report.json` — `score`, `bleu`, `bleu_char`, `chrf` (SacreBLEU), or segment-mean XCOMET/BLEURT scores.
-- `pipeline_description.json` — selected route and node versions.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `execution_metrics`, `computation_node_ids`, relative `task_config_path` /
+  `route_config_path`, `script_entrypoint`, `executor`, and node versions.
 
 ## Environment Notes
 

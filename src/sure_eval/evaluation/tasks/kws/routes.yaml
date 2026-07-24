@@ -1,51 +1,78 @@
 task: KWS
 language_sensitive: false
 routes:
-  - route_id: kws.sure_json.accuracy.wekws_det
+  -
     input_mode: sure_json
     metric: accuracy
-    pipeline_id: kws.sure_json.accuracy.wekws_det
+    pipeline_id: kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1
     nodes:
+      - scoring/wekws_det
+    computation_nodes:
+      - conversion/kws_sure_json_to_samples
       - scoring/wekws_det
     input_contract: sure_json
     executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files
-  - route_id: kws.sure_json.macro-recall.wekws_det
+  -
     input_mode: sure_json
-    metric: macro-recall
-    pipeline_id: kws.sure_json.macro-recall.wekws_det
+    metric: macro_recall
+    aliases:
+      - macro-recall
+    executor_metric: macro-recall
+    pipeline_id: kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1
     nodes:
+      - scoring/wekws_det
+    computation_nodes:
+      - conversion/kws_sure_json_to_samples
       - scoring/wekws_det
     input_contract: sure_json
     executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files
-  - route_id: kws.wekws_score_ctc.accuracy.wekws_det
+  -
     input_mode: wekws_score_ctc
     metric: accuracy
-    pipeline_id: kws.wekws_score_ctc.accuracy.wekws_det
+    pipeline_id: kws.any.accuracy.conversion_kws_wekws_score_ctc_to_samples_v1.wekws_det_v1
     nodes:
+      - scoring/wekws_det
+    computation_nodes:
+      - conversion/kws_wekws_score_ctc_to_samples
       - scoring/wekws_det
     input_contract: wekws_score_ctc
     executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files
-  - route_id: kws.wekws_score_ctc.macro-recall.wekws_det
+  -
     input_mode: wekws_score_ctc
-    metric: macro-recall
-    pipeline_id: kws.wekws_score_ctc.macro-recall.wekws_det
+    metric: macro_recall
+    aliases:
+      - macro-recall
+    executor_metric: macro-recall
+    pipeline_id: kws.any.macro_recall.conversion_kws_wekws_score_ctc_to_samples_v1.wekws_det_v1
     nodes:
+      - scoring/wekws_det
+    computation_nodes:
+      - conversion/kws_wekws_score_ctc_to_samples
       - scoring/wekws_det
     input_contract: wekws_score_ctc
     executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files
-  - route_id: kws.wekws_frame_score.accuracy.wekws_det
+  -
     input_mode: wekws_frame_score
     metric: accuracy
-    pipeline_id: kws.wekws_frame_score.accuracy.wekws_det
+    pipeline_id: kws.any.accuracy.conversion_kws_wekws_frame_score_to_samples_v1.wekws_det_v1
     nodes:
+      - scoring/wekws_det
+    computation_nodes:
+      - conversion/kws_wekws_frame_score_to_samples
       - scoring/wekws_det
     input_contract: wekws_frame_score
     executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files
-  - route_id: kws.wekws_frame_score.macro-recall.wekws_det
+  -
     input_mode: wekws_frame_score
-    metric: macro-recall
-    pipeline_id: kws.wekws_frame_score.macro-recall.wekws_det
+    metric: macro_recall
+    aliases:
+      - macro-recall
+    executor_metric: macro-recall
+    pipeline_id: kws.any.macro_recall.conversion_kws_wekws_frame_score_to_samples_v1.wekws_det_v1
     nodes:
+      - scoring/wekws_det
+    computation_nodes:
+      - conversion/kws_wekws_frame_score_to_samples
       - scoring/wekws_det
     input_contract: wekws_frame_score
     executor: sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files

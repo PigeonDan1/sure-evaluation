@@ -1,6 +1,13 @@
 # Task Guides
 
-Each guide describes one SURE-EVAL task, including supported metrics, pipeline nodes, input/output formats, and CLI examples.
+Each guide describes one SURE-EVAL task, including supported metrics, concrete
+pipeline IDs, pipeline nodes, input/output formats, and CLI examples.
+
+Task guides use canonical reported metrics (`metric`) first. When a task needs
+a compatibility selector or method selector, the guide lists that separately
+from the concrete `pipeline_id`. Generated descriptions also expose relative
+`task_config_path` / `route_config_path`, `script_entrypoint`, and `executor`
+fields so users and agents can trace a route back to implementation code.
 
 For a machine-readable catalog of every metric → pipeline → node mapping, see [Pipeline Catalog](../pipeline_catalog.md).
 

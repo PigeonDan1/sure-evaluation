@@ -6,7 +6,7 @@ Evaluate speaker diarization outputs with Diarization Error Rate (DER).
 
 | Metric | Pipeline ID | Nodes | Params |
 |:-------|:------------|:------|:-------|
-| `der` | `sd.der.meeteval` | `scoring/meeteval` | `collar: 0.25` |
+| `der` | `sd.any.der.meeteval_v1` | `scoring/meeteval` | `collar: 0.25` |
 
 ## Input Format
 
@@ -49,7 +49,9 @@ print(report.score)
 ## Output
 
 - `report.json` — `score` (DER), `num_sessions`, missed/false-alarm/speaker-error times.
-- `pipeline_description.json` — selected route and node versions.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `execution_metrics`, `computation_node_ids`, relative `task_config_path` /
+  `route_config_path`, `script_entrypoint`, `executor`, and node versions.
 
 ## Environment Notes
 

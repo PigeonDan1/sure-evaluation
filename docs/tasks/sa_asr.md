@@ -6,7 +6,7 @@ Evaluate multi-speaker ASR outputs. Reports cpWER as the main metric and DER as 
 
 | Metric | Pipeline ID | Nodes | Params |
 |:-------|:------------|:------|:-------|
-| `cpwer` (main) | `sa_asr.cpwer.gstar_norm.meeteval` | `normalization/gstar_norm` → `scoring/meeteval` | `collar: 0.5` |
+| `cpwer` (main) | `sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1` | `conversion/sa_asr__cpwer` → `normalization/gstar_norm` → `scoring/meeteval` | `collar: 0.5` |
 | `der` (companion) | same | same | recorded alongside cpWER |
 
 ## Input Format
@@ -51,7 +51,10 @@ print(report.score)  # cpWER
 ## Output
 
 - `report.json` — `score` (cpWER), `der`, `num_sessions`.
-- `pipeline_description.json` — selected route, conversion trace, node versions.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `execution_metrics`, `computation_node_ids` including conversion nodes,
+  relative `task_config_path` / `route_config_path`, `script_entrypoint`,
+  `executor`, conversion trace, and node versions.
 
 ## Environment Notes
 

@@ -10,13 +10,14 @@ package:
   name: rapidfuzz
   version: ">=3.0,<4"
 notes:
-  - Mixed / English token error rate of the canonical family; pair with
+  - Mixed / English token error rate for canonical ASR pipeline IDs; pair with
     normalization/canonical_itn. Applies the exact same token-level scorer
     and tokenizer as scoring/token_cer (CJK per char, latin words, digits per
-    char, symbols per char) -- the family difference lives entirely in the
-    normalization stage, which whisper-normalizes latin spans for en/cs.
+    char, symbols per char) -- the route difference lives in the normalization
+    stage and public pipeline_id, with latin spans whisper-normalized for en/cs.
   - Degeneration by construction; text without latin letters produces exactly
-    the cer_canonical token sequence, text without CJK is wer_canonical.
+    the same token sequence as the canonical ASR CER pipeline, while text
+    without CJK matches the canonical ASR WER pipeline.
   - Reference utterances missing from the hypothesis are scored as empty
     hypotheses; zero covered reference tokens raise instead of scoring 0.0.
 internal_stages:

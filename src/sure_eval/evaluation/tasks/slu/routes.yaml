@@ -1,19 +1,19 @@
 task: SLU
 language_sensitive: false
 routes:
-  - route_id: slu.accuracy.prompt_norm.classify.choice_id
+  -
     output_mode: choice_id
     metric: accuracy
-    pipeline_id: slu.accuracy.prompt_norm.classify.choice_id
+    pipeline_id: slu.any.accuracy.prompt_norm_choice_id_v1.classify_v1
     nodes:
       - normalization/prompt_norm
       - scoring/classify
     input_contract: prompt_norm_classify
     executor: sure_eval.evaluation.tasks.slu.pipeline.evaluate_slu_files
-  - route_id: slu.accuracy.prompt_norm.classify.choice_text
+  -
     output_mode: choice_text
     metric: accuracy
-    pipeline_id: slu.accuracy.prompt_norm.classify.choice_text
+    pipeline_id: slu.any.accuracy.prompt_norm_choice_text_v1.classify_v1
     nodes:
       - normalization/prompt_norm
       - scoring/classify

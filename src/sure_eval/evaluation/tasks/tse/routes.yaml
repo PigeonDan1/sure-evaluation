@@ -1,67 +1,85 @@
 task: TSE
 language_sensitive: true
 routes:
-  - route_id: tse.any.si_sdr.si_sdr
+  -
     metric: si_sdr
     family: signal_quality
-    pipeline_id: tse.{language}.si_sdr.si_sdr
+    pipeline_id: tse.{language}.si_sdr.si_sdr_v1
     nodes:
       - scoring/si_sdr
     input_contract: scoring/si_sdr
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.any.sim_wavlm_large.wavlm_large_sim
-    metric: sim/wavlm-large
+  -
+    metric: spk_sim
+    method: wavlm_large
+    aliases:
+      - sim/wavlm-large
+    executor_metric: sim/wavlm-large
     family: speaker_similarity
-    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    pipeline_id: tse.{language}.spk_sim.wavlm_large_sim_v1
     nodes:
       - scoring/wavlm_large_sim
     input_contract: scoring/wavlm_large_sim
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.any.sim_ecapa_tdnn.ecapa_tdnn_sim
-    metric: sim/ecapa-tdnn
+  -
+    metric: spk_sim
+    method: ecapa_tdnn
+    aliases:
+      - sim/ecapa-tdnn
+    executor_metric: sim/ecapa-tdnn
     family: speaker_similarity
-    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    pipeline_id: tse.{language}.spk_sim.ecapa_tdnn_sim_v1
     nodes:
       - scoring/ecapa_tdnn_sim
     input_contract: scoring/ecapa_tdnn_sim
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.any.sim_eres2net.eres2net_sim
-    metric: sim/eres2net
+  -
+    metric: spk_sim
+    method: eres2net
+    aliases:
+      - sim/eres2net
+    executor_metric: sim/eres2net
     family: speaker_similarity
-    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    pipeline_id: tse.{language}.spk_sim.eres2net_sim_v1
     nodes:
       - scoring/eres2net_sim
     input_contract: scoring/eres2net_sim
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.any.dnsmos.dnsmos
+  -
     metric: dnsmos
     family: mos
-    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    pipeline_id: tse.{language}.dnsmos.dnsmos_v1
     nodes:
       - scoring/dnsmos
     input_contract: scoring/dnsmos
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.any.wv_mos.wv_mos
-    metric: wv-mos
+  -
+    metric: wv_mos
+    aliases:
+      - wv-mos
+    executor_metric: wv-mos
     family: mos
-    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    pipeline_id: tse.{language}.wv_mos.wv_mos_v1
     nodes:
       - scoring/wv_mos
     input_contract: scoring/wv_mos
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.any.utmos.utmos
+  -
     metric: utmos
     family: mos
-    pipeline_id: tse.{language}.multi.audio_metric_nodes
+    pipeline_id: tse.{language}.utmos.utmos_v1
     nodes:
       - scoring/utmos
     input_contract: scoring/utmos
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.zh.tse_cer.text.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+  -
     language: zh
-    metric: tse_cer
+    metric: cer
+    aliases:
+      - tse_cer
+    executor_metric: tse_cer
     family: semantic_error_rate
-    pipeline_id: tse.{language}.tse_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    pipeline_id: tse.{language}.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
     nodes:
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
@@ -69,11 +87,14 @@ routes:
       - scoring/wenet_cer
     input_contract: semantic/asr_error_rate
     executor: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-  - route_id: tse.en.tse_wer.text.whisper_large_v3.whisper_norm.wenet_wer
+  -
     language: en
-    metric: tse_wer
+    metric: wer
+    aliases:
+      - tse_wer
+    executor_metric: tse_wer
     family: semantic_error_rate
-    pipeline_id: tse.{language}.tse_wer.whisper_large_v3.whisper_norm.wenet_wer
+    pipeline_id: tse.{language}.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
     nodes:
       - transcription/whisper_large_v3
       - normalization/whisper_norm

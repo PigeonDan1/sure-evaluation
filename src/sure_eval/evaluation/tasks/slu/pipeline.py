@@ -7,6 +7,7 @@ from pathlib import Path
 from sure_eval.evaluation.core.types import EvaluationFiles, EvaluationReport, KeyTextFiles, MetricInputContract
 from sure_eval.evaluation.nodes.normalization.prompt_norm import normalize_prompt_choice_files
 from sure_eval.evaluation.nodes.scoring.classify import default_label_spec, score_classification_files
+from sure_eval.evaluation.pipeline_identity import build_atomic_pipeline_id, component_trace_ids, node_component
 
 _SLU_CONTRACT = MetricInputContract(
     metric_id="normalization/prompt_norm+scoring/classify",
@@ -50,15 +51,21 @@ def evaluate_slu_files(
             task="SLU",
         )
         result = scoring_result.details["result"]
+        components = (
+            node_component("normalization/prompt_norm", profile=output_mode),
+            node_component("scoring/classify"),
+        )
+        pipeline_id = build_atomic_pipeline_id("slu", "any", "accuracy", components)
         return EvaluationReport(
             task="SLU",
             language="n/a",
             metric="accuracy",
             score=float(result["score"]),
-            pipeline_id=f"slu.accuracy.prompt_norm.classify.{output_mode}",
+            pipeline_id=pipeline_id,
             pipeline_trace=(prompt_result, scoring_result),
             input_contract=_SLU_CONTRACT,
             input_files=input_files,
+            computation_node_ids=component_trace_ids(components),
             details={
                 "scoring_result": result,
                 "input_contract": _SLU_CONTRACT.as_dict(),

@@ -1,4 +1,4 @@
-"""Mixed / English token error rate scoring node (canonical family)."""
+"""Mixed / English token error rate scoring node for canonical selectors."""
 
 from sure_eval.evaluation.nodes.scoring.token_mer.node import score_token_mer
 

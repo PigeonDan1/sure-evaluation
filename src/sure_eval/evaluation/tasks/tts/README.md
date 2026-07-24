@@ -11,25 +11,26 @@ Semantic intelligibility uses the shared ASR scoring path:
 
 Semantic routes:
 
-| Language | Metric | Transcription node | Normalization node | Downstream ASR metric |
-| --- | --- | --- | --- | --- |
-| `zh` / `cmn` / `yue` | `tts_cer` | `transcription/paraformer_zh` | `normalization/punctuation_strip_norm` | `cer` |
-| `en` | `tts_wer` | `transcription/whisper_large_v3` | `normalization/whisper_norm` | `wer` |
+| Language | Canonical metric | Execution selector | Transcription node | Normalization node | Downstream ASR metric |
+| --- | --- | --- | --- | --- | --- |
+| `zh` / `cmn` / `yue` | `cer` | `tts_cer` | `transcription/paraformer_zh` | `normalization/punctuation_strip_norm` | `cer` |
+| `en` | `wer` | `tts_wer` | `transcription/whisper_large_v3` | `normalization/whisper_norm` | `wer` |
 
 Speaker similarity and MOS routes:
 
-| Metric family | Metric names | Scoring node |
+| Canonical metric | Method or selector | Scoring node |
 | --- | --- | --- |
-| speaker similarity | `sim/wavlm-large` | `scoring/wavlm_large_sim` |
-| speaker similarity | `sim/ecapa-tdnn` | `scoring/ecapa_tdnn_sim` |
-| speaker similarity | `sim/eres2net` | `scoring/eres2net_sim` |
-| MOS | `dnsmos` | `scoring/dnsmos` |
-| MOS | `wv-mos` | `scoring/wv_mos` |
-| MOS | `utmos` | `scoring/utmos` |
+| `spk_sim` | `spk_sim` / `sim/wavlm-large` | `scoring/wavlm_large_sim` |
+| `spk_sim` | `sim/ecapa-tdnn` | `scoring/ecapa_tdnn_sim` |
+| `spk_sim` | `sim/eres2net` | `scoring/eres2net_sim` |
+| `dnsmos` | `dnsmos` | `scoring/dnsmos` |
+| `wv_mos` | `wv_mos` / `wv-mos` | `scoring/wv_mos` |
+| `utmos` | `utmos` | `scoring/utmos` |
 
 `metrics=None` defaults to the language-matched semantic metric. Speaker and MOS routes require explicit
-metric selection plus injected providers. The report-level `sim` value is an aggregate over selected
-named speaker backends, not a standalone scoring node.
+metric selection plus injected providers. New `EvaluationReport` payloads use
+canonical result keys; the legacy `TTSMetricPipeline` wrapper still exposes
+`sim/...` and aggregate `sim` for compatibility.
 
 `normalization/wetext_norm` can be selected explicitly with
 `evaluate_tts_samples(..., semantic_normalizer="wetext:zh_tn")`. Mandarin defaults

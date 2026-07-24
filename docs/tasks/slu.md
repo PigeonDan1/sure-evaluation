@@ -6,8 +6,8 @@ Evaluate prompt-based spoken language understanding answers with accuracy.
 
 | Output mode | Metric | Pipeline ID | Nodes |
 |:------------|:-------|:------------|:------|
-| `choice_id` | `accuracy` | `slu.accuracy.prompt_norm.classify.choice_id` | `normalization/prompt_norm` → `scoring/classify` |
-| `choice_text` | `accuracy` | `slu.accuracy.prompt_norm.classify.choice_text` | `normalization/prompt_norm` → `scoring/classify` |
+| `choice_id` | `accuracy` | `slu.any.accuracy.prompt_norm_choice_id_v1.classify_v1` | `normalization/prompt_norm` → `scoring/classify` |
+| `choice_text` | `accuracy` | `slu.any.accuracy.prompt_norm_choice_text_v1.classify_v1` | `normalization/prompt_norm` → `scoring/classify` |
 
 ## Input Format
 
@@ -63,7 +63,10 @@ print(report.score)
 ## Output
 
 - `report.json` — `score` (accuracy), correct/total counts.
-- `pipeline_description.json` — selected route, `output_mode`, node versions.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `execution_metrics`, `computation_node_ids`, `output_mode`, relative
+  `task_config_path` / `route_config_path`, `script_entrypoint`, `executor`,
+  and node versions.
 
 ## Output Modes
 

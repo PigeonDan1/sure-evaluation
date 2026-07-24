@@ -47,6 +47,9 @@ def describe_metric_pipeline(
     metrics: Optional[str] = typer.Option(
         None, "--metrics", help="Comma-separated metric names for multi-metric tasks"
     ),
+    pipeline_id: Optional[str] = typer.Option(
+        None, "--pipeline-id", help="Exact atomic pipeline_id to describe"
+    ),
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Write pipeline JSON to this path"
     ),
@@ -55,9 +58,15 @@ def describe_metric_pipeline(
     """Describe a route-backed metric pipeline without executing it."""
 
     try:
+        if pipeline_id and (metric or metrics):
+            raise ValueError("Use either --pipeline-id or --metric/--metrics, not both")
         selected_metric = metrics or metric
         payload = build_pipeline_spec(
-            task, language=language, metric=selected_metric, output_path=output
+            task,
+            language=language,
+            metric=selected_metric,
+            pipeline_id=pipeline_id,
+            output_path=output,
         )
     except Exception as exc:
         _print_error(exc, json_output=json_output)
@@ -73,6 +82,9 @@ def describe_metric_pipeline(
     table.add_row("language", payload["language"])
     table.add_row("required_roles", ", ".join(payload["required_roles"]))
     table.add_row("nodes", " -> ".join(slot["default"] for slot in payload["pipeline"]))
+    table.add_row("route_config", payload.get("route_config_path") or "")
+    table.add_row("script_entrypoint", payload.get("script_entrypoint") or "")
+    table.add_row("executor", payload.get("executor") or "")
     if output:
         table.add_row("pipeline_json", str(output))
     console.print(table)

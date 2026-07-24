@@ -1,18 +1,21 @@
 task: TTS
 language_sensitive: true
 canonical_entry: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-implemented_metric_families:
-  - semantic_error_rate
-  - speaker_similarity
-  - mos
+implemented_metrics:
+  - cer
+  - wer
+  - spk_sim
+  - dnsmos
+  - wv_mos
+  - utmos
 default_metrics:
   zh: tts_cer
   en: tts_wer
 default_pipelines:
   zh:
-    tts_cer: tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    tts_cer: tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
   en:
-    tts_wer: tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer
+    tts_wer: tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
 input_contracts:
   audio_samples_jsonl:
     purpose: tts_cli_audio_samples_batch_input

@@ -1,9 +1,13 @@
 task: SE
 language_sensitive: false
 canonical_entry: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
-implemented_metric_families:
-  - full_reference_quality
-  - no_reference_quality
+implemented_metrics:
+  - si_sdr
+  - stoi
+  - pesq
+  - dnsmos
+  - wv_mos
+  - utmos
 default_metrics:
   n/a:
     - si-sdr
@@ -12,7 +16,7 @@ default_metrics:
     - dnsmos
     - wv-mos
     - utmos
-default_pipeline: se.multi.enhancement_quality_nodes
+default_pipeline: se.any.multi.si_sdr.si_sdr_v1__stoi.stoi_v1__pesq.pesq_v1__dnsmos.dnsmos_v1__wv_mos.wv_mos_v1__utmos.utmos_v1
 input_contracts:
   audio_samples_jsonl:
     purpose: se_cli_audio_samples_batch_input

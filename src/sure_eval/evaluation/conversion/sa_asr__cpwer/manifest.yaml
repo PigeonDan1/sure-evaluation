@@ -1,4 +1,5 @@
 id: sa_asr__cpwer
+version: v1
 task: sa_asr
 metric: cpwer
 source_format: stm

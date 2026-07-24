@@ -52,10 +52,10 @@ If unset, SURE-EVAL uses `~/.cache/sure-eval`.
 ```bash
 sure-eval agent plan asr --language zh --metric cer --json
 sure-eval env setup --task asr --language zh --metric cer --dry-run
-sure-eval agent plan tts --language zh --metrics tts_cer,dnsmos --json
+sure-eval agent plan tts --language zh --metrics cer,dnsmos --json
 sure-eval env list
-sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run
-sure-eval env check --task tts --language zh --metrics tts_cer,dnsmos
+sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
+sure-eval env check --task tts --language zh --metrics cer,dnsmos
 ```
 
 Node environments are declared by `node_env.yaml` files under

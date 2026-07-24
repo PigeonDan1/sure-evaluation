@@ -53,7 +53,7 @@ def test_s2tt_pipeline_matches_sure_evaluator_on_generated_fixture(tmp_path: Pat
 
     assert report.details["scoring_result"] == legacy
     assert report.score == legacy["score"]
-    assert report.pipeline_id == "s2tt.zh.bleu.sacrebleu"
+    assert report.pipeline_id == "s2tt.zh.bleu.sacrebleu_zh_v1"
     assert report.details["input_contract"]["metric_id"] == "scoring/sacrebleu"
 
 
@@ -91,7 +91,7 @@ def test_s2tt_xcomet_pipeline_uses_src_hyp_ref_and_segment_mean(tmp_path: Path) 
         {"key": "utt2", "src": "good morning", "hyp": "早安。", "ref": "早上好。"},
     ]
     assert report.score == 0.8
-    assert report.pipeline_id == "s2tt.zh.xcomet_xl.xcomet_xl"
+    assert report.pipeline_id == "s2tt.zh.xcomet_xl.xcomet_xl_v1"
     assert report.details["input_contract"]["required_roles"] == ["src", "hyp", "ref"]
     assert report.details["input_contract"]["aggregation"] == "segment_mean"
     assert report.details["input_files"] == {
@@ -153,7 +153,7 @@ def test_s2tt_bleurt_pipeline_uses_hyp_ref_and_segment_mean(tmp_path: Path) -> N
         {"key": "utt2", "hyp": "早安。", "ref": "早上好。"},
     ]
     assert report.score == 0.7
-    assert report.pipeline_id == "s2tt.zh.bleurt_20.bleurt_20"
+    assert report.pipeline_id == "s2tt.zh.bleurt_20.bleurt_20_v1"
     assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert report.details["input_contract"]["aggregation"] == "segment_mean"
     assert report.details["scoring_result"]["segment_scores"] == [0.8, 0.6]

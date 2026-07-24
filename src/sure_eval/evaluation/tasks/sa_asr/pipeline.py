@@ -12,6 +12,12 @@ from sure_eval.evaluation.core.types import KeyTextFiles, PipelineNodeResult
 from sure_eval.evaluation.nodes.normalization.gstar_norm import normalize_gstar_sa_asr_files
 from sure_eval.evaluation.nodes.normalization.gstar_norm.node import cleanup_gstar_norm_outputs
 from sure_eval.evaluation.nodes.scoring.meeteval import score_meeteval
+from sure_eval.evaluation.pipeline_identity import (
+    build_atomic_pipeline_id,
+    component_trace_ids,
+    conversion_component,
+    node_component,
+)
 
 CONVERSION_ID = "sa_asr__cpwer"
 
@@ -45,6 +51,12 @@ def evaluate_sa_asr_files(
     trace: tuple[PipelineNodeResult, ...] = ()
     temp_paths: list[str] = []
     conversion_dir = Path(conversion_output_dir) if conversion_output_dir else None
+    components = (
+        conversion_component(CONVERSION_ID),
+        node_component("normalization/gstar_norm"),
+        node_component("scoring/meeteval"),
+    )
+    pipeline_id = build_atomic_pipeline_id("sa_asr", language, "cpwer", components)
     if conversion_dir is not None:
         conversion_dir.mkdir(parents=True, exist_ok=True)
     try:
@@ -102,10 +114,11 @@ def evaluate_sa_asr_files(
             language=language,
             metric="cpwer",
             score=float(result["cpwer"]),
-            pipeline_id="sa_asr.cpwer.gstar_norm.meeteval",
+            pipeline_id=pipeline_id,
             pipeline_trace=trace,
             input_contract=_SA_ASR_CONTRACT,
             input_files=input_files,
+            computation_node_ids=component_trace_ids(components),
             details={
                 "scoring_result": result,
                 "conversion_trace": conversion_trace,

@@ -60,8 +60,11 @@ def test_canonical_cer_keeps_real_errors(tmp_path: Path, ref: str, hyp: str) -> 
 def test_canonical_route_describe_and_run(tmp_path: Path) -> None:
     from sure_eval.evaluation.scripts import describe_pipeline, run_task
 
-    description = describe_pipeline("asr", language="zh", metric="cer_canonical")
-    assert description.pipeline_id == "asr.zh.cer_canonical.canonical_itn.token_cer"
+    pipeline_id = "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1"
+    description = describe_pipeline("asr", pipeline_id=pipeline_id)
+    assert description.pipeline_id == "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1"
+    assert description.metric == "cer"
+    assert description.execution_metrics == ("cer",)
     assert description.node_ids == ("normalization/canonical_itn", "scoring/token_cer")
 
     ref_file = tmp_path / "ref.txt"
@@ -72,17 +75,23 @@ def test_canonical_route_describe_and_run(tmp_path: Path) -> None:
         "asr",
         ref_file=str(ref_file),
         hyp_file=str(hyp_file),
-        language="zh",
-        metric="cer_canonical",
+        pipeline_id=pipeline_id,
         output_dir=str(tmp_path / "eval"),
     )
-    assert report.pipeline_id == "asr.zh.cer_canonical.canonical_itn.token_cer"
+    assert report.pipeline_id == "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1"
     assert report.score == 0.0
     assert (tmp_path / "eval" / "report.json").exists()
     assert (tmp_path / "eval" / "pipeline_description.json").exists()
     norm_details = report.pipeline_trace[0].details
     assert norm_details["engine"]["engine"] == "cn2an"
     assert "engine_version" in norm_details["engine"]
+
+
+def test_canonical_route_selector_is_not_public_script_compatibility() -> None:
+    from sure_eval.evaluation.scripts import describe_pipeline
+
+    with pytest.raises(ValueError, match="No configured route"):
+        describe_pipeline("asr", language="zh", metric="cer_canonical")
 
 
 def test_canonical_cer_scores_empty_and_missing_hypotheses_as_deletions(tmp_path: Path) -> None:
@@ -130,7 +139,7 @@ def test_canonical_metric_rejects_foreign_normalizer_and_scorer(tmp_path: Path) 
         evaluate_asr_files(
             str(ref_file), str(hyp_file), language="zh", metric="cer_canonical", scorer="sctk_sclite"
         )
-    with pytest.raises(ValueError, match="canonical-family"):
+    with pytest.raises(ValueError, match="canonical execution selector"):
         evaluate_asr_files(
             str(ref_file), str(hyp_file), language="zh", metric="cer", scorer="token_cer"
         )

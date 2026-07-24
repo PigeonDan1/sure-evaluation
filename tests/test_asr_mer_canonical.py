@@ -131,17 +131,20 @@ def test_mixed_text_scores_both_scripts(tmp_path: Path) -> None:
         metric="mer_canonical",
     )
     assert report.score == 0.0
-    assert report.pipeline_id == "asr.cs.mer_canonical.canonical_itn.token_mer"
+    assert report.pipeline_id == "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
 
 
 # --------------------------------------------------------------------------- #
 # Contracts
 # --------------------------------------------------------------------------- #
-def test_mer_canonical_route_describe_and_run(tmp_path: Path) -> None:
+def test_mer_canonical_pipeline_id_describe_and_run(tmp_path: Path) -> None:
     from sure_eval.evaluation.scripts import describe_pipeline, run_task
 
-    description = describe_pipeline("asr", language="cs", metric="mer_canonical")
-    assert description.pipeline_id == "asr.cs.mer_canonical.canonical_itn.token_mer"
+    pipeline_id = "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    description = describe_pipeline("asr", pipeline_id=pipeline_id)
+    assert description.pipeline_id == "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    assert description.metric == "mer"
+    assert description.execution_metrics == ("mer",)
     assert description.node_ids == ("normalization/canonical_itn", "scoring/token_mer")
 
     ref_file = tmp_path / "ref.txt"
@@ -152,14 +155,20 @@ def test_mer_canonical_route_describe_and_run(tmp_path: Path) -> None:
         "asr",
         ref_file=str(ref_file),
         hyp_file=str(hyp_file),
-        language="cs",
-        metric="mer_canonical",
+        pipeline_id=pipeline_id,
         output_dir=str(tmp_path / "eval"),
     )
     assert report.score == 0.0
     norm_details = report.pipeline_trace[0].details
     assert norm_details["engine"]["en_span_normalizer"] == "whisper_english"
     assert (tmp_path / "eval" / "report.json").exists()
+
+
+def test_mer_canonical_selector_is_not_public_script_compatibility() -> None:
+    from sure_eval.evaluation.scripts import describe_pipeline
+
+    with pytest.raises(ValueError, match="No configured route"):
+        describe_pipeline("asr", language="cs", metric="mer_canonical")
 
 
 def test_mer_canonical_rejects_foreign_scorer(tmp_path: Path) -> None:

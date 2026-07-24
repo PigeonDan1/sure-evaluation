@@ -8,14 +8,14 @@ full-reference metrics are selected.
 
 Supported metrics:
 
-| Family | Metric | Node |
+| Canonical metric | Execution selector | Node |
 | --- | --- | --- |
-| Full-reference quality | `si-sdr` | `scoring/si_sdr` |
-| Full-reference quality | `stoi` | `scoring/stoi` |
-| Full-reference quality | `pesq` | `scoring/pesq` |
-| No-reference quality | `dnsmos` | `scoring/dnsmos` |
-| No-reference quality | `wv-mos` | `scoring/wv_mos` |
-| No-reference quality | `utmos` | `scoring/utmos` |
+| `si_sdr` | `si_sdr` / `si-sdr` | `scoring/si_sdr` |
+| `stoi` | `stoi` | `scoring/stoi` |
+| `pesq` | `pesq` | `scoring/pesq` |
+| `dnsmos` | `dnsmos` | `scoring/dnsmos` |
+| `wv_mos` | `wv_mos` / `wv-mos` | `scoring/wv_mos` |
+| `utmos` | `utmos` | `scoring/utmos` |
 
 All metrics are higher-is-better and aggregate by arithmetic mean over samples.
 `pesq` and `stoi` require optional Python packages at runtime.

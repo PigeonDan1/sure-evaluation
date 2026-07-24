@@ -9,6 +9,7 @@ from typing import Any
 from sure_eval.evaluation.tasks.tts.compat import TTSMetricPipeline, TTSMetricReport, TTSSample
 from sure_eval.evaluation.tasks.tts.metrics import ScoreProvider
 from sure_eval.evaluation.nodes.transcription.common.providers import Transcriber
+from sure_eval.evaluation.pipeline_identity import canonical_metric
 from sure_eval.evaluation.tasks.vc.types import VCSample
 
 
@@ -79,7 +80,7 @@ class VCMetricPipeline(TTSMetricPipeline):
             for routed_row, (row_index, _) in zip(route_report.details["rows"], indexed_samples, strict=True):
                 rows[row_index]["semantic"] = routed_row["semantic"]
                 rows[row_index]["semantic"]["metric"] = metric_name
-            result_payload = route_report.details["results"][vc_metric_name]
+            result_payload = route_report.details["results"][canonical_metric(vc_metric_name)]
             results[metric_name] = MetricResult(
                 metric_name=metric_name,
                 score=route_report.score,

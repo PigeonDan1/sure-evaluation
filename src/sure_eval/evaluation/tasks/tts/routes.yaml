@@ -1,11 +1,14 @@
 task: TTS
 language_sensitive: true
 routes:
-  - route_id: tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+  -
     language: zh
-    metric: tts_cer
+    metric: cer
+    aliases:
+      - tts_cer
+    executor_metric: tts_cer
     family: semantic_error_rate
-    pipeline_id: tts.{language}.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    pipeline_id: tts.{language}.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
     nodes:
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
@@ -13,61 +16,79 @@ routes:
       - scoring/wenet_cer
     input_contract: semantic/asr_error_rate
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-  - route_id: tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer
+  -
     language: en
-    metric: tts_wer
+    metric: wer
+    aliases:
+      - tts_wer
+    executor_metric: tts_wer
     family: semantic_error_rate
-    pipeline_id: tts.{language}.tts_wer.whisper_large_v3.whisper_norm.wenet_wer
+    pipeline_id: tts.{language}.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
     nodes:
       - transcription/whisper_large_v3
       - normalization/whisper_norm
       - scoring/wenet_wer
     input_contract: semantic/asr_error_rate
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-  - route_id: tts.any.sim_wavlm_large.wavlm_large_sim
-    metric: sim/wavlm-large
+  -
+    metric: spk_sim
+    method: wavlm_large
+    aliases:
+      - sim/wavlm-large
+    executor_metric: sim/wavlm-large
     family: speaker_similarity
-    pipeline_id: tts.{language}.multi.audio_metric_nodes
+    pipeline_id: tts.{language}.spk_sim.wavlm_large_sim_v1
     nodes:
       - scoring/wavlm_large_sim
     input_contract: scoring/wavlm_large_sim
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-  - route_id: tts.any.sim_ecapa_tdnn.ecapa_tdnn_sim
-    metric: sim/ecapa-tdnn
+  -
+    metric: spk_sim
+    method: ecapa_tdnn
+    aliases:
+      - sim/ecapa-tdnn
+    executor_metric: sim/ecapa-tdnn
     family: speaker_similarity
-    pipeline_id: tts.{language}.multi.audio_metric_nodes
+    pipeline_id: tts.{language}.spk_sim.ecapa_tdnn_sim_v1
     nodes:
       - scoring/ecapa_tdnn_sim
     input_contract: scoring/ecapa_tdnn_sim
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-  - route_id: tts.any.sim_eres2net.eres2net_sim
-    metric: sim/eres2net
+  -
+    metric: spk_sim
+    method: eres2net
+    aliases:
+      - sim/eres2net
+    executor_metric: sim/eres2net
     family: speaker_similarity
-    pipeline_id: tts.{language}.multi.audio_metric_nodes
+    pipeline_id: tts.{language}.spk_sim.eres2net_sim_v1
     nodes:
       - scoring/eres2net_sim
     input_contract: scoring/eres2net_sim
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-  - route_id: tts.any.dnsmos.dnsmos
+  -
     metric: dnsmos
     family: mos
-    pipeline_id: tts.{language}.multi.audio_metric_nodes
+    pipeline_id: tts.{language}.dnsmos.dnsmos_v1
     nodes:
       - scoring/dnsmos
     input_contract: scoring/dnsmos
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-  - route_id: tts.any.wv_mos.wv_mos
-    metric: wv-mos
+  -
+    metric: wv_mos
+    aliases:
+      - wv-mos
+    executor_metric: wv-mos
     family: mos
-    pipeline_id: tts.{language}.multi.audio_metric_nodes
+    pipeline_id: tts.{language}.wv_mos.wv_mos_v1
     nodes:
       - scoring/wv_mos
     input_contract: scoring/wv_mos
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
-  - route_id: tts.any.utmos.utmos
+  -
     metric: utmos
     family: mos
-    pipeline_id: tts.{language}.multi.audio_metric_nodes
+    pipeline_id: tts.{language}.utmos.utmos_v1
     nodes:
       - scoring/utmos
     input_contract: scoring/utmos

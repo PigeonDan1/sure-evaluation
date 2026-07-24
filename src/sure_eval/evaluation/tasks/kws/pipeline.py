@@ -7,6 +7,13 @@ from pathlib import Path
 from sure_eval.evaluation.core.types import EvaluationFiles, EvaluationReport, MetricInputContract
 from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSSample
 from sure_eval.evaluation.nodes.scoring.wekws_det import score_wekws_det
+from sure_eval.evaluation.pipeline_identity import (
+    build_atomic_pipeline_id,
+    canonical_metric,
+    component_trace_ids,
+    conversion_component,
+    node_component,
+)
 
 _WEKWS_DET_CONTRACT = MetricInputContract(
     metric_id="scoring/wekws_det",
@@ -60,7 +67,7 @@ def evaluate_kws_samples(
 ) -> EvaluationReport:
     """Evaluate aligned KWS samples through the configured task pipeline."""
 
-    metric = metric.lower()
+    metric = metric.lower().replace("_", "-")
     if metric not in _SUPPORTED_PRIMARY_METRICS:
         raise ValueError(f"Unsupported KWS primary metric: {metric}")
     input_contract = input_contract or _WEKWS_DET_CONTRACT
@@ -74,15 +81,18 @@ def evaluate_kws_samples(
         macro_recall_false_alarms=macro_recall_false_alarms,
     )
     results = scoring_result.details["results"]
+    components = _identity_components(input_mode)
+    pipeline_id = build_atomic_pipeline_id("kws", "any", metric, components)
     return EvaluationReport(
         task="KWS",
         language="n/a",
-        metric=metric,
+        metric=canonical_metric(metric),
         score=float(results[metric]["score"]),
-        pipeline_id=f"kws.{profile}.{metric}.wekws_det",
+        pipeline_id=pipeline_id,
         pipeline_trace=(scoring_result,),
         input_contract=input_contract,
         input_files=input_files,
+        computation_node_ids=component_trace_ids(components),
         details={
             "scoring_result": scoring_result.details,
             "results": results,
@@ -93,6 +103,13 @@ def evaluate_kws_samples(
             "input_files": input_files.as_dict() if input_files else {},
         },
     )
+
+
+def _identity_components(input_mode: str):
+    scoring = node_component("scoring/wekws_det")
+    if input_mode == "samples":
+        return (scoring,)
+    return (conversion_component(f"kws_{input_mode}_to_samples"), scoring)
 
 
 def evaluate_kws_files(

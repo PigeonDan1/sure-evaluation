@@ -94,7 +94,7 @@ def test_asr_script_describes_pipeline_contract() -> None:
 
     description = describe_pipeline(language="en", metric="wer")
 
-    assert description.pipeline_id == "asr.en.wer.whisper_norm.wenet_wer"
+    assert description.pipeline_id == "asr.en.wer.whisper_norm_english_v1.wenet_wer_v1"
     assert description.node_ids == ("normalization/whisper_norm", "scoring/wenet_wer")
     assert description.required_roles == ("hyp", "ref")
     assert description.output_dir_required is True
@@ -110,7 +110,7 @@ def test_asr_routes_declare_nodes_contract_and_executor() -> None:
         if item["language"] == "zh" and item["metric"] == "cer"
     )
 
-    assert route["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert route["pipeline_id"] == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     assert route["nodes"] == ["normalization/wetext_norm", "scoring/wenet_cer"]
     assert route["input_contract"] == "scoring/wenet_cer"
     assert route["executor"] == "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files"
@@ -136,7 +136,7 @@ def test_s2tt_routes_declare_nodes_contract_and_executor() -> None:
         if item["language"] == "zh" and item["metric"] == "xcomet_xl"
     )
 
-    assert route["pipeline_id"] == "s2tt.zh.xcomet_xl.xcomet_xl"
+    assert route["pipeline_id"] == "s2tt.zh.xcomet_xl.xcomet_xl_v1"
     assert route["nodes"] == ["scoring/xcomet_xl"]
     assert route["input_contract"] == "scoring/xcomet_xl"
     assert route["executor"] == "sure_eval.evaluation.tasks.s2tt.pipeline.evaluate_s2tt_files"
@@ -157,7 +157,7 @@ def test_sd_script_describes_meeteval_der_route() -> None:
 
     description = describe_pipeline(metric="der")
 
-    assert description.pipeline_id == "sd.der.meeteval"
+    assert description.pipeline_id == "sd.any.der.meeteval_v1"
     assert description.node_ids == ("scoring/meeteval",)
     assert description.required_roles == ("hyp", "ref")
     assert description.contracts[0]["row_format"] == "meeteval_annotation"
@@ -169,7 +169,7 @@ def test_sa_asr_script_describes_meeteval_cpwer_route_with_der_companion() -> No
 
     description = describe_pipeline(metric="cpwer")
 
-    assert description.pipeline_id == "sa_asr.cpwer.gstar_norm.meeteval"
+    assert description.pipeline_id == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
     assert description.node_ids == ("normalization/gstar_norm", "scoring/meeteval")
     assert description.required_roles == ("hyp", "ref")
     assert description.contracts[0]["row_format"] == "meeteval_annotation"
@@ -181,21 +181,21 @@ def test_simple_task_routes_declare_nodes_contract_and_executor() -> None:
     expected = {
         "kws": {
             "metric": "accuracy",
-            "pipeline_id": "kws.sure_json.accuracy.wekws_det",
+            "pipeline_id": "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1",
             "nodes": ["scoring/wekws_det"],
             "input_contract": "sure_json",
             "executor": "sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files",
         },
         "classification": {
             "metric": "accuracy",
-            "pipeline_id": "classification.accuracy.classify",
+            "pipeline_id": "classification.any.accuracy.classify_v1",
             "nodes": ["scoring/classify"],
             "input_contract": "scoring/classify",
             "executor": "sure_eval.evaluation.tasks.classification.pipeline.evaluate_classification_files",
         },
         "slu": {
             "metric": "accuracy",
-            "pipeline_id": "slu.accuracy.prompt_norm.classify.choice_id",
+            "pipeline_id": "slu.any.accuracy.prompt_norm_choice_id_v1.classify_v1",
             "nodes": ["normalization/prompt_norm", "scoring/classify"],
             "input_contract": "prompt_norm_classify",
             "executor": "sure_eval.evaluation.tasks.slu.pipeline.evaluate_slu_files",
@@ -230,11 +230,12 @@ def test_tts_routes_declare_semantic_speaker_and_mos_nodes() -> None:
     routes = yaml.safe_load(
         Path("src/sure_eval/evaluation/tasks/tts/routes.yaml").read_text(encoding="utf-8")
     )
-    by_metric = {route["metric"]: route for route in routes["routes"]}
     zh_semantic = next(
         route
         for route in routes["routes"]
-        if route.get("language") == "zh" and route["metric"] == "tts_cer"
+        if route.get("language") == "zh"
+        and route["metric"] == "cer"
+        and route["executor_metric"] == "tts_cer"
     )
 
     assert zh_semantic["nodes"] == [
@@ -246,7 +247,9 @@ def test_tts_routes_declare_semantic_speaker_and_mos_nodes() -> None:
     en_semantic = next(
         route
         for route in routes["routes"]
-        if route.get("language") == "en" and route["metric"] == "tts_wer"
+        if route.get("language") == "en"
+        and route["metric"] == "wer"
+        and route["executor_metric"] == "tts_wer"
     )
     assert en_semantic["nodes"] == [
         "transcription/whisper_large_v3",
@@ -254,10 +257,16 @@ def test_tts_routes_declare_semantic_speaker_and_mos_nodes() -> None:
         "scoring/wenet_wer",
     ]
     assert zh_semantic["input_contract"] == "semantic/asr_error_rate"
-    assert by_metric["sim/wavlm-large"]["nodes"] == ["scoring/wavlm_large_sim"]
-    assert by_metric["sim/wavlm-large"]["input_contract"] == "scoring/wavlm_large_sim"
-    assert by_metric["dnsmos"]["nodes"] == ["scoring/dnsmos"]
-    assert by_metric["dnsmos"]["input_contract"] == "scoring/dnsmos"
+    wavlm_route = next(
+        route
+        for route in routes["routes"]
+        if route["metric"] == "spk_sim" and route["method"] == "wavlm_large"
+    )
+    dnsmos_route = next(route for route in routes["routes"] if route["metric"] == "dnsmos")
+    assert wavlm_route["nodes"] == ["scoring/wavlm_large_sim"]
+    assert wavlm_route["input_contract"] == "scoring/wavlm_large_sim"
+    assert dnsmos_route["nodes"] == ["scoring/dnsmos"]
+    assert dnsmos_route["input_contract"] == "scoring/dnsmos"
 
 
 def test_main_flow_audio_handoff_defaults_tts_full_metric_suite_by_language() -> None:
@@ -476,7 +485,7 @@ def test_evaluate_predictions_can_merge_segment_payloads_into_standard_artifacts
                 "language": "en",
                 "metric": "tts_wer",
                 "score": 0.25,
-                "pipeline_id": "tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer",
+                "pipeline_id": "tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1",
                 "details": {"results": {"tts_wer": {"score": 0.25}}},
             },
             ensure_ascii=False,
@@ -489,7 +498,7 @@ def test_evaluate_predictions_can_merge_segment_payloads_into_standard_artifacts
                 "task": "TTS",
                 "metric": "tts_wer",
                 "language": "en",
-                "pipeline_id": "tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer",
+                "pipeline_id": "tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1",
                 "nodes": [{"node_id": "transcription/whisper_large_v3", "stage": "transcription"}],
             },
             ensure_ascii=False,
@@ -514,7 +523,7 @@ def test_evaluate_predictions_can_merge_segment_payloads_into_standard_artifacts
                         "rps_is_unbounded": False,
                         "num_samples": 1,
                         "evaluation_context": {"route": "segment"},
-                        "pipeline_id": "tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer",
+                        "pipeline_id": "tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1",
                         "metric_artifact_dir": str(metric_dir),
                         "metric_report_path": str(metric_dir / "report.json"),
                         "pipeline_description_path": str(metric_dir / "pipeline_description.json"),
@@ -873,27 +882,39 @@ def test_vc_routes_declare_reference_mode_specific_semantic_nodes() -> None:
     zh_text_route = next(
         route
         for route in routes["routes"]
-        if route.get("language") == "zh" and route["metric"] == "vc_cer" and route["reference_mode"] == "text"
+        if route.get("language") == "zh"
+        and route["metric"] == "cer"
+        and route["executor_metric"] == "vc_cer"
+        and route["reference_mode"] == "text"
     )
     zh_audio_route = next(
         route
         for route in routes["routes"]
-        if route.get("language") == "zh" and route["metric"] == "vc_cer" and route["reference_mode"] == "audio"
+        if route.get("language") == "zh"
+        and route["metric"] == "cer"
+        and route["executor_metric"] == "vc_cer"
+        and route["reference_mode"] == "audio"
     )
     text_route = next(
         route
         for route in routes["routes"]
-        if route.get("language") == "en" and route["metric"] == "vc_wer" and route["reference_mode"] == "text"
+        if route.get("language") == "en"
+        and route["metric"] == "wer"
+        and route["executor_metric"] == "vc_wer"
+        and route["reference_mode"] == "text"
     )
     audio_route = next(
         route
         for route in routes["routes"]
-        if route.get("language") == "en" and route["metric"] == "vc_wer" and route["reference_mode"] == "audio"
+        if route.get("language") == "en"
+        and route["metric"] == "wer"
+        and route["executor_metric"] == "vc_wer"
+        and route["reference_mode"] == "audio"
     )
 
     assert (
         zh_text_route["pipeline_id"]
-        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+        == "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1"
     )
     assert zh_text_route["nodes"] == [
         "frontend/funasr_loader_16k_mono",
@@ -904,7 +925,8 @@ def test_vc_routes_declare_reference_mode_specific_semantic_nodes() -> None:
     assert zh_text_route["input_contract"] == "semantic/asr_error_rate_with_text"
     assert (
         zh_audio_route["pipeline_id"]
-        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+        == "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1"
     )
     assert zh_audio_route["nodes"] == [
         "frontend/funasr_loader_16k_mono",
@@ -920,7 +942,14 @@ def test_vc_routes_declare_reference_mode_specific_semantic_nodes() -> None:
         "normalization/whisper_norm",
         "scoring/wenet_wer",
     ]
+    assert text_route["pipeline_id"] == (
+        "vc.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1"
+    )
     assert text_route["input_contract"] == "semantic/asr_error_rate_with_text"
+    assert audio_route["pipeline_id"] == (
+        "vc.en.wer.whisper_large_v3_v1.whisper_large_v3_v1."
+        "whisper_norm_english_v1.wenet_wer_v1"
+    )
     assert audio_route["nodes"] == [
         "transcription/whisper_large_v3",
         "transcription/whisper_large_v3",
@@ -954,7 +983,7 @@ def test_asr_script_run_writes_report_and_pipeline_description(tmp_path: Path) -
     assert report_payload["task"] == "ASR"
     assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/wetext_norm"
     assert report_payload["pipeline_trace"][0]["details"]["profile"] == "zh_itn"
-    assert description_payload["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert description_payload["pipeline_id"] == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     assert description_payload["nodes"] == [
         {
             "node_id": "normalization/wetext_norm",
@@ -993,7 +1022,7 @@ def test_classification_script_run_writes_label_spec_report(tmp_path: Path) -> N
     assert report_payload["task"] == "SER"
     assert report_payload["metric"] == "accuracy"
     assert report_payload["details"]["label_spec"]["id"] == "ser_default"
-    assert description_payload["pipeline_id"] == "ser.accuracy.classify"
+    assert description_payload["pipeline_id"] == "ser.any.accuracy.classify_v1"
     assert description_payload["required_roles"] == ["hyp", "ref"]
     assert description_payload["optional_roles"] == ["label_spec"]
 
@@ -1030,9 +1059,15 @@ def test_kws_script_run_writes_sure_json_route_report(tmp_path: Path) -> None:
 
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     description_payload = json.loads((output_dir / "pipeline_description.json").read_text(encoding="utf-8"))
-    assert report.pipeline_id == "kws.sure_json.accuracy.wekws_det"
-    assert report_payload["pipeline_id"] == "kws.sure_json.accuracy.wekws_det"
-    assert description_payload["pipeline_id"] == "kws.sure_json.accuracy.wekws_det"
+    assert report.pipeline_id == (
+        "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+    )
+    assert report_payload["pipeline_id"] == (
+        "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+    )
+    assert description_payload["pipeline_id"] == (
+        "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+    )
     assert report_payload["pipeline_trace"][0]["node_id"] == "scoring/wekws_det"
 
 
@@ -1051,7 +1086,7 @@ def test_sd_script_run_writes_meeteval_params_and_report(monkeypatch: pytest.Mon
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report.task == "SD"
     assert report.score == pytest.approx(0.2)
-    assert report_payload["pipeline_id"] == "sd.der.meeteval"
+    assert report_payload["pipeline_id"] == "sd.any.der.meeteval_v1"
     assert report_payload["details"]["scoring_result"]["der"] == pytest.approx(0.2)
     assert report_payload["pipeline_trace"][0]["node_id"] == "scoring/meeteval"
     assert report_payload["pipeline_trace"][0]["details"]["params"]["collar"] == 0.25
@@ -1074,7 +1109,7 @@ def test_sa_asr_script_run_reports_cpwer_and_der_companion(monkeypatch: pytest.M
     assert report.task == "SA-ASR"
     assert report.metric == "cpwer"
     assert report.score == pytest.approx(0.375)
-    assert report_payload["pipeline_id"] == "sa_asr.cpwer.gstar_norm.meeteval"
+    assert report_payload["pipeline_id"] == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
     assert report_payload["details"]["scoring_result"]["cpwer"] == pytest.approx(0.375)
     assert report_payload["details"]["scoring_result"]["der"] == pytest.approx(0.2)
     assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/gstar_norm"
@@ -1092,7 +1127,7 @@ def test_unified_script_entrypoint_dispatches_describe_and_run(tmp_path: Path) -
     from sure_eval.evaluation.scripts.run import describe_pipeline, run_task
 
     description = describe_pipeline("asr", language="zh", metric="cer")
-    assert description.pipeline_id == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert description.pipeline_id == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     _require_wetext_node_env()
 
     ref_file = tmp_path / "ref.txt"
@@ -1122,8 +1157,8 @@ def test_unified_script_entrypoint_dispatches_sd_and_sa_asr(monkeypatch: pytest.
     sd_description = describe_pipeline("sd", metric="der")
     sa_asr_description = describe_pipeline("sa-asr", metric="cpwer")
 
-    assert sd_description.pipeline_id == "sd.der.meeteval"
-    assert sa_asr_description.pipeline_id == "sa_asr.cpwer.gstar_norm.meeteval"
+    assert sd_description.pipeline_id == "sd.any.der.meeteval_v1"
+    assert sa_asr_description.pipeline_id == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
 
     ref_file = tmp_path / "ref.stm"
     hyp_file = tmp_path / "hyp.stm"
@@ -1137,7 +1172,7 @@ def test_unified_script_entrypoint_dispatches_sd_and_sa_asr(monkeypatch: pytest.
         output_dir=str(tmp_path / "sa_asr_entrypoint_out"),
     )
 
-    assert report.pipeline_id == "sa_asr.cpwer.gstar_norm.meeteval"
+    assert report.pipeline_id == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
     assert report.details["scoring_result"]["der"] == pytest.approx(0.2)
 
 
@@ -1155,8 +1190,9 @@ def test_asr_script_run_uses_executor_declared_by_route(monkeypatch, tmp_path: P
             language=kwargs["language"],
             metric=kwargs["metric"],
             score=0.0,
-            pipeline_id="asr.zh.cer.wetext_zh_itn.wenet_cer",
+            pipeline_id="asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
             pipeline_trace=(),
+            computation_node_ids=("normalization/wetext_norm", "scoring/wenet_cer"),
         )
 
     ref_file = tmp_path / "ref.txt"
@@ -1216,8 +1252,10 @@ def test_tts_and_vc_nonsemantic_descriptions_match_runtime_aggregate_pipeline_id
     tts_description = describe_tts(language="zh", metrics=["dnsmos"])
     vc_description = describe_vc(language="en", metrics=["dnsmos"])
 
-    assert tts_description.pipeline_id == "tts.zh.multi.audio_metric_nodes"
-    assert vc_description.pipeline_id == "vc.en.multi.audio_metric_nodes"
+    assert tts_description.pipeline_id == "tts.zh.dnsmos.dnsmos_v1"
+    assert tts_description.pipeline_kind == "atomic"
+    assert vc_description.pipeline_id == "vc.en.dnsmos.dnsmos_v1"
+    assert vc_description.pipeline_kind == "atomic"
 
 
 def test_tts_script_run_calls_task_level_executor_with_normalized_metrics(monkeypatch, tmp_path: Path) -> None:
@@ -1235,8 +1273,26 @@ def test_tts_script_run_calls_task_level_executor_with_normalized_metrics(monkey
             language="zh",
             metric="multi",
             score=0.0,
-            pipeline_id="tts.zh.multi.audio_metric_nodes",
+            pipeline_id=(
+                "tts.zh.multi.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+                "punctuation_strip_norm_v1.wenet_cer_v1__spk_sim.wavlm_large_sim_v1__"
+                "dnsmos.dnsmos_v1"
+            ),
             pipeline_trace=(),
+            pipeline_kind="bundle",
+            member_pipeline_ids=(
+                "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1",
+                "tts.zh.spk_sim.wavlm_large_sim_v1",
+                "tts.zh.dnsmos.dnsmos_v1",
+            ),
+            computation_node_ids=(
+                "frontend/funasr_loader_16k_mono",
+                "transcription/paraformer_zh",
+                "normalization/punctuation_strip_norm",
+                "scoring/wenet_cer",
+                "scoring/wavlm_large_sim",
+                "scoring/dnsmos",
+            ),
         )
 
     monkeypatch.setattr(tts_pipeline, "evaluate_tts_samples", fake_executor)
@@ -1277,11 +1333,16 @@ def test_tts_script_run_injects_shared_transcriber_for_semantic_metric(monkeypat
         return EvaluationReport(
             task="TTS",
             language="en",
-            metric="tts_wer",
+            metric="wer",
             score=0.0,
-            pipeline_id="tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer",
+            pipeline_id="tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1",
             pipeline_trace=(),
-            details={"results": {"tts_wer": {"score": 0.0}}},
+            computation_node_ids=(
+                "transcription/whisper_large_v3",
+                "normalization/whisper_norm",
+                "scoring/wenet_wer",
+            ),
+            details={"results": {"wer": {"score": 0.0}}},
         )
 
     monkeypatch.setattr(tts_pipeline, "evaluate_tts_samples", fake_executor)
@@ -1335,8 +1396,26 @@ def test_vc_script_run_calls_task_level_executor_with_normalized_metrics(monkeyp
             language="zh",
             metric="multi",
             score=0.0,
-            pipeline_id="vc.zh.multi.audio_metric_nodes",
+            pipeline_id=(
+                "vc.zh.multi.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+                "punctuation_strip_norm_v1.wenet_cer_v1__spk_sim.ecapa_tdnn_sim_v1__"
+                "utmos.utmos_v1"
+            ),
             pipeline_trace=(),
+            pipeline_kind="bundle",
+            member_pipeline_ids=(
+                "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1",
+                "vc.zh.spk_sim.ecapa_tdnn_sim_v1",
+                "vc.zh.utmos.utmos_v1",
+            ),
+            computation_node_ids=(
+                "frontend/funasr_loader_16k_mono",
+                "transcription/paraformer_zh",
+                "normalization/punctuation_strip_norm",
+                "scoring/wenet_cer",
+                "scoring/ecapa_tdnn_sim",
+                "scoring/utmos",
+            ),
         )
 
     monkeypatch.setattr(vc_pipeline, "evaluate_vc_samples", fake_executor)

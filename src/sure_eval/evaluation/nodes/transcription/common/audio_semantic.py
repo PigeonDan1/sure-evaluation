@@ -11,6 +11,7 @@ from sure_eval.evaluation.core.types import EvaluationReport, PipelineNodeResult
 from sure_eval.evaluation.nodes.frontend.funasr_loader_16k_mono import describe_funasr_loader_16k_mono
 from sure_eval.evaluation.nodes.transcription.paraformer_zh import transcribe_paraformer_zh
 from sure_eval.evaluation.nodes.transcription.whisper_large_v3 import transcribe_whisper_large_v3
+from sure_eval.evaluation.pipeline_identity import PipelineComponent, node_component
 from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 
 
@@ -46,6 +47,25 @@ def asr_metric_for_semantic(metric: str, language: str) -> str:
     return "cer" if uses_cer(language) else "wer"
 
 
+def semantic_pipeline_components(
+    language: str,
+    asr_report: EvaluationReport,
+    *,
+    transcription_passes: int = 1,
+) -> tuple[PipelineComponent, ...]:
+    """Return logical audio-semantic components for a report-level pipeline ID."""
+
+    components: list[PipelineComponent] = []
+    for _ in range(transcription_passes):
+        if uses_cer(language):
+            components.append(node_component("frontend/funasr_loader_16k_mono"))
+            components.append(node_component("transcription/paraformer_zh"))
+        else:
+            components.append(node_component("transcription/whisper_large_v3"))
+    components.extend(_asr_trace_components(asr_report.pipeline_trace))
+    return tuple(components)
+
+
 def transcriber_for_language(
     language: str,
     transcribers: Mapping[str, TranscriptionRunner] | None,
@@ -56,6 +76,27 @@ def transcriber_for_language(
         return transcribers[language]
     family = "zh" if uses_cer(language) else "en"
     return transcribers.get(family)
+
+
+def _asr_trace_components(trace: tuple[PipelineNodeResult, ...]) -> tuple[PipelineComponent, ...]:
+    components: list[PipelineComponent] = []
+    for node in trace:
+        profile = _profile_for_asr_node(node)
+        components.append(node_component(node.node_id, profile=profile))
+    return tuple(components)
+
+
+def _profile_for_asr_node(node: PipelineNodeResult) -> str | None:
+    if node.node_id == "normalization/wetext_norm":
+        return str(node.details.get("profile") or "")
+    if node.node_id == "normalization/whisper_norm":
+        return str(node.details.get("profile") or "english")
+    if node.node_id == "normalization/aispeech_norm":
+        return str(node.details.get("profile") or "")
+    if node.node_id == "normalization/canonical_itn":
+        profile = str(node.details.get("profile") or node.details.get("language") or "")
+        return profile.removesuffix("_canonical")
+    return None
 
 
 def transcribe_audio(

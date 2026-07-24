@@ -37,8 +37,8 @@ def normalize_canonical_asr_files(
     engine = chain.engine_info()  # fail fast when the ITN engine is missing
     # zh uses the plain chain; en/cs additionally whisper-normalize latin
     # spans (contractions, spoken numbers, fillers, spelling). Text without
-    # latin letters is identical under both, which preserves the pure-Chinese
-    # degeneration to cer_canonical.
+    # latin letters is identical under both, preserving the pure-Chinese
+    # canonical ASR CER degeneration guarantee.
     normalize_fn = chain.normalize_text if language == "zh" else chain.normalize_text_mixed
     if language != "zh":
         engine = dict(engine, en_span_normalizer="whisper_english")

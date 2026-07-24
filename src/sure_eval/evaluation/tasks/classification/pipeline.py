@@ -6,6 +6,7 @@ from pathlib import Path
 
 from sure_eval.evaluation.core.types import EvaluationFiles, EvaluationReport, MetricInputContract
 from sure_eval.evaluation.nodes.scoring.classify import LabelSpec, load_label_spec, score_classification_files
+from sure_eval.evaluation.pipeline_identity import build_atomic_pipeline_id, component_trace_ids, node_component
 
 _CLASSIFICATION_CONTRACT = MetricInputContract(
     metric_id="scoring/classify",
@@ -43,15 +44,19 @@ def evaluate_classification_files(
     )
     result = scoring_result.details["result"]
     normalized_task = task.upper() if task.upper() in {"SER", "GR"} else task
+    task_alias = normalized_task.lower()
+    components = (node_component("scoring/classify"),)
+    pipeline_id = build_atomic_pipeline_id(task_alias, "any", "accuracy", components)
     return EvaluationReport(
         task=normalized_task,
         language="n/a",
         metric="accuracy",
         score=float(result["score"]),
-        pipeline_id=f"{normalized_task.lower()}.accuracy.classify",
+        pipeline_id=pipeline_id,
         pipeline_trace=(scoring_result,),
         input_contract=_CLASSIFICATION_CONTRACT,
         input_files=input_files,
+        computation_node_ids=component_trace_ids(components),
         details={
             "scoring_result": result,
             "input_contract": _CLASSIFICATION_CONTRACT.as_dict(),

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 
 def test_tse_describe_si_sdr() -> None:
     from sure_eval.evaluation.scripts.tse import describe_pipeline
@@ -8,7 +10,7 @@ def test_tse_describe_si_sdr() -> None:
     assert desc.task == "TSE"
     assert desc.language == "zh"
     assert desc.metric == "si_sdr"
-    assert desc.pipeline_id == "tse.zh.si_sdr.si_sdr"
+    assert desc.pipeline_id == "tse.zh.si_sdr.si_sdr_v1"
     assert desc.node_ids == ("scoring/si_sdr",)
 
 
@@ -17,8 +19,9 @@ def test_tse_describe_sim() -> None:
 
     desc = describe_pipeline(language="zh", metrics="sim/wavlm-large")
     assert desc.task == "TSE"
-    assert desc.metric == "sim/wavlm-large"
-    assert desc.pipeline_id == "tse.zh.multi.audio_metric_nodes"
+    assert desc.metric == "spk_sim"
+    assert desc.execution_metrics == ("sim/wavlm-large",)
+    assert desc.pipeline_id == "tse.zh.spk_sim.wavlm_large_sim_v1"
     assert desc.node_ids == ("scoring/wavlm_large_sim",)
 
 
@@ -28,7 +31,8 @@ def test_tse_describe_mos() -> None:
     desc = describe_pipeline(language="en", metrics="dnsmos")
     assert desc.task == "TSE"
     assert desc.metric == "dnsmos"
-    assert desc.pipeline_id == "tse.en.multi.audio_metric_nodes"
+    assert desc.pipeline_id == "tse.en.dnsmos.dnsmos_v1"
+    assert desc.execution_metrics == ("dnsmos",)
     assert desc.node_ids == ("scoring/dnsmos",)
 
 
@@ -37,7 +41,8 @@ def test_tse_describe_semantic_zh() -> None:
 
     desc = describe_pipeline(language="zh", metrics="tse_cer")
     assert desc.task == "TSE"
-    assert desc.metric == "tse_cer"
+    assert desc.metric == "cer"
+    assert desc.execution_metrics == ("tse_cer",)
     assert desc.language == "zh"
     assert "frontend/funasr_loader_16k_mono" in desc.node_ids
     assert "transcription/paraformer_zh" in desc.node_ids
@@ -50,7 +55,8 @@ def test_tse_describe_semantic_en() -> None:
 
     desc = describe_pipeline(language="en", metrics="tse_wer")
     assert desc.task == "TSE"
-    assert desc.metric == "tse_wer"
+    assert desc.metric == "wer"
+    assert desc.execution_metrics == ("tse_wer",)
     assert desc.language == "en"
     assert "transcription/whisper_large_v3" in desc.node_ids
     assert "normalization/whisper_norm" in desc.node_ids
@@ -62,7 +68,16 @@ def test_tse_describe_multi_metric() -> None:
 
     desc = describe_pipeline(language="zh", metrics=["si_sdr", "sim/wavlm-large", "dnsmos"])
     assert desc.metric == "multi"
-    assert desc.pipeline_id == "tse.zh.multi.audio_metric_nodes"
+    assert desc.pipeline_id == (
+        "tse.zh.multi.si_sdr.si_sdr_v1__spk_sim.wavlm_large_sim_v1__dnsmos.dnsmos_v1"
+    )
+    assert desc.pipeline_kind == "bundle"
+    assert desc.member_pipeline_ids == (
+        "tse.zh.si_sdr.si_sdr_v1",
+        "tse.zh.spk_sim.wavlm_large_sim_v1",
+        "tse.zh.dnsmos.dnsmos_v1",
+    )
+    assert desc.execution_metrics == ("si_sdr", "sim/wavlm-large", "dnsmos")
     assert "scoring/si_sdr" in desc.node_ids
     assert "scoring/wavlm_large_sim" in desc.node_ids
     assert "scoring/dnsmos" in desc.node_ids
@@ -73,7 +88,7 @@ def test_tse_describe_default_metric() -> None:
 
     desc = describe_pipeline(language="zh")
     assert desc.metric == "si_sdr"
-    assert desc.pipeline_id == "tse.zh.si_sdr.si_sdr"
+    assert desc.pipeline_id == "tse.zh.si_sdr.si_sdr_v1"
 
 
 def test_tse_describe_required_roles() -> None:

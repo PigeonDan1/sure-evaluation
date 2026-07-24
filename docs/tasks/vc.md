@@ -6,30 +6,35 @@ Evaluate converted speech for content preservation, speaker similarity, and qual
 
 ### Semantic error rate
 
-| Metric | Language | Reference mode | Pipeline ID | Nodes |
-|:-------|:---------|:---------------|:------------|:------|
-| `vc_cer` | `zh` | text | `vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
-| `vc_cer` | `zh` | audio | `vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer` | transcribes both converted and reference audio, then applies `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
-| `vc_wer` | `en` | text | `vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer` | `transcription/whisper_large_v3` → `normalization/whisper_norm` → `scoring/wenet_wer` |
-| `vc_wer` | `en` | audio | `vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer` | transcribes both converted and reference audio |
+| Canonical metric | Execution selector | Language | Reference mode | Pipeline ID | Nodes |
+|:-----------------|:-------------------|:---------|:---------------|:------------|:------|
+| `cer` | `cer` or `vc_cer` | `zh` | text | `vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
+| `cer` | `cer` or `vc_cer` | `zh` | audio | `vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1` | transcribes both converted and reference audio, then applies `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
+| `wer` | `wer` or `vc_wer` | `en` | text | `vc.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1` | `transcription/whisper_large_v3` → `normalization/whisper_norm` → `scoring/wenet_wer` |
+| `wer` | `wer` or `vc_wer` | `en` | audio | `vc.en.wer.whisper_large_v3_v1.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1` | transcribes both converted and reference audio |
 
 When `reference_text` is absent, the pipeline transcribes `reference_audio` and uses that as the reference.
+The audio-reference pipeline ID repeats the transcription node because both
+converted and reference audio are transcribed.
 
 ### Speaker similarity
 
-| Metric | Scoring node |
-|:-------|:-------------|
-| `sim/wavlm-large` | `scoring/wavlm_large_sim` |
-| `sim/ecapa-tdnn` | `scoring/ecapa_tdnn_sim` |
-| `sim/eres2net` | `scoring/eres2net_sim` |
+| Canonical metric | Method selector | Scoring node |
+|:-----------------|:----------------|:-------------|
+| `spk_sim` | `spk_sim` or `sim/wavlm-large` | `scoring/wavlm_large_sim` |
+| `spk_sim` | `sim/ecapa-tdnn` | `scoring/ecapa_tdnn_sim` |
+| `spk_sim` | `sim/eres2net` | `scoring/eres2net_sim` |
 
 ### MOS
 
-| Metric | Scoring node |
-|:-------|:-------------|
-| `dnsmos` | `scoring/dnsmos` |
-| `wv-mos` | `scoring/wv_mos` |
-| `utmos` | `scoring/utmos` |
+| Canonical metric | Execution selector | Scoring node |
+|:-----------------|:-------------------|:-------------|
+| `dnsmos` | `dnsmos` | `scoring/dnsmos` |
+| `wv_mos` | `wv_mos` or `wv-mos` | `scoring/wv_mos` |
+| `utmos` | `utmos` | `scoring/utmos` |
+
+Multi-metric selections are bundle IDs built from atomic member tails, such as
+`vc.zh.multi.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1__spk_sim.wavlm_large_sim_v1__dnsmos.dnsmos_v1`, with atomic members in `member_pipeline_ids`.
 
 ## Input Format
 
@@ -59,13 +64,13 @@ JSONL sample manifest:
 
 ```bash
 # Inspect required environments
-sure-eval env setup --task vc --language zh --metrics vc_cer,sim/wavlm-large --dry-run
+sure-eval env setup --task vc --language zh --metrics cer,spk_sim --dry-run
 
 # Set up environments
-sure-eval env setup --task vc --language zh --metrics vc_cer,sim/wavlm-large
+sure-eval env setup --task vc --language zh --metrics cer,spk_sim
 
 # Describe and run
-sure-eval metric describe vc --language zh --metrics vc_cer,sim/wavlm-large \
+sure-eval metric describe vc --language zh --metrics cer,spk_sim \
   --output /tmp/vc.json
 sure-eval metric run --pipeline /tmp/vc.json \
   --samples-jsonl samples.jsonl \
@@ -83,7 +88,7 @@ report = run_task(
     "vc",
     samples_jsonl="samples.jsonl",
     language="zh",
-    metrics="vc_cer,sim/wavlm-large",
+    metrics=("cer", "spk_sim"),
     output_dir="/tmp/vc_eval",
     device="cuda",
 )
@@ -92,8 +97,11 @@ print(report.score)
 
 ## Output
 
-- `report.json` — `score` (primary semantic metric), plus `sim`, MOS scores, and per-sample details.
-- `pipeline_description.json` — selected route and node versions.
+- `report.json` — `score` for the first selected metric, canonical `details.results` keys, and per-sample details.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `pipeline_kind`, `member_pipeline_ids`, `execution_metrics`,
+  `computation_node_ids`, relative `task_config_path` / `route_config_path`,
+  `script_entrypoint`, `executor`, and node versions.
 
 ## Environment Notes
 

@@ -32,7 +32,7 @@ def test_asr_metric_modules_match_sure_evaluator(tmp_path: Path) -> None:
     task_cer = CERMetric().calculate("你好世", "你好世界", language="zh")
     assert task_cer == registry_cer
     assert task_cer.score == evaluator_cer["score"]
-    assert task_cer.details["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert task_cer.details["pipeline_id"] == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     assert task_cer.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert task_cer.details["input_roles"] == ["ref", "hyp"]
     assert task_cer.details["pipeline_trace"][0]["node_id"] == "normalization/wetext_norm"
@@ -46,7 +46,7 @@ def test_asr_metric_modules_match_sure_evaluator(tmp_path: Path) -> None:
     task_wer = WERMetric().calculate("hello brave world", "hello world")
     assert task_wer == registry_wer
     assert task_wer.score > 0
-    assert task_wer.details["pipeline_id"] == "asr.en.wer.whisper_norm.wenet_wer"
+    assert task_wer.details["pipeline_id"] == "asr.en.wer.whisper_norm_english_v1.wenet_wer_v1"
     assert task_wer.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert task_wer.details["input_roles"] == ["ref", "hyp"]
     assert task_wer.details["pipeline_trace"][0]["node_id"] == "normalization/whisper_norm"
@@ -70,7 +70,7 @@ def test_s2tt_metric_module_is_registry_metric() -> None:
 
     assert isinstance(MetricRegistry.get_metric("bleu"), BLEUMetric)
     result = MetricRegistry.get_metric("bleu").calculate_batch(["你好世界"], ["你好世界"], language="zh")
-    assert result.details["pipeline_id"] == "s2tt.zh.bleu.sacrebleu"
+    assert result.details["pipeline_id"] == "s2tt.zh.bleu.sacrebleu_zh_v1"
     assert result.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert result.details["input_roles"] == ["ref", "hyp"]
     assert result.details["pipeline_trace"][0]["node_id"] == "scoring/sacrebleu"

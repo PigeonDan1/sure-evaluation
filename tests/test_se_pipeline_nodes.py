@@ -43,7 +43,16 @@ def test_se_task_route_scores_full_reference_and_mos_nodes() -> None:
     assert report.language == "n/a"
     assert report.metric == "multi"
     assert report.score == 9.0
-    assert report.pipeline_id == "se.multi.enhancement_quality_nodes"
+    assert report.pipeline_id == (
+        "se.any.multi.si_sdr.si_sdr_v1__stoi.stoi_v1__pesq.pesq_v1__dnsmos.dnsmos_v1"
+    )
+    assert report.pipeline_kind == "bundle"
+    assert report.member_pipeline_ids == (
+        "se.any.si_sdr.si_sdr_v1",
+        "se.any.stoi.stoi_v1",
+        "se.any.pesq.pesq_v1",
+        "se.any.dnsmos.dnsmos_v1",
+    )
     assert [node.node_id for node in report.pipeline_trace] == [
         "scoring/si_sdr",
         "scoring/stoi",
@@ -55,7 +64,7 @@ def test_se_task_route_scores_full_reference_and_mos_nodes() -> None:
     assert report.details["results"]["stoi"]["score"] == 0.92
     assert report.details["results"]["pesq"]["score"] == 2.7
     assert report.details["results"]["dnsmos"]["score"] == 3.4
-    assert report.details["rows"][0]["full_reference"]["si-sdr"]["si_sdr"] == 9.0
+    assert report.details["rows"][0]["full_reference"]["si_sdr"]["si_sdr"] == 9.0
     assert report.details["rows"][0]["mos"]["dnsmos"]["OVRL"] == 3.4
 
 
@@ -93,8 +102,8 @@ def test_se_si_sdr_scores_generated_enhanced_audio(tmp_path: Path) -> None:
     clean_audio, _ = read_audio_mono(str(clean_path))
     noisy_audio, _ = read_audio_mono(str(noisy_path))
     enhanced_audio, _ = read_audio_mono(str(enhanced_path))
-    assert report.pipeline_id == "se.si_sdr.si_sdr"
-    assert report.details["results"]["si-sdr"]["score"] == report.score
+    assert report.pipeline_id == "se.any.si_sdr.si_sdr_v1"
+    assert report.details["results"]["si_sdr"]["score"] == report.score
     assert calculate_si_sdr(clean_audio, enhanced_audio) > calculate_si_sdr(clean_audio, noisy_audio)
 
 

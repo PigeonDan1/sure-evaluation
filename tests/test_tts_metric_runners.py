@@ -322,7 +322,7 @@ def test_tts_semantic_pipeline_uses_batch_transcriber_when_available() -> None:
     )
 
     assert transcriber.calls == [(["a.wav", "b.wav"], "zh", "prediction_audio")]
-    assert report.details["results"]["tts_cer"]["score"] == 0.0
+    assert report.details["results"]["cer"]["score"] == 0.0
 
 
 def test_tts_mos_pipeline_runs_when_zip_lacks_strict_keyword(monkeypatch) -> None:
@@ -1109,11 +1109,11 @@ def test_tts_metric_pipeline_connects_semantic_speaker_and_mos() -> None:
     assert report.results["utmos"].score == 3.3
     assert (
         report.results["tts_wer"].details["pipeline_id"]
-        == "tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer"
+        == "tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1"
     )
     assert (
         report.results["tts_cer"].details["pipeline_id"]
-        == "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+        == "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1"
     )
     assert (
         report.results["tts_cer"].details["pipeline_trace"][2]["node_id"]
@@ -1166,7 +1166,7 @@ def test_tts_metric_pipeline_forwards_explicit_semantic_normalizer(monkeypatch) 
     )
 
     assert report.results["tts_cer"].details["pipeline_id"] == (
-        "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.wetext_zh_tn.wenet_cer"
+        "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
     )
     assert report.results["tts_cer"].details["pipeline_trace"][2]["node_id"] == "normalization/wetext_norm"
     assert report.results["tts_cer"].details["pipeline_trace"][2]["profile"] == "zh_tn"
@@ -1322,7 +1322,7 @@ def test_tts_pipeline_cli_runner_forwards_semantic_normalizer(monkeypatch) -> No
 
     assert report["ok"] is True
     assert report["metrics"]["tts_cer"]["details"]["pipeline_id"] == (
-        "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.wetext_zh_tn.wenet_cer"
+        "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
     )
 
 

@@ -6,9 +6,9 @@ Generic classification routes align `key<TAB>label` files and compute accuracy.
 
 | Task alias | Metric | Pipeline ID | Nodes |
 |:-----------|:-------|:------------|:------|
-| `classification` | `accuracy` | `classification.accuracy.classify` | `scoring/classify` |
-| `ser` | `accuracy` | `ser.accuracy.classify` | `scoring/classify` |
-| `gr` | `accuracy` | `gr.accuracy.classify` | `scoring/classify` |
+| `classification` | `accuracy` | `classification.any.accuracy.classify_v1` | `scoring/classify` |
+| `ser` | `accuracy` | `ser.any.accuracy.classify_v1` | `scoring/classify` |
+| `gr` | `accuracy` | `gr.any.accuracy.classify_v1` | `scoring/classify` |
 
 SER and GR use built-in label specs so legacy artifacts keep the same accuracy behavior.
 
@@ -63,7 +63,9 @@ print(report.score)
 ## Output
 
 - `report.json` — `score` (accuracy), correct/total counts.
-- `pipeline_description.json` — selected route and node versions.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `execution_metrics`, `computation_node_ids`, relative `task_config_path` /
+  `route_config_path`, `script_entrypoint`, `executor`, and node versions.
 
 ## Label Spec
 

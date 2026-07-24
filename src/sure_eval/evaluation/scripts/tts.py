@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from sure_eval.evaluation.pipeline_identity import build_bundle_pipeline_id, canonical_metric
 from sure_eval.evaluation.scripts.contracts import (
     call_executor_path,
     contract_from_manifest,
@@ -14,7 +15,9 @@ from sure_eval.evaluation.scripts.contracts import (
     load_task_manifest,
     load_task_routes,
     normalize_metric_list,
-    route_pipeline_id,
+    route_computation_node_ids,
+    route_execution_metrics,
+    route_member_pipeline_ids,
     write_route_run_outputs,
 )
 from sure_eval.evaluation.tasks.tts.types import TTSSample
@@ -25,11 +28,14 @@ def _semantic_metric_for_language(language: str) -> str:
 
 
 def describe_pipeline(*, language: str, metrics: str | list[str] | tuple[str, ...] | None = None):
-    manifest, manifest_path, routes, requested_metrics = _select_routes(language=language, metrics=metrics)
+    manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(
+        language=language, metrics=metrics
+    )
     return _describe_from_routes(
         language=language,
         manifest=manifest,
         manifest_path=manifest_path,
+        routes_path=routes_path,
         selected_routes=routes,
         requested_metrics=requested_metrics,
     )
@@ -40,6 +46,7 @@ def _describe_from_routes(
     language: str,
     manifest: dict[str, Any],
     manifest_path,
+    routes_path,
     selected_routes: tuple[dict[str, Any], ...],
     requested_metrics: tuple[str, ...],
 ):
@@ -50,11 +57,13 @@ def _describe_from_routes(
         node_ids.extend(route["nodes"])
         contracts.append(contract_from_manifest(manifest, route["input_contract"]))
 
-    pipeline_metric = requested_metrics[0] if len(requested_metrics) == 1 else "multi"
+    pipeline_metric = canonical_metric(requested_metrics[0]) if len(requested_metrics) == 1 else "multi"
+    member_pipeline_ids = route_member_pipeline_ids(selected_routes, language=language)
+    pipeline_kind = "atomic" if len(selected_routes) == 1 else "bundle"
     pipeline_id = (
-        route_pipeline_id(selected_routes[0], language=language)
-        if len(selected_routes) == 1
-        else f"tts.{language}.multi.audio_metric_nodes"
+        member_pipeline_ids[0]
+        if pipeline_kind == "atomic"
+        else build_bundle_pipeline_id("tts", language, member_pipeline_ids)
     )
     return describe_from_contracts(
         task="TTS",
@@ -64,6 +73,13 @@ def _describe_from_routes(
         node_ids=_dedupe(node_ids),
         contracts=tuple(contracts),
         task_config_path=manifest_path,
+        route_config_path=routes_path,
+        pipeline_kind=pipeline_kind,
+        member_pipeline_ids=() if pipeline_kind == "atomic" else member_pipeline_ids,
+        computation_node_ids=route_computation_node_ids(selected_routes),
+        execution_metrics=requested_metrics,
+        script_module=__name__,
+        executor=_shared_executor_path(selected_routes),
     )
 
 
@@ -73,7 +89,7 @@ def _select_routes(
     metrics: str | list[str] | tuple[str, ...] | None = None,
 ):
     manifest, manifest_path = load_task_manifest("tts")
-    routes_config, _ = load_task_routes("tts")
+    routes_config, routes_path = load_task_routes("tts")
     requested_metrics = normalize_metric_list(
         metrics,
         (manifest.get("default_metrics", {}).get(language) or _semantic_metric_for_language(language),),
@@ -83,7 +99,7 @@ def _select_routes(
     for metric in requested_metrics:
         selected_routes.append(find_metric_route(routes_config, metric=metric, language=language))
 
-    return manifest, manifest_path, tuple(selected_routes), requested_metrics
+    return manifest, manifest_path, routes_path, tuple(selected_routes), route_execution_metrics(tuple(selected_routes))
 
 
 def run(
@@ -101,7 +117,7 @@ def run(
         raise ValueError("output_dir is required")
     language = _common_language([sample.language for sample in samples])
     requested_metrics = tuple(metric.lower() for metric in metrics) if metrics is not None else None
-    manifest, manifest_path, selected_routes, normalized_metrics = _select_routes(
+    manifest, manifest_path, routes_path, selected_routes, normalized_metrics = _select_routes(
         language=language,
         metrics=requested_metrics,
     )
@@ -109,6 +125,7 @@ def run(
         language=language,
         manifest=manifest,
         manifest_path=manifest_path,
+        routes_path=routes_path,
         selected_routes=selected_routes,
         requested_metrics=normalized_metrics,
     )

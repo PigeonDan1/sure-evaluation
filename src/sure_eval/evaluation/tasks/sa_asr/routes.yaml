@@ -1,9 +1,9 @@
 task: SA-ASR
 language_sensitive: false
 routes:
-  - route_id: sa_asr.cpwer.meeteval
+  -
     metric: cpwer
-    pipeline_id: sa_asr.cpwer.gstar_norm.meeteval
+    pipeline_id: sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1
     nodes:
       - normalization/gstar_norm
       - scoring/meeteval

@@ -5,8 +5,9 @@ language_sensitive: false
 input_schema: speaker_audio_pairs
 output_schema: provider_normalized_similarity
 implementation: sure_eval.evaluation.nodes.scoring.wavlm_large_sim.node
-metric: sim/wavlm-large
+metric: spk_sim
 backend: wavlm-large
+method: wavlm_large
 model: microsoft/wavlm-large
 internal_stages:
   - embedding_or_score_provider

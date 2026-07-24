@@ -21,7 +21,7 @@ def score_ecapa_tdnn_sim(rows: list[SpeakerRow], *, provider: SpeakerProvider) -
     return score_speaker_backend(
         rows,
         backend_name="ecapa-tdnn",
-        metric_name="sim/ecapa-tdnn",
+        metric_name="spk_sim",
         node_id=NODE_ID,
         provider=provider,
         version=NODE_VERSION,

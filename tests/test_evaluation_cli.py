@@ -93,7 +93,7 @@ def test_metric_describe_outputs_route_backed_pipeline_json(tmp_path: Path) -> N
     assert result.exit_code == 0, result.stdout
     payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
     assert payload["task"] == "asr"
-    assert payload["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert payload["pipeline_id"] == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     assert payload["run_args"]["output_dir"] is None
     assert payload["run_args"]["ref_file"] is None
     assert payload["run_args"]["hyp_file"] is None
@@ -104,6 +104,40 @@ def test_metric_describe_outputs_route_backed_pipeline_json(tmp_path: Path) -> N
     assert payload["pipeline"][1]["nullable"] is False
     assert payload["pipeline"][1]["metric"] == "cer"
     assert "scoring/wenet_cer" in payload["pipeline"][1]["choices"]
+    assert payload["task_config_path"] == "src/sure_eval/evaluation/tasks/asr/manifest.yaml"
+    assert payload["route_config_path"] == "src/sure_eval/evaluation/tasks/asr/routes.yaml"
+    assert payload["describe_entrypoint"] == "sure_eval.evaluation.scripts.asr.describe_pipeline"
+    assert payload["script_entrypoint"] == "sure_eval.evaluation.scripts.asr.run"
+    assert payload["executor"] == "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files"
+
+
+def test_metric_describe_can_select_asr_pipeline_id(tmp_path: Path) -> None:
+    runner = CliRunner()
+    pipeline_path = tmp_path / "asr_canonical_pipeline.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "asr",
+            "--pipeline-id",
+            "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1",
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
+    assert payload["metric"] == "mer"
+    assert payload["requested_metric"] == "mer"
+    assert payload["metrics"] == ["mer"]
+    assert payload["pipeline_id"] == "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    assert payload["computation_node_ids"] == ["normalization/canonical_itn", "scoring/token_mer"]
+    assert payload["route_config_path"] == "src/sure_eval/evaluation/tasks/asr/routes.yaml"
+    assert "internal_executor_metric" not in json.dumps(payload, ensure_ascii=False)
 
 
 def test_metric_run_executes_pipeline_file_and_writes_outputs(tmp_path: Path) -> None:
@@ -153,7 +187,7 @@ def test_metric_run_executes_pipeline_file_and_writes_outputs(tmp_path: Path) ->
     assert run_result.exit_code == 0, run_result.stdout
     stdout_payload = json.loads(run_result.stdout)
     assert stdout_payload["status"] == "ok"
-    assert stdout_payload["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert stdout_payload["pipeline_id"] == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     assert stdout_payload["report_path"] == str(output_dir / "report.json")
     assert "node-local environments are not validated" in stdout_payload["environment_note"]
     assert stdout_payload["node_config_paths"] == [
@@ -239,7 +273,7 @@ def test_metric_describe_outputs_sa_asr_meeteval_pipeline() -> None:
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
     assert payload["task"] == "sa_asr"
-    assert payload["pipeline_id"] == "sa_asr.cpwer.gstar_norm.meeteval"
+    assert payload["pipeline_id"] == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
     assert payload["run_args"]["ref_file"] is None
     assert payload["run_args"]["hyp_file"] is None
     assert payload["pipeline"][0]["default"] == "normalization/gstar_norm"
@@ -295,7 +329,7 @@ def test_metric_run_executes_sd_meeteval_pipeline(monkeypatch, tmp_path: Path) -
 
     assert run_result.exit_code == 0, run_result.stdout
     payload = json.loads(run_result.stdout)
-    assert payload["pipeline_id"] == "sd.der.meeteval"
+    assert payload["pipeline_id"] == "sd.any.der.meeteval_v1"
     assert payload["score"] == 0.25
     assert (output_dir / "report.json").exists()
 
@@ -423,7 +457,7 @@ def test_metric_run_executes_slu_prompt_norm_pipeline(tmp_path: Path) -> None:
 
     assert run_result.exit_code == 0, run_result.stdout
     payload = json.loads(run_result.stdout)
-    assert payload["pipeline_id"] == "slu.accuracy.prompt_norm.classify.choice_id"
+    assert payload["pipeline_id"] == "slu.any.accuracy.prompt_norm_choice_id_v1.classify_v1"
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/prompt_norm"
 
@@ -475,8 +509,10 @@ def test_metric_run_executes_kws_macro_recall_pipeline(tmp_path: Path) -> None:
     )
     assert describe_result.exit_code == 0, describe_result.stdout
     description_payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
-    assert description_payload["metric"] == "macro-recall"
-    assert description_payload["pipeline_id"] == "kws.sure_json.macro-recall.wekws_det"
+    assert description_payload["metric"] == "macro_recall"
+    assert description_payload["pipeline_id"] == (
+        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+    )
 
     run_result = runner.invoke(
         app,
@@ -499,7 +535,7 @@ def test_metric_run_executes_kws_macro_recall_pipeline(tmp_path: Path) -> None:
 
     assert run_result.exit_code == 0, run_result.stdout
     payload = json.loads(run_result.stdout)
-    assert payload["metric"] == "macro-recall"
+    assert payload["metric"] == "macro_recall"
     assert payload["score"] == 0.5
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report_payload["score"] == 0.5
@@ -576,7 +612,17 @@ def test_metric_describe_tts_accepts_metrics_alias_and_samples_role(tmp_path: Pa
     payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
     assert payload["task"] == "tts"
     assert payload["metric"] == "multi"
-    assert payload["pipeline_id"] == "tts.zh.multi.audio_metric_nodes"
+    assert payload["pipeline_id"] == (
+        "tts.zh.multi.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "punctuation_strip_norm_v1.wenet_cer_v1__spk_sim.wavlm_large_sim_v1__"
+        "dnsmos.dnsmos_v1"
+    )
+    assert payload["pipeline_kind"] == "bundle"
+    assert payload["member_pipeline_ids"] == [
+        "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1",
+        "tts.zh.spk_sim.wavlm_large_sim_v1",
+        "tts.zh.dnsmos.dnsmos_v1",
+    ]
     assert payload["run_args"]["samples_jsonl"] is None
     assert payload["required_roles"] == ["samples_jsonl"]
     assert "frontend/funasr_loader_16k_mono" in [slot["default"] for slot in payload["pipeline"]]
@@ -656,10 +702,14 @@ def test_metric_run_executes_tts_samples_jsonl_with_standard_outputs(
 
     assert run_result.exit_code == 0, run_result.stdout
     payload = json.loads(run_result.stdout)
-    assert payload["pipeline_id"] == "tts.zh.multi.audio_metric_nodes"
+    assert payload["pipeline_id"] == (
+        "tts.zh.multi.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "punctuation_strip_norm_v1.wenet_cer_v1__spk_sim.wavlm_large_sim_v1__"
+        "dnsmos.dnsmos_v1"
+    )
     assert payload["score"] == 0.0
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
-    assert report_payload["details"]["results"]["sim/wavlm-large"]["score"] == 0.7
+    assert report_payload["details"]["results"]["spk_sim"]["score"] == 0.7
     assert report_payload["details"]["results"]["dnsmos"]["score"] == 3.1
     assert (output_dir / "pipeline_description.json").exists()
 
@@ -738,8 +788,12 @@ def test_metric_run_executes_vc_samples_jsonl_with_standard_outputs(
 
     assert run_result.exit_code == 0, run_result.stdout
     payload = json.loads(run_result.stdout)
-    assert payload["pipeline_id"] == "vc.zh.multi.audio_metric_nodes"
+    assert payload["pipeline_id"] == (
+        "vc.zh.multi.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "punctuation_strip_norm_v1.wenet_cer_v1__spk_sim.ecapa_tdnn_sim_v1__"
+        "utmos.utmos_v1"
+    )
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
-    assert report_payload["details"]["results"]["sim/ecapa-tdnn"]["score"] == 0.8
+    assert report_payload["details"]["results"]["spk_sim"]["score"] == 0.8
     assert report_payload["details"]["results"]["utmos"]["score"] == 3.7
     assert (output_dir / "pipeline_description.json").exists()

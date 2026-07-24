@@ -38,7 +38,7 @@ def test_tse_si_sdr_route_with_real_audio(tmp_path: Path) -> None:
     assert report.task == "TSE"
     assert report.language == "en"
     assert report.metric == "si_sdr"
-    assert report.pipeline_id == "tse.en.si_sdr.si_sdr"
+    assert report.pipeline_id == "tse.en.si_sdr.si_sdr_v1"
     assert math.isinf(report.score)
     assert "si_sdr" in report.details["results"]
 
@@ -63,10 +63,10 @@ def test_tse_sim_route_with_mock_provider() -> None:
     )
 
     assert report.task == "TSE"
-    assert report.metric == "sim/wavlm-large"
-    assert report.pipeline_id == "tse.en.multi.audio_metric_nodes"
+    assert report.metric == "spk_sim"
+    assert report.pipeline_id == "tse.en.spk_sim.wavlm_large_sim_v1"
     assert report.score == 0.85
-    assert report.details["results"]["sim/wavlm-large"]["score"] == 0.85
+    assert report.details["results"]["spk_sim"]["score"] == 0.85
 
 
 def test_tse_mos_route_with_mock_provider() -> None:
@@ -90,7 +90,7 @@ def test_tse_mos_route_with_mock_provider() -> None:
 
     assert report.task == "TSE"
     assert report.metric == "dnsmos"
-    assert report.pipeline_id == "tse.en.multi.audio_metric_nodes"
+    assert report.pipeline_id == "tse.en.dnsmos.dnsmos_v1"
     assert report.score == 3.5
 
 
@@ -117,8 +117,10 @@ def test_tse_zh_semantic_route_uses_manifest_default_normalizer() -> None:
     )
 
     assert report.pipeline_id == (
-        "tse.zh.tse_cer.funasr_loader_16k_mono." "paraformer_zh.punctuation_strip_norm.wenet_cer"
+        "tse.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "punctuation_strip_norm_v1.wenet_cer_v1"
     )
+    assert report.metric == "cer"
     assert report.details["rows"][0]["semantic"]["normalizer"] == "punctuation_strip"
 
 
@@ -155,9 +157,17 @@ def test_tse_multi_metric_route(tmp_path: Path) -> None:
 
     assert report.task == "TSE"
     assert report.metric == "multi"
-    assert report.pipeline_id == "tse.en.multi.audio_metric_nodes"
+    assert report.pipeline_id == (
+        "tse.en.multi.si_sdr.si_sdr_v1__spk_sim.wavlm_large_sim_v1__dnsmos.dnsmos_v1"
+    )
+    assert report.pipeline_kind == "bundle"
+    assert report.member_pipeline_ids == (
+        "tse.en.si_sdr.si_sdr_v1",
+        "tse.en.spk_sim.wavlm_large_sim_v1",
+        "tse.en.dnsmos.dnsmos_v1",
+    )
     assert "si_sdr" in report.details["results"]
-    assert "sim/wavlm-large" in report.details["results"]
+    assert "spk_sim" in report.details["results"]
     assert "dnsmos" in report.details["results"]
 
 

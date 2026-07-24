@@ -47,9 +47,9 @@ def test_vc_semantic_route_reuses_asr_when_reference_text_is_available() -> None
 
     assert report.task == "VC"
     assert report.language == "zh"
-    assert report.metric == "vc_cer"
+    assert report.metric == "cer"
     assert report.score == 0.0
-    assert report.pipeline_id == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+    assert report.pipeline_id == "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1"
     assert transcriber.calls == [("converted.wav", "zh")]
     assert report.details["rows"][0]["semantic"]["reference_audio_transcript"] == ""
     assert report.details["rows"][0]["semantic"]["asr_metric"] == "cer"
@@ -92,8 +92,11 @@ def test_vc_semantic_route_transcribes_reference_audio_before_reusing_asr() -> N
 
     assert report.task == "VC"
     assert report.language == "en"
-    assert report.metric == "vc_wer"
-    assert report.pipeline_id == "vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer"
+    assert report.metric == "wer"
+    assert report.pipeline_id == (
+        "vc.en.wer.whisper_large_v3_v1.whisper_large_v3_v1."
+        "whisper_norm_english_v1.wenet_wer_v1"
+    )
     assert report.score > 0
     assert transcriber.calls == [("converted.wav", "en"), ("target.wav", "en")]
     assert report.details["rows"][0]["semantic"]["reference_audio_transcript"] == "hello brave world"
@@ -130,7 +133,10 @@ def test_vc_zh_audio_reference_route_records_funasr_loader_for_both_audios() -> 
         transcribers={"zh": transcriber},
     )
 
-    assert report.pipeline_id == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+    assert report.pipeline_id == (
+        "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+    )
     assert transcriber.calls == [("converted.wav", "zh"), ("target.wav", "zh")]
     assert [node.node_id for node in report.pipeline_trace] == [
         "frontend/funasr_loader_16k_mono",
@@ -169,8 +175,8 @@ def test_vc_semantic_route_can_explicitly_use_wetext_normalizer(monkeypatch) -> 
         transcribers={"zh": transcriber},
     )
 
-    assert report.pipeline_id == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.wetext_zh_tn.wenet_cer"
-    assert report.details["results"]["vc_cer"]["asr_pipeline_id"] == "asr.zh.cer.wetext_zh_tn.wenet_cer"
+    assert report.pipeline_id == "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
+    assert report.details["results"]["cer"]["asr_pipeline_id"] == "asr.zh.cer.wetext_norm_zh_tn_v1.wenet_cer_v1"
     assert [node.node_id for node in report.pipeline_trace] == [
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
@@ -201,7 +207,7 @@ def test_vc_task_route_scores_speaker_and_mos_nodes() -> None:
 
     assert report.task == "VC"
     assert report.metric == "multi"
-    assert report.details["results"]["sim/ecapa-tdnn"]["score"] == 0.8
+    assert report.details["results"]["spk_sim"]["score"] == 0.8
     assert report.details["results"]["utmos"]["score"] == 3.7
     assert report.details["rows"][0]["speaker"]["ecapa-tdnn"]["ASV"] == 0.8
     assert report.details["rows"][0]["mos"]["utmos"]["utmos"] == 3.7

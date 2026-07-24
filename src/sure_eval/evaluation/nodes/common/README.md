@@ -89,7 +89,7 @@ than prediction-incomplete when:
 
 - prediction validation passed;
 - audio files exist and are readable after path remapping;
-- at least one unrelated metric family can score the same predictions.
+- at least one unrelated metric category can score the same predictions.
 
 This distinction prevents unnecessary model inference reruns and keeps blame on
 the failing evaluation surface.
@@ -155,7 +155,7 @@ so classify it as runtime degradation unless the metric returns invalid output.
 
 ## Segment And Merge Discipline
 
-Long TTS/VC evaluations may be segmented by metric family for runtime and
+Long TTS/VC evaluations may be segmented by metric category for runtime and
 failure isolation. Each segment still has to call the same repository
 evaluation route and must write the normal artifacts:
 
@@ -171,7 +171,7 @@ run-level report artifacts. It should not regenerate audio, rerun completed
 metrics, or repeat expensive semantic probes unless the operator explicitly
 needs to revalidate the node-local environment.
 
-Segment names should describe the metric family or missing work, not the
+Segment names should describe the metric category or missing work, not the
 execution host. A final run-level merge is only valid when every segment was
 produced by the same repository evaluation contract and points at the same
 validated prediction artifacts.

@@ -22,7 +22,7 @@ def test_agent_plan_cli_outputs_route_and_env_contract() -> None:
     assert payload["task"] == "asr"
     assert payload["metrics"] == ["cer"]
     route = payload["selected_routes"][0]
-    assert route["pipeline_id"] == "asr.zh.cer.wetext_zh_itn.wenet_cer"
+    assert route["pipeline_id"] == "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     assert [node["node_id"] for node in route["nodes"]] == [
         "normalization/wetext_norm",
         "scoring/wenet_cer",
@@ -46,9 +46,12 @@ def test_agent_plan_accepts_task_option_for_non_positional_callers() -> None:
     payload = json.loads(result.stdout)
     route = payload["selected_routes"][0]
     assert route["pipeline_id"] == (
-        "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh."
-        "punctuation_strip_norm.wenet_cer"
+        "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "punctuation_strip_norm_v1.wenet_cer_v1"
     )
+    assert route["metric"] == "tts_cer"
+    assert route["resolved_metric"] == "cer"
+    assert "route_id" not in route
     assert "normalization/punctuation_strip_norm" in [
         node["node_id"] for node in route["nodes"]
     ]

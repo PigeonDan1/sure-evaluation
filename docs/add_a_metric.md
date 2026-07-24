@@ -4,11 +4,13 @@ Use this decision tree before opening a PR. The goal is to match the change to
 the smallest extension point that preserves reproducibility and keeps metric
 semantics clear.
 
-In this repository, a **metric family** is the reported evaluation quantity
-such as CER, WER, MER, BLEU, DER, accuracy, SIM, or MOS. A **route selector**
-is the CLI/API value that selects a concrete pipeline for that metric family.
-For example, `cer_canonical` is a route selector for CER with canonical
-normalization. It is not a new metric family.
+In this repository, a **metric** is the reported evaluation quantity such as
+CER, WER, MER, BLEU, DER, accuracy, `spk_sim`, `dnsmos`, or `macro_recall`.
+An **execution metric selector** is the CLI/API value that selects a concrete
+pipeline, compatibility alias, or method for that metric. For example,
+`sim/wavlm-large` selects the WavLM method for `spk_sim`. When a metric has
+multiple pipeline variants, use the exact `pipeline_id` to select the
+non-default route.
 
 ## Decision Tree
 
@@ -16,11 +18,11 @@ normalization. It is not a new metric family.
    Add a **new task**.
 
 2. Does it introduce a new reported score definition for an existing task?
-   Add a **new metric family for an existing task**.
+   Add a **new metric for an existing task**.
 
-3. Does it keep the same reported metric family but use a different
+3. Does it keep the same reported metric but use a different
    normalization, transcription, scorer, or backend chain?
-   Add a **new route for an existing metric family**.
+   Add a **new pipeline route for an existing metric**.
 
 4. Does it change one node inside an existing route, such as a new normalizer
    ruleset, model provider, external toolkit wrapper, or checkpoint-backed
@@ -29,7 +31,7 @@ normalization. It is not a new metric family.
 
 When in doubt, prefer the narrowest category that matches the actual scientific
 claim. Do not create a new task for a new scorer, and do not document a route
-selector as a new metric family.
+selector as a new metric.
 
 ## Category 1: New Task
 
@@ -40,7 +42,7 @@ Examples:
 
 - a new audio captioning task;
 - a new multimodal task with its own required files;
-- a new benchmark family whose reports cannot be represented by existing task
+- a new benchmark category whose reports cannot be represented by existing task
   inputs.
 
 Required work:
@@ -70,7 +72,7 @@ Minimum tests:
 - env check tests for node-local environments;
 - fixture-based report shape tests.
 
-## Category 2: New Metric Family For An Existing Task
+## Category 2: New Metric For An Existing Task
 
 Use this when the reported score definition changes. This is a real new metric,
 not just a new route.
@@ -85,7 +87,7 @@ Examples:
 Required work:
 
 - Add or reuse a scoring node under `nodes/scoring/<backend>/`.
-- Add the metric family to `tasks/<task>/manifest.yaml`.
+- Add the metric to `tasks/<task>/manifest.yaml`.
 - Add or update the metric input contract.
 - Add a route in `tasks/<task>/routes.yaml`.
 - Update `tasks/<task>/pipeline.py` dispatch and report details.
@@ -102,11 +104,11 @@ Minimum tests:
 
 Documentation rule:
 
-- Put it in the metric family table as a new reported metric.
+- Put it in the metric table as a new reported metric.
 - State the mathematical definition and denominator.
 - State whether higher or lower is better when this is not obvious.
 
-## Category 3: New Route For An Existing Metric Family
+## Category 3: New Pipeline Route For An Existing Metric
 
 Use this when CER remains CER, WER remains WER, MER remains MER, etc., but the
 route changes. This usually means a different normalization, transcription, or
@@ -114,8 +116,8 @@ scoring backend chain.
 
 Examples:
 
-- `asr.zh.cer_canonical.canonical_itn.token_cer` for CER with canonical
-  normalization;
+- pipeline id `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1` for CER with
+  canonical normalization;
 - an explicit `wetext_norm` route for an existing ASR metric;
 - an SCTK-backed WER route alongside an existing WER route.
 
@@ -126,8 +128,8 @@ Required work:
   combinations.
 - Preserve the default route unless the PR explicitly changes it and includes a
   compatibility justification.
-- Ensure `EvaluationReport.metric` and route selector semantics are documented
-  clearly.
+- Ensure `EvaluationReport.metric`, `pipeline_id`, `execution_metrics`, and
+  selector semantics are documented clearly.
 - Regenerate `docs/pipeline_catalog.jsonl`.
 - Update task docs with separate columns for reported metric and route
   selector when needed.
@@ -142,19 +144,22 @@ Minimum tests:
 
 Documentation rule:
 
-- Do not call the route selector a new metric family.
+- Do not call the selector a new metric.
 - Use language such as "canonical-normalized CER route" or "alternate WER
   route".
 - If a route changes comparability, document the comparability boundary.
 
 Canonical ASR example:
 
-- reported metric family: CER / WER / MER;
-- route selectors: `cer_canonical`, `wer_canonical`, `mer_canonical`;
+- reported metrics: CER / WER / MER;
+- pipeline IDs:
+  `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1`,
+  `asr.en.wer.canonical_itn_en_v1.token_mer_v1`,
+  `asr.cs.mer.canonical_itn_cs_v1.token_mer_v1`;
 - new node: `normalization/canonical_itn`;
 - new scorer route: `scoring/token_cer` or `scoring/token_mer`;
 - scientific intent: change normalization and tokenization route, not create a
-  new reported metric family.
+  new reported metric.
 
 ## Category 4: Node, Tool, Or Version Change Inside A Route
 
@@ -198,17 +203,30 @@ Documentation rule:
 ## Naming And Trace Rules
 
 - `task`: canonical task name, such as `ASR`, `TTS`, or `VC`.
-- `metric`: CLI route selector used by `describe_pipeline` and `run_task`.
-- reported metric family: the scientific score family, such as CER or WER.
-- `pipeline_id`: should expose task, language, route selector, and meaningful
-  node choices.
+- `metric`: canonical reported metric, such as `cer`, `wer`, `spk_sim`, or
+  `macro_recall`.
+- `execution_metrics`: executor-facing selectors used by `describe_pipeline`
+  and `run_task` when compatibility aliases or method selectors are needed,
+  such as `tts_cer`, `sim/wavlm-large`, or `macro-recall`.
+- `task_config_path` and `route_config_path`: repository-relative paths to the
+  task manifest and route declaration.
+- `describe_entrypoint`, `script_entrypoint`, and `executor`: dotted Python
+  entrypoints that link the CLI contract to the implementation.
+- `pipeline_id`: computation identity in the form
+  `task.language.metric.node_version...`. Use `any` for
+  language-independent tasks.
+- `pipeline_kind`: `atomic` for one metric, `bundle` for multi-metric selections.
+- `member_pipeline_ids`: atomic members of a bundle, ordered like the requested
+  metrics.
 - `node_id`: should be stable and stage-qualified, such as
   `normalization/canonical_itn` or `scoring/wavlm_large_sim`.
 - node trace: must include `node_id`, `version`, and meaningful internal
   stages.
+- computation nodes: include score-affecting conversions, then the selected
+  node chain. For example, SA-ASR cpWER includes `conversion/sa_asr__cpwer`.
 
-When a selector differs from the reported metric family, document that
-distinction in the task guide and in PR notes.
+When a selector differs from the canonical metric, document that distinction in
+the task guide and in PR notes.
 
 ## Documentation Checklist
 
@@ -257,7 +275,7 @@ Every PR should state:
 
 - category from the decision tree;
 - scientific intent;
-- reported metric family versus route selector;
+- reported metric versus execution selector;
 - default route impact;
 - score comparability impact;
 - new or changed nodes;
@@ -267,7 +285,7 @@ Every PR should state:
 
 ## Anti-Patterns
 
-- Calling a route selector a new metric family.
+- Calling a route selector a new metric.
 - Changing a default route without saying so.
 - Hiding score-affecting behavior behind a patch-level node change.
 - Committing `.venv/`, checkpoints, downloaded model files, caches, or reports.

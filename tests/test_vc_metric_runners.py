@@ -63,7 +63,8 @@ def test_vc_metric_pipeline_scores_semantic_against_reference_text_when_availabl
     assert report.results["vc_cer"].score == 0.0
     assert (
         report.results["vc_cer"].details["pipeline_id"]
-        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+        == "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "punctuation_strip_norm_v1.wenet_cer_v1"
     )
     assert report.rows[0]["semantic"]["metric"] == "vc_cer"
     assert report.rows[0]["semantic"]["asr_metric"] == "cer"
@@ -103,7 +104,7 @@ def test_vc_metric_pipeline_forwards_explicit_semantic_normalizer(monkeypatch) -
     report = pipeline.evaluate([sample])
 
     assert report.results["vc_cer"].details["pipeline_id"] == (
-        "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.wetext_zh_tn.wenet_cer"
+        "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
     )
     assert report.results["vc_cer"].details["pipeline_trace"][2]["node_id"] == "normalization/wetext_norm"
     assert report.results["vc_cer"].details["pipeline_trace"][2]["profile"] == "zh_tn"
@@ -127,7 +128,8 @@ def test_vc_metric_pipeline_scores_semantic_between_converted_and_reference_audi
     assert report.results["vc_cer"].score == 0.0
     assert (
         report.results["vc_cer"].details["pipeline_id"]
-        == "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+        == "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1"
     )
     assert report.rows[0]["semantic"]["reference_audio_transcript"] == "你好世界"
     assert report.rows[0]["semantic"]["asr_metric"] == "cer"
@@ -253,7 +255,7 @@ def test_vc_pipeline_cli_runner_forwards_semantic_normalizer(monkeypatch) -> Non
 
     assert report["ok"] is True
     assert report["metrics"]["vc_cer"]["details"]["pipeline_id"] == (
-        "vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.wetext_zh_tn.wenet_cer"
+        "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
     )
 
 

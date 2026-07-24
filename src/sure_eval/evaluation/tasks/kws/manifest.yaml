@@ -4,11 +4,15 @@ task: KWS
 default_metric: accuracy
 routes:
   accuracy:
-    pipeline_id: kws.default.accuracy.wekws_det
+    pipeline_id: kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1
     scoring: scoring/wekws_det
-  macro-recall:
-    pipeline_id: kws.default.macro-recall.wekws_det
+    conversion: conversion/kws_sure_json_to_samples
+  macro_recall:
+    pipeline_id: kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1
     scoring: scoring/wekws_det
+    conversion: conversion/kws_sure_json_to_samples
+    aliases:
+      - macro-recall
 input_contracts:
   sure_json:
     required_roles:
@@ -28,7 +32,7 @@ metrics:
   - accuracy
   - precision
   - recall
-  - macro-recall
+  - macro_recall
   - f1
   - false_reject_rate
   - false_alarm_rate

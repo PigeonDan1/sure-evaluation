@@ -47,17 +47,18 @@ def test_tts_zh_semantic_route_uses_punctuation_strip_norm() -> None:
 
     assert report.task == "TTS"
     assert report.language == "zh"
-    assert report.metric == "tts_cer"
+    assert report.metric == "cer"
     assert report.score == 0.0
     assert report.pipeline_id == (
-        "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer"
+        "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1"
     )
-    assert report.details["results"]["tts_cer"]["score"] == 0.0
+    assert report.details["results"]["cer"]["score"] == 0.0
     assert (
-        report.details["results"]["tts_cer"]["asr_pipeline_id"]
-        == "asr.zh.cer.punctuation_strip_norm.wenet_cer"
+        report.details["results"]["cer"]["asr_pipeline_id"]
+        == "asr.zh.cer.punctuation_strip_norm_v1.wenet_cer_v1"
     )
-    assert report.details["rows"][0]["semantic"]["metric"] == "tts_cer"
+    assert report.details["rows"][0]["semantic"]["metric"] == "cer"
+    assert report.details["rows"][0]["semantic"]["execution_metric"] == "tts_cer"
     assert report.details["rows"][0]["semantic"]["transcript"] == "你好世界"
     assert report.details["rows"][0]["semantic"]["asr_metric"] == "cer"
     assert report.details["rows"][0]["semantic"]["normalizer"] == "punctuation_strip"
@@ -103,16 +104,16 @@ def test_tts_en_semantic_route_reuses_asr_wer_pipeline() -> None:
 
     assert report.task == "TTS"
     assert report.language == "en"
-    assert report.metric == "tts_wer"
-    assert report.pipeline_id == "tts.en.tts_wer.whisper_large_v3.whisper_norm.wenet_wer"
+    assert report.metric == "wer"
+    assert report.pipeline_id == "tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1"
     assert report.score > 0
-    assert report.details["results"]["tts_wer"]["score"] == report.score
+    assert report.details["results"]["wer"]["score"] == report.score
     assert [node.node_id for node in report.pipeline_trace] == [
         "transcription/whisper_large_v3",
         "normalization/whisper_norm",
         "scoring/wenet_wer",
     ]
-    assert report.details["scoring_result"] == report.details["results"]["tts_wer"]["asr_result"]
+    assert report.details["scoring_result"] == report.details["results"]["wer"]["asr_result"]
 
 
 def test_tts_semantic_route_can_explicitly_use_wetext_normalizer(monkeypatch) -> None:
@@ -136,8 +137,8 @@ def test_tts_semantic_route_can_explicitly_use_wetext_normalizer(monkeypatch) ->
         transcribers={"zh": transcriber},
     )
 
-    assert report.pipeline_id == "tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.wetext_zh_tn.wenet_cer"
-    assert report.details["results"]["tts_cer"]["asr_pipeline_id"] == "asr.zh.cer.wetext_zh_tn.wenet_cer"
+    assert report.pipeline_id == "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
+    assert report.details["results"]["cer"]["asr_pipeline_id"] == "asr.zh.cer.wetext_norm_zh_tn_v1.wenet_cer_v1"
     assert [node.node_id for node in report.pipeline_trace] == [
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",
@@ -168,7 +169,7 @@ def test_tts_task_route_scores_speaker_and_mos_nodes() -> None:
 
     assert report.task == "TTS"
     assert report.metric == "multi"
-    assert report.details["results"]["sim/wavlm-large"]["score"] == 0.7
+    assert report.details["results"]["spk_sim"]["score"] == 0.7
     assert report.details["results"]["dnsmos"]["score"] == 3.1
     assert report.details["rows"][0]["speaker"]["wavlm-large"]["ASV"] == 0.7
     assert report.details["rows"][0]["mos"]["dnsmos"]["OVRL"] == 3.1

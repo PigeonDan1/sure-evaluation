@@ -106,3 +106,6 @@ class EvaluationReport:
     input_contract: MetricInputContract | None = None
     input_files: EvaluationFiles | None = None
     details: dict[str, Any] = field(default_factory=dict)
+    pipeline_kind: str = "atomic"
+    member_pipeline_ids: tuple[str, ...] = ()
+    computation_node_ids: tuple[str, ...] = ()

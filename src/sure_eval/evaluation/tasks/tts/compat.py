@@ -8,6 +8,7 @@ from statistics import fmean
 from typing import Any
 
 from sure_eval.evaluation.base import MetricResult
+from sure_eval.evaluation.pipeline_identity import canonical_metric
 from sure_eval.evaluation.tasks.tts.metrics import ScoreProvider
 from sure_eval.evaluation.nodes.transcription.common.providers import Transcriber
 from sure_eval.evaluation.tasks.tts.types import TTSMetricReport, TTSSample
@@ -91,8 +92,10 @@ class TTSMetricPipeline:
                 transcribers=self.semantic_transcribers,
             )
             for routed_row, (row_index, _) in zip(route_report.details["rows"], indexed_samples, strict=True):
-                rows[row_index]["semantic"] = routed_row["semantic"]
-            result_payload = route_report.details["results"][metric_name]
+                semantic = dict(routed_row["semantic"])
+                semantic["metric"] = metric_name
+                rows[row_index]["semantic"] = semantic
+            result_payload = route_report.details["results"][canonical_metric(metric_name)]
             results[metric_name] = MetricResult(
                 metric_name=metric_name,
                 score=route_report.score,

@@ -21,7 +21,7 @@ def score_eres2net_sim(rows: list[SpeakerRow], *, provider: SpeakerProvider) -> 
     return score_speaker_backend(
         rows,
         backend_name="eres2net",
-        metric_name="sim/eres2net",
+        metric_name="spk_sim",
         node_id=NODE_ID,
         provider=provider,
         version=NODE_VERSION,

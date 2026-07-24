@@ -1,20 +1,24 @@
 # KWS — Keyword Spotting
 
-Evaluate keyword spotting outputs with accuracy, macro-recall, precision, recall, F1, and false-alarm/reject rates.
+Evaluate keyword spotting outputs with accuracy, macro_recall, precision, recall, F1, and false-alarm/reject rates.
 
 ## Metrics
 
-| Primary metric | Pipeline ID | Nodes |
-|:---------------|:------------|:------|
-| `accuracy` | `kws.<input_mode>.accuracy.wekws_det` | `scoring/wekws_det` |
-| `macro-recall` | `kws.<input_mode>.macro-recall.wekws_det` | `scoring/wekws_det` |
+| Primary metric | Execution selector | Pipeline ID | Nodes |
+|:---------------|:-----------------|:------------|:------|
+| `accuracy` | `accuracy` | `kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1` | `conversion/kws_sure_json_to_samples` → `scoring/wekws_det` |
+| `macro_recall` | `macro-recall` or `macro_recall` | `kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1` | `conversion/kws_sure_json_to_samples` → `scoring/wekws_det` |
+
+Each file input mode has its own conversion node in `pipeline_id`, followed by
+the shared `scoring/wekws_det` node. The direct in-memory sample path uses
+`kws.any.<metric>.wekws_det_v1`.
 
 Reported metrics:
 
 - `accuracy`
 - `precision`
 - `recall`
-- `macro-recall`
+- `macro_recall` (`macro-recall` in node-level DET details)
 - `f1`
 - `false_reject_rate`
 - `false_alarm_rate`
@@ -42,10 +46,11 @@ sure-eval metric run --pipeline /tmp/kws.json \
   --output-dir /tmp/kws_eval
 ```
 
-For recall under a fixed false-alarm-count budget, select `macro-recall`:
+For recall under a fixed false-alarm-count budget, select `macro_recall`.
+The compatibility selector `macro-recall` is also accepted:
 
 ```bash
-sure-eval metric describe kws --metric macro-recall --output /tmp/kws.json
+sure-eval metric describe kws --metric macro_recall --output /tmp/kws.json
 sure-eval metric run --pipeline /tmp/kws.json \
   --reference-jsonl ref.jsonl --sample-output pred.jsonl \
   --macro-recall-false-alarms 0 \
@@ -70,7 +75,7 @@ report = run_task(
     "kws",
     reference_jsonl="ref.jsonl",
     sample_output="pred.jsonl",
-    metric="macro-recall",
+    metric="macro_recall",
     output_dir="/tmp/kws_eval",
 )
 print(report.score)
@@ -78,9 +83,12 @@ print(report.score)
 
 ## Output
 
-- `report.json` — `score` for the selected primary metric, plus precision, recall, macro-recall, F1, FRR, FAR, DET curve, and per-row details.
-- `macro-recall` is computed as the maximum DET true detect rate with `false_alarms <= macro_recall_false_alarms` (default `0`).
-- `pipeline_description.json` — selected route, `input_mode`, node versions.
+- `report.json` — `score` for the selected primary metric, plus precision, recall, macro_recall, F1, FRR, FAR, DET curve, and per-row details.
+- `macro_recall` is computed from the node-level `macro-recall` DET result as the maximum true detect rate with `false_alarms <= macro_recall_false_alarms` (default `0`).
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `execution_metrics`, `computation_node_ids` including conversion nodes,
+  input mode, relative `task_config_path` / `route_config_path`,
+  `script_entrypoint`, `executor`, and node versions.
 
 ## Environment Notes
 

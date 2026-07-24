@@ -37,6 +37,12 @@ from sure_eval.evaluation.nodes.scoring.sctk_sclite import (
 )
 from sure_eval.evaluation.nodes.scoring.token_cer import score_token_cer
 from sure_eval.evaluation.nodes.scoring.token_mer import score_token_mer
+from sure_eval.evaluation.pipeline_identity import (
+    build_atomic_pipeline_id,
+    canonical_metric,
+    component_trace_ids,
+    node_component,
+)
 
 _ASR_CONTRACTS = {
     "cer": MetricInputContract(
@@ -134,8 +140,13 @@ def _evaluate_regular(
     input_contract = _ASR_CONTRACTS[metric]
     normalizer_node, normalizer_label = _normalization_node(language=language, normalizer=normalizer)
     scoring_node, score_label = _scoring_node(metric=metric, scorer=scorer)
+    components = (
+        _normalizer_component(language=language, normalizer_label=normalizer_label),
+        node_component(_scoring_node_id(score_label)),
+    )
+    pipeline_id = build_atomic_pipeline_id("asr", language, metric, components)
     spec = PipelineSpec(
-        pipeline_id=f"asr.{language}.{metric}.{normalizer_label}.{score_label}",
+        pipeline_id=pipeline_id,
         task="ASR",
         language=language,
         metric=metric,
@@ -150,14 +161,16 @@ def _evaluate_regular(
         return EvaluationReport(
             task="ASR",
             language=language,
-            metric=metric,
+            metric=canonical_metric(metric),
             score=float(scoring_result["score"]),
             pipeline_id=spec.pipeline_id,
             pipeline_trace=trace,
             input_contract=input_contract,
             input_files=input_files,
+            computation_node_ids=component_trace_ids(components),
             details={
                 "scoring_result": scoring_result,
+                "execution_metric": metric,
                 "input_contract": input_contract.as_dict(),
                 "input_files": input_files.as_dict(),
             },
@@ -178,6 +191,11 @@ def _evaluate_codeswitch(
 
     input_contract = _ASR_CONTRACTS[metric]
     trace: tuple[PipelineNodeResult, ...] = ()
+    components = (
+        node_component("normalization/aispeech_norm", profile="cs"),
+        node_component("scoring/wenet_mer"),
+    )
+    pipeline_id = build_atomic_pipeline_id("asr", "cs", "mer", components)
     try:
         normalized_files, norm_result = normalize_codeswitch_asr_files(
             KeyTextFiles(ref_file=ref_file, hyp_file=hyp_file)
@@ -193,12 +211,14 @@ def _evaluate_codeswitch(
             language="cs",
             metric="mer",
             score=float(scoring_result["score"]),
-            pipeline_id="asr.cs.mer.aispeech_norm.wenet_mer",
+            pipeline_id=pipeline_id,
             pipeline_trace=trace,
             input_contract=input_contract,
             input_files=input_files,
+            computation_node_ids=component_trace_ids(components),
             details={
                 "scoring_result": scoring_result,
+                "execution_metric": metric,
                 "input_contract": input_contract.as_dict(),
                 "input_files": input_files.as_dict(),
             },
@@ -225,7 +245,7 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
             f"ASR {metric} requires the canonical_itn normalizer, got {normalizer!r}"
         )
     if normalized in {"canonical", "canonical_itn", "normalization/canonical_itn"}:
-        raise ValueError("normalization/canonical_itn requires a canonical-family metric")
+        raise ValueError("normalization/canonical_itn requires a canonical execution selector")
     if not normalized:
         if language == "en" and metric == "wer":
             return "whisper"
@@ -263,7 +283,7 @@ def _normalize_scorer(*, language: str, metric: str, scorer: str | None) -> str:
             return "token_mer"
         raise ValueError(f"ASR {metric} only supports the token_mer scorer, got {scorer!r}")
     if normalized in {"token", "token_cer", "scoring/token_cer", "token_mer", "scoring/token_mer"}:
-        raise ValueError("token scorers require a canonical-family metric")
+        raise ValueError("token scorers require a canonical execution selector")
     if not normalized:
         return "wenet"
     if normalized in {"wenet", "wenet_wer", "wenet_cer", "scoring/wenet_wer", "scoring/wenet_cer"}:
@@ -330,6 +350,33 @@ def _scoring_node(*, metric: str, scorer: str):
         if metric == "wer":
             return score_sctk_sclite_wer, "sctk_sclite_wer"
     raise ValueError(f"Unsupported ASR scorer {scorer!r} for metric={metric!r}")
+
+
+def _normalizer_component(*, language: str, normalizer_label: str):
+    if normalizer_label.startswith("wetext_"):
+        return node_component(
+            "normalization/wetext_norm",
+            profile=normalizer_label.removeprefix("wetext_"),
+        )
+    if normalizer_label == "whisper_norm":
+        return node_component("normalization/whisper_norm", profile="english")
+    if normalizer_label == "aispeech_norm":
+        return node_component("normalization/aispeech_norm", profile=language)
+    if normalizer_label == "canonical_itn":
+        return node_component("normalization/canonical_itn", profile=language)
+    if normalizer_label == "punctuation_strip_norm":
+        return node_component("normalization/punctuation_strip_norm")
+    raise ValueError(f"Unsupported ASR normalizer label: {normalizer_label}")
+
+
+def _scoring_node_id(score_label: str) -> str:
+    if score_label in {"wenet_cer", "wenet_wer", "wenet_mer"}:
+        return f"scoring/{score_label}"
+    if score_label in {"token_cer", "token_mer", "sctk_sclite_cer", "sctk_sclite_wer"}:
+        if score_label.startswith("sctk_sclite"):
+            return "scoring/sctk_sclite"
+        return f"scoring/{score_label}"
+    raise ValueError(f"Unsupported ASR scoring label: {score_label}")
 
 
 def _validate_wetext_profile_for_language(*, language: str, profile: str) -> None:

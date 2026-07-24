@@ -66,7 +66,7 @@ Input files are tab-separated: `<key>\t<text>`.
 | **TSE** | SI-SDR, speaker similarity, MOS, WER/CER | Signal + optional sim/MOS/ASR nodes | [docs/tasks/tse.md](./docs/tasks/tse.md) |
 | **Classification / SER / GR** | Accuracy | Text-only, base install | [docs/tasks/classification.md](./docs/tasks/classification.md) |
 | **SLU** | Accuracy | Text-only, base install | [docs/tasks/slu.md](./docs/tasks/slu.md) |
-| **KWS** | accuracy, macro-recall, precision, recall, F1, FRR, FAR | Base + optional node | [docs/tasks/kws.md](./docs/tasks/kws.md) |
+| **KWS** | accuracy, macro_recall, precision, recall, F1, FRR, FAR | Base + optional node | [docs/tasks/kws.md](./docs/tasks/kws.md) |
 
 Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
 
@@ -106,8 +106,8 @@ Prepare a heavy metric environment:
 ```bash
 sure-eval env list
 sure-eval env setup --task asr --language zh --metric cer --dry-run
-sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run
-sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos
+sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
+sure-eval env setup --task tts --language zh --metrics cer,dnsmos
 ```
 
 See [docs/installation.md](docs/installation.md) and [docs/environment.md](docs/environment.md) for details.
@@ -116,16 +116,42 @@ See [docs/installation.md](docs/installation.md) and [docs/environment.md](docs/
 
 ## 📑 Pipeline Catalog
 
-SURE-EVAL exposes every metric as a declarative pipeline. The machine-readable catalog maps each supported `task + language + metric` to its selected nodes and required input roles:
+SURE-EVAL exposes every metric as a declarative pipeline. The machine-readable
+catalog maps each supported `task + language + metric` to its selected nodes,
+required input roles, relative route config paths, and Python entrypoints:
 
 - [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) — one JSON object per line
 - [docs/pipeline_catalog.md](./docs/pipeline_catalog.md) — schema and usage notes
 
+`pipeline_id` names the computation as `task.language.metric.node_version...`.
+`metric` is the canonical reported metric (`cer`, `wer`, `spk_sim`, `wv_mos`,
+`macro_recall`, etc.). `execution_metrics` records accepted CLI/API selectors
+when a task needs a compatibility alias or method-specific selector such as
+`tts_cer`, `sim/wavlm-large`, or `wv-mos`. Bundle rows use
+`pipeline_kind=bundle` and list atomic members in `member_pipeline_ids`.
+`task_config_path` and `route_config_path` are repository-relative paths;
+`script_entrypoint` and `executor` link the route to runnable code.
+
 Example entries:
 
-```jsonl
-{"task":"ASR","language":"zh","metric":"cer","pipeline_id":"asr.zh.cer.wetext_zh_itn.wenet_cer","nodes":["normalization/wetext_norm","scoring/wenet_cer"],"required_roles":["hyp","ref"]}
-{"task":"TTS","language":"zh","metric":"tts_cer","pipeline_id":"tts.zh.tts_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer","nodes":["frontend/funasr_loader_16k_mono","transcription/paraformer_zh","normalization/punctuation_strip_norm","scoring/wenet_cer"],"required_roles":["prediction_audio","reference_text"]}
+```json
+{
+  "task": "ASR",
+  "language": "zh",
+  "metric": "cer",
+  "pipeline_id": "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
+  "pipeline_kind": "atomic",
+  "member_pipeline_ids": [],
+  "execution_metrics": ["cer"],
+  "nodes": ["normalization/wetext_norm", "scoring/wenet_cer"],
+  "computation_node_ids": ["normalization/wetext_norm", "scoring/wenet_cer"],
+  "task_config_path": "src/sure_eval/evaluation/tasks/asr/manifest.yaml",
+  "route_config_path": "src/sure_eval/evaluation/tasks/asr/routes.yaml",
+  "describe_entrypoint": "sure_eval.evaluation.scripts.asr.describe_pipeline",
+  "script_entrypoint": "sure_eval.evaluation.scripts.asr.run",
+  "executor": "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files",
+  "required_roles": ["hyp", "ref"]
+}
 ```
 
 Regenerate it after adding new routes:

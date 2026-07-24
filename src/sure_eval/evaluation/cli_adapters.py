@@ -49,19 +49,29 @@ def build_pipeline_spec(
     *,
     language: str | None = None,
     metric: str | None = None,
+    pipeline_id: str | None = None,
     output_path: Path | None = None,
 ) -> dict[str, Any]:
     """Describe a configured script route as a user-editable pipeline spec."""
 
     normalized_task = normalize_task(task)
+    if metric and pipeline_id:
+        raise ValueError("Use either metric/metrics or pipeline_id, not both")
+    if pipeline_id and normalized_task in AUDIO_SAMPLE_TASKS:
+        raise ValueError("Use metrics to describe audio bundle tasks; pipeline_id selection is for atomic file routes")
     describe_kwargs = _describe_kwargs(
-        normalized_task, original_task=task, language=language, metric=metric
+        normalized_task,
+        original_task=task,
+        language=language,
+        metric=metric,
+        pipeline_id=pipeline_id,
     )
     description = describe_pipeline(normalized_task, **describe_kwargs)
     manifest, _ = load_task_manifest(TASK_ALIASES.get(normalized_task, normalized_task))
     routes, _ = load_task_routes(TASK_ALIASES.get(normalized_task, normalized_task))
-    route_choices = _route_choices(routes)
-    selected_route = _match_selected_route(route_choices, description.pipeline_id)
+    route_choices = _route_choices(routes, language=description.language)
+    selected_routes = _match_selected_routes(route_choices, description)
+    selected_route = selected_routes[0]
     node_slots = _node_slots(
         description.node_ids, selected_route=selected_route, route_choices=route_choices
     )
@@ -71,6 +81,11 @@ def build_pipeline_spec(
         required_roles = ["samples_jsonl"]
         run_args.setdefault("samples_jsonl", None)
     run_args["output_dir"] = None
+    execution_metrics = tuple(description.execution_metrics) or _requested_metrics(
+        normalized_task,
+        metric=metric,
+        description_metric=description.metric,
+    )
 
     payload = {
         "schema": "sure.metric.pipeline.v1",
@@ -78,19 +93,23 @@ def build_pipeline_spec(
         "task_alias": task,
         "language": description.language,
         "metric": description.metric,
-        "metrics": list(
-            _requested_metrics(
-                normalized_task, metric=metric, description_metric=description.metric
-            )
-        ),
+        "requested_metric": execution_metrics[0] if len(execution_metrics) == 1 else None,
+        "metrics": list(execution_metrics),
         "pipeline_id": description.pipeline_id,
-        "route_id": selected_route.get("route_id", description.pipeline_id),
+        "pipeline_kind": description.pipeline_kind,
+        "member_pipeline_ids": list(description.member_pipeline_ids),
+        "computation_node_ids": list(description.computation_node_ids),
         "pipeline": node_slots,
         "required_roles": required_roles,
         "optional_roles": list(description.optional_roles),
         "run_args": run_args,
         "route_choices": route_choices,
+        "selected_pipeline_ids": [route.get("pipeline_id") for route in selected_routes],
         "task_config_path": description.task_config_path,
+        "route_config_path": description.route_config_path,
+        "describe_entrypoint": description.describe_entrypoint,
+        "script_entrypoint": description.script_entrypoint,
+        "executor": description.executor,
         "nodes": list(description.nodes),
         "conversion_steps": list(description.conversion_steps),
     }
@@ -218,25 +237,45 @@ def _describe_kwargs(
     original_task: str,
     language: str | None,
     metric: str | None,
+    pipeline_id: str | None,
 ) -> dict[str, Any]:
     if task == "asr":
-        kwargs: dict[str, Any] = {"language": language or "zh"}
+        kwargs: dict[str, Any] = {}
+        if language:
+            kwargs["language"] = language
         if metric:
             kwargs["metric"] = metric
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
         return kwargs
     if task == "s2tt":
-        return {"language": language or "zh", "metric": metric or "bleu"}
+        kwargs = {"language": language or "zh", "metric": metric or "bleu"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
     if task == "kws":
-        return {"metric": metric or "accuracy"}
-    if task == "classification":
+        kwargs = {"metric": metric or "accuracy"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
+    if task in {"classification", "ser", "gr"}:
         # scripts/run.py already forwards the correct task alias for SER/GR.
-        return {}
+        return {"pipeline_id": pipeline_id} if pipeline_id else {}
     if task == "slu":
-        return {"metric": metric or "accuracy"}
+        kwargs = {"metric": metric or "accuracy"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
     if task == "sd":
-        return {"metric": metric or "der"}
+        kwargs = {"metric": metric or "der"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
     if task == "sa_asr":
-        return {"metric": metric or "cpwer", "language": language or "en"}
+        kwargs = {"metric": metric or "cpwer", "language": language or "en"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
     if task in {"tts", "vc"}:
         kwargs = {"language": language or "zh"}
         if metric:
@@ -255,29 +294,35 @@ def _describe_kwargs(
     return {}
 
 
-def _route_choices(routes: dict[str, Any]) -> list[dict[str, Any]]:
+def _route_choices(routes: dict[str, Any], *, language: str | None = None) -> list[dict[str, Any]]:
     choices = []
     for route in routes.get("routes") or ():
+        route_language = route.get("language") or language or "n/a"
+        pipeline_id = route.get("pipeline_id")
         choices.append(
             {
-                "route_id": route.get("route_id"),
-                "pipeline_id": route.get("pipeline_id"),
+                "pipeline_id": str(pipeline_id).format(language=route_language) if pipeline_id else None,
                 "language": route.get("language"),
                 "metric": route.get("metric"),
                 "nodes": list(route.get("nodes") or ()),
+                "computation_node_ids": list(route.get("computation_nodes") or route.get("nodes") or ()),
                 "input_contract": route.get("input_contract"),
+                "executor": route.get("executor"),
                 "selectors": {
                     key: value
                     for key, value in route.items()
                     if key
                     not in {
-                        "route_id",
                         "pipeline_id",
                         "language",
                         "metric",
                         "nodes",
+                        "computation_nodes",
                         "input_contract",
                         "executor",
+                        "internal_executor_metric",
+                        "executor_metric",
+                        "aliases",
                         "family",
                     }
                 },
@@ -286,11 +331,20 @@ def _route_choices(routes: dict[str, Any]) -> list[dict[str, Any]]:
     return choices
 
 
-def _match_selected_route(route_choices: list[dict[str, Any]], pipeline_id: str) -> dict[str, Any]:
+def _match_selected_routes(route_choices: list[dict[str, Any]], description) -> list[dict[str, Any]]:
+    if description.member_pipeline_ids:
+        return [
+            _match_route(route_choices, "pipeline_id", pipeline_id)
+            for pipeline_id in description.member_pipeline_ids
+        ]
+    return [_match_route(route_choices, "pipeline_id", description.pipeline_id)]
+
+
+def _match_route(route_choices: list[dict[str, Any]], key: str, value: str) -> dict[str, Any]:
     for route in route_choices:
-        if route.get("pipeline_id") == pipeline_id:
+        if route.get(key) == value:
             return route
-    return {"pipeline_id": pipeline_id, "nodes": []}
+    return {key: value, "pipeline_id": value, "nodes": []}
 
 
 def _node_slots(
@@ -368,6 +422,14 @@ def _run_kwargs_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
         metrics = _metrics_from_pipeline(pipeline, task=task)
         if metrics:
             kwargs["metrics"] = metrics
+    elif pipeline.get("pipeline_id"):
+        kwargs["pipeline_id"] = pipeline["pipeline_id"]
+        if pipeline.get("requested_metric"):
+            kwargs["metric"] = pipeline["requested_metric"]
+        elif pipeline.get("metric"):
+            kwargs["metric"] = pipeline["metric"]
+    elif pipeline.get("requested_metric"):
+        kwargs["metric"] = pipeline["requested_metric"]
     elif pipeline.get("metric"):
         kwargs["metric"] = pipeline["metric"]
     return kwargs

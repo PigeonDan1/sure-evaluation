@@ -1,16 +1,16 @@
-"""Mixed / English token error rate scoring (canonical family).
+"""Mixed / English token error rate scoring for canonical ASR routes.
 
-Applies the exact same token-level scorer as ``scoring/token_cer`` — one
-scorer, one tokenizer, three metric names. The family difference lives
-entirely in the normalization stage: for en/cs routes,
+Applies the exact same token-level scorer as ``scoring/token_cer``: one
+scorer and one tokenizer. Route differences live in the normalization stage
+and public pipeline IDs. For en/cs routes,
 ``normalization/canonical_itn`` additionally whisper-normalizes latin spans
 (contraction expansion, spoken numbers -> digits, spoken-filler removal,
 British->American spelling) before the shared canonical chain.
 
 Because the scorer and tokenizer are shared, the degeneration guarantees
 hold by construction: text without latin letters scores identically under
-mer_canonical and cer_canonical, and text without CJK scores identically
-under mer_canonical and wer_canonical.
+the canonical ASR MER and CER pipeline IDs, and text without CJK scores
+identically under the canonical ASR MER and WER pipeline IDs.
 """
 
 from __future__ import annotations

@@ -1,21 +1,24 @@
 task: TSE
 language_sensitive: true
 canonical_entry: sure_eval.evaluation.tasks.tse.pipeline.evaluate_tse_samples
-implemented_metric_families:
-  - signal_quality
-  - speaker_similarity
-  - mos
-  - semantic_error_rate
+implemented_metrics:
+  - si_sdr
+  - spk_sim
+  - dnsmos
+  - wv_mos
+  - utmos
+  - cer
+  - wer
 default_metrics:
   zh: si_sdr
   en: si_sdr
 default_pipelines:
   zh:
-    si_sdr: tse.zh.si_sdr.si_sdr
-    tse_cer: tse.zh.tse_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    si_sdr: tse.zh.si_sdr.si_sdr_v1
+    tse_cer: tse.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
   en:
-    si_sdr: tse.en.si_sdr.si_sdr
-    tse_wer: tse.en.tse_wer.whisper_large_v3.whisper_norm.wenet_wer
+    si_sdr: tse.en.si_sdr.si_sdr_v1
+    tse_wer: tse.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
 input_contracts:
   scoring/si_sdr:
     purpose: tse_signal_quality

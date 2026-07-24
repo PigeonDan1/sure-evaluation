@@ -11,7 +11,7 @@ Inspect environments:
 sure-eval agent plan asr --language zh --metric cer --json
 sure-eval env list --json
 sure-eval env check --node scoring/dnsmos --json
-sure-eval env check --task tts --language zh --metrics tts_cer,dnsmos --json
+sure-eval env check --task tts --language zh --metrics cer,dnsmos --json
 ```
 
 Use `agent plan` first when an agent or harness needs a single readiness

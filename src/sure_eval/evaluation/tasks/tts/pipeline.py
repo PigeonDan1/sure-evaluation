@@ -13,6 +13,13 @@ from sure_eval.evaluation.nodes.scoring._audio_quality_dispatch import (
     score_mos_metric,
     score_speaker_metric,
 )
+from sure_eval.evaluation.pipeline_identity import (
+    build_atomic_pipeline_id,
+    build_bundle_pipeline_id,
+    canonical_metric,
+    component_trace_ids,
+    node_component,
+)
 from sure_eval.evaluation.tasks.tts.types import TTSSample
 
 _TTS_SEMANTIC_TEXT_CONTRACT = MetricInputContract(
@@ -46,6 +53,9 @@ def evaluate_tts_samples(
     language = _common_language([sample.language for sample in samples])
     rows = [_base_row(sample) for sample in samples]
     results: dict[str, dict[str, Any]] = {}
+    result_keys: dict[str, str] = {}
+    metric_pipeline_ids: dict[str, str] = {}
+    metric_computation_nodes: dict[str, tuple[str, ...]] = {}
     trace = []
     scoring_result: dict[str, Any] | None = None
 
@@ -70,7 +80,13 @@ def evaluate_tts_samples(
             transcribers=transcribers,
         )
         semantic_result = _semantic_metric_result(metric_name, semantic)
-        results[metric_name] = semantic_result
+        semantic_components = _semantic_components(language=language, semantic=semantic)
+        semantic_pipeline_id = build_atomic_pipeline_id("tts", language, metric_name, semantic_components)
+        semantic_result["pipeline_id"] = semantic_pipeline_id
+        semantic_result["computation_node_ids"] = list(component_trace_ids(semantic_components))
+        metric_pipeline_ids[metric_name] = semantic_pipeline_id
+        metric_computation_nodes[metric_name] = component_trace_ids(semantic_components)
+        _store_result(results, result_keys, metric_name, semantic_result)
         trace.extend(semantic.trace)
         scoring_result = semantic_result["asr_result"]
 
@@ -82,7 +98,18 @@ def evaluate_tts_samples(
             metric_name=metric_name,
             speaker_providers=speaker_providers,
         )
-        results[metric_name] = speaker_result.details["result"]
+        speaker_result_payload = dict(speaker_result.details["result"])
+        speaker_result_payload["execution_metric"] = metric_name
+        result_key = _store_result(results, result_keys, metric_name, speaker_result_payload)
+        _record_atomic_metric(
+            task="tts",
+            language=language,
+            metric_name=metric_name,
+            result=results[result_key],
+            node_id=speaker_result.node_id,
+            metric_pipeline_ids=metric_pipeline_ids,
+            metric_computation_nodes=metric_computation_nodes,
+        )
         trace.append(speaker_result)
 
     mos_providers = dict(mos_providers or {})
@@ -93,13 +120,27 @@ def evaluate_tts_samples(
             metric_name=metric_name,
             mos_providers=mos_providers,
         )
-        results[metric_name] = mos_result.details["result"]
+        mos_result_payload = dict(mos_result.details["result"])
+        mos_result_payload["metric_name"] = canonical_metric(metric_name)
+        mos_result_payload["execution_metric"] = metric_name
+        result_key = _store_result(results, result_keys, metric_name, mos_result_payload)
+        _record_atomic_metric(
+            task="tts",
+            language=language,
+            metric_name=metric_name,
+            result=results[result_key],
+            node_id=mos_result.node_id,
+            metric_pipeline_ids=metric_pipeline_ids,
+            metric_computation_nodes=metric_computation_nodes,
+        )
         trace.append(mos_result)
 
     unsupported = [
         metric
         for metric in requested_metrics
-        if metric not in results and metric not in {"tts_wer", "tts_cer"} and not _is_speaker_metric(metric)
+        if metric not in result_keys
+        and metric not in {"tts_wer", "tts_cer"}
+        and not _is_speaker_metric(metric)
     ]
     if unsupported:
         raise ValueError(f"Unsupported TTS metric(s): {', '.join(unsupported)}")
@@ -111,32 +152,34 @@ def evaluate_tts_samples(
     if metric in {"tts_wer", "tts_cer"} and len(results) == 1:
         input_contract: MetricInputContract | None = _TTS_SEMANTIC_TEXT_CONTRACT
         input_contract.validate(input_files)
-        transcript_node = "paraformer_zh" if _uses_cer(language) else "whisper_large_v3"
-        asr_metric = _asr_metric_for_semantic(metric, language)
-        normalizer_label = _normalizer_label_from_asr_pipeline(results[metric]["asr_pipeline_id"])
-        if _uses_cer(language):
-            pipeline_id = (
-                f"tts.{language}.{metric}.funasr_loader_16k_mono."
-                f"{transcript_node}.{normalizer_label}.wenet_{asr_metric}"
-            )
-        else:
-            pipeline_id = (
-                f"tts.{language}.{metric}.{transcript_node}."
-                f"{normalizer_label}.wenet_{asr_metric}"
-            )
     else:
         input_contract = None
-        pipeline_id = f"tts.{language}.multi.audio_metric_nodes"
+    if len(requested_metrics) == 1:
+        pipeline_id = metric_pipeline_ids[metric]
+        pipeline_kind = "atomic"
+        member_pipeline_ids: tuple[str, ...] = ()
+        computation_node_ids = metric_computation_nodes[metric]
+    else:
+        pipeline_kind = "bundle"
+        member_pipeline_ids = tuple(metric_pipeline_ids[item] for item in requested_metrics)
+        pipeline_id = build_bundle_pipeline_id("tts", language, member_pipeline_ids)
+        computation_node_ids = _selected_metric_computation_nodes(
+            metric_computation_nodes,
+            requested_metrics,
+        )
 
     return EvaluationReport(
         task="TTS",
         language=language,
-        metric=metric,
-        score=float(results[requested_metrics[0]]["score"]),
+        metric=canonical_metric(metric),
+        score=float(results[result_keys[requested_metrics[0]]]["score"]),
         pipeline_id=pipeline_id,
         pipeline_trace=tuple(trace),
         input_contract=input_contract,
         input_files=input_files,
+        pipeline_kind=pipeline_kind,
+        member_pipeline_ids=member_pipeline_ids,
+        computation_node_ids=computation_node_ids,
         details={
             **({"scoring_result": scoring_result} if scoring_result is not None else {}),
             "results": results,
@@ -216,7 +259,8 @@ def _evaluate_semantic(
         references.append(sample.reference_text)
         hypotheses.append(transcript)
         rows[index - 1]["semantic"] = {
-            "metric": metric_name,
+            "metric": canonical_metric(metric_name),
+            "execution_metric": metric_name,
             "transcript": transcript,
             "reference_text": sample.reference_text,
             "asr_metric": asr_metric_for_semantic(metric_name, sample.language),
@@ -282,7 +326,9 @@ def _evaluate_mos(
     ]
     result = score_mos_metric(mos_rows, metric_name=metric_name, provider=provider)
     for row, per_sample in _zip_strict(rows, result.details["result"]["per_sample"]):
-        row.setdefault("mos", {})[metric_name] = per_sample
+        sample_payload = dict(per_sample)
+        sample_payload["execution_metric"] = metric_name
+        row.setdefault("mos", {})[canonical_metric(metric_name)] = sample_payload
     return result
 
 
@@ -315,6 +361,68 @@ def _asr_metric_for_semantic(metric: str, language: str) -> str:
     return "cer" if _uses_cer(language) else "wer"
 
 
+def _semantic_components(*, language: str, semantic) -> tuple:
+    from sure_eval.evaluation.nodes.transcription.common.audio_semantic import (
+        semantic_pipeline_components,
+    )
+
+    return semantic_pipeline_components(language, semantic.asr_report)
+
+
+def _record_atomic_metric(
+    *,
+    task: str,
+    language: str,
+    metric_name: str,
+    result: dict[str, Any],
+    node_id: str,
+    metric_pipeline_ids: dict[str, str],
+    metric_computation_nodes: dict[str, tuple[str, ...]],
+) -> None:
+    components = (node_component(node_id),)
+    pipeline_id = build_atomic_pipeline_id(task, language, metric_name, components)
+    computation_node_ids = component_trace_ids(components)
+    result["pipeline_id"] = pipeline_id
+    result["computation_node_ids"] = list(computation_node_ids)
+    metric_pipeline_ids[metric_name] = pipeline_id
+    metric_computation_nodes[metric_name] = computation_node_ids
+
+
+def _store_result(
+    results: dict[str, dict[str, Any]],
+    result_keys: dict[str, str],
+    metric_name: str,
+    result: dict[str, Any],
+) -> str:
+    result_key = canonical_metric(metric_name)
+    if result_key in results:
+        result_key = metric_name.replace("/", "_").replace("-", "_")
+    result_keys[metric_name] = result_key
+    results[result_key] = result
+    return result_key
+
+
+def _selected_metric_computation_nodes(
+    metric_computation_nodes: dict[str, tuple[str, ...]],
+    requested_metrics: list[str],
+) -> tuple[str, ...]:
+    nodes: list[str] = []
+    for metric_name in requested_metrics:
+        nodes.extend(metric_computation_nodes[metric_name])
+    return tuple(nodes)
+
+
+def _node_name_for_metric(metric_name: str) -> str:
+    return {
+        "sim/wavlm-large": "wavlm_large_sim",
+        "sim/ecapa-tdnn": "ecapa_tdnn_sim",
+        "sim/eres2net": "eres2net_sim",
+        "dnsmos": "dnsmos",
+        "wv-mos": "wv_mos",
+        "utmos": "utmos",
+    }[metric_name]
+
+
 def _common_language(languages: list[str]) -> str:
     unique = {language for language in languages if language}
     if len(unique) != 1:
@@ -332,8 +440,10 @@ def _zip_strict(*iterables):
 def _semantic_metric_result(metric_name: str, semantic) -> dict[str, Any]:
     rows = semantic.rows
     score_key = "cer" if semantic.asr_metric == "cer" else "wer"
+    result_metric = canonical_metric(metric_name)
     return {
-        "metric_name": metric_name,
+        "metric_name": result_metric,
+        "execution_metric": metric_name,
         "score": semantic.score,
         score_key: semantic.score,
         "num_samples": len(rows),

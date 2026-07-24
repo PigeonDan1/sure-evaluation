@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
+from sure_eval.evaluation.pipeline_identity import build_bundle_pipeline_id, canonical_metric
 from sure_eval.evaluation.scripts.contracts import (
     call_executor_path,
     contract_from_manifest,
@@ -14,7 +15,9 @@ from sure_eval.evaluation.scripts.contracts import (
     load_task_manifest,
     load_task_routes,
     normalize_metric_list,
-    route_pipeline_id,
+    route_computation_node_ids,
+    route_execution_metrics,
+    route_member_pipeline_ids,
     write_route_run_outputs,
 )
 from sure_eval.evaluation.tasks.se.types import SESample
@@ -25,10 +28,11 @@ DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
 def describe_pipeline(
     *, metrics: str | list[str] | tuple[str, ...] | None = None, language: str = "n/a"
 ):
-    manifest, manifest_path, routes, requested_metrics = _select_routes(metrics=metrics)
+    manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(metrics=metrics)
     return _describe_from_routes(
         manifest=manifest,
         manifest_path=manifest_path,
+        routes_path=routes_path,
         selected_routes=routes,
         requested_metrics=requested_metrics,
     )
@@ -38,6 +42,7 @@ def _describe_from_routes(
     *,
     manifest: dict[str, Any],
     manifest_path,
+    routes_path,
     selected_routes: tuple[dict[str, Any], ...],
     requested_metrics: tuple[str, ...],
 ):
@@ -46,11 +51,13 @@ def _describe_from_routes(
     for route in selected_routes:
         node_ids.extend(route["nodes"])
         contracts.append(contract_from_manifest(manifest, route["input_contract"]))
-    pipeline_metric = requested_metrics[0] if len(requested_metrics) == 1 else "multi"
+    pipeline_metric = canonical_metric(requested_metrics[0]) if len(requested_metrics) == 1 else "multi"
+    member_pipeline_ids = route_member_pipeline_ids(selected_routes)
+    pipeline_kind = "atomic" if len(selected_routes) == 1 else "bundle"
     pipeline_id = (
-        route_pipeline_id(selected_routes[0])
-        if len(selected_routes) == 1
-        else "se.multi.enhancement_quality_nodes"
+        member_pipeline_ids[0]
+        if pipeline_kind == "atomic"
+        else build_bundle_pipeline_id("se", "any", member_pipeline_ids)
     )
     return describe_from_contracts(
         task="SE",
@@ -60,12 +67,19 @@ def _describe_from_routes(
         node_ids=_dedupe(node_ids),
         contracts=tuple(contracts),
         task_config_path=manifest_path,
+        route_config_path=routes_path,
+        pipeline_kind=pipeline_kind,
+        member_pipeline_ids=() if pipeline_kind == "atomic" else member_pipeline_ids,
+        computation_node_ids=route_computation_node_ids(selected_routes),
+        execution_metrics=requested_metrics,
+        script_module=__name__,
+        executor=_shared_executor_path(selected_routes),
     )
 
 
 def _select_routes(*, metrics: str | list[str] | tuple[str, ...] | None = None):
     manifest, manifest_path = load_task_manifest("se")
-    routes_config, _ = load_task_routes("se")
+    routes_config, routes_path = load_task_routes("se")
     if isinstance(metrics, str):
         metrics = tuple(item.strip() for item in metrics.split(",") if item.strip())
     requested_metrics = normalize_metric_list(metrics, DEFAULT_METRICS)
@@ -73,7 +87,7 @@ def _select_routes(*, metrics: str | list[str] | tuple[str, ...] | None = None):
     selected_routes = [
         find_metric_route(routes_config, metric=metric) for metric in requested_metrics
     ]
-    return manifest, manifest_path, tuple(selected_routes), requested_metrics
+    return manifest, manifest_path, routes_path, tuple(selected_routes), route_execution_metrics(tuple(selected_routes))
 
 
 def run(
@@ -93,12 +107,13 @@ def run(
     )
     if not requested_metrics:
         requested_metrics = None
-    manifest, manifest_path, selected_routes, normalized_metrics = _select_routes(
+    manifest, manifest_path, routes_path, selected_routes, normalized_metrics = _select_routes(
         metrics=requested_metrics
     )
     description = _describe_from_routes(
         manifest=manifest,
         manifest_path=manifest_path,
+        routes_path=routes_path,
         selected_routes=selected_routes,
         requested_metrics=normalized_metrics,
     )

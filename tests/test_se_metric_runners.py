@@ -75,8 +75,11 @@ def test_se_pipeline_cli_runs_with_stub_backend(tmp_path: Path) -> None:
 
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["ok"] is True
-    assert report["report"]["pipeline_id"] == "se.multi.enhancement_quality_nodes"
-    assert report["metrics"]["si-sdr"]["score"] == 8.0
+    assert report["report"]["pipeline_id"] == (
+        "se.any.multi.si_sdr.si_sdr_v1__stoi.stoi_v1__pesq.pesq_v1__"
+        "dnsmos.dnsmos_v1__wv_mos.wv_mos_v1__utmos.utmos_v1"
+    )
+    assert report["metrics"]["si_sdr"]["score"] == 8.0
     assert report["metrics"]["stoi"]["score"] == 0.91
     assert report["metrics"]["pesq"]["score"] == 2.8
     assert report["metrics"]["dnsmos"]["score"] == 3.1
@@ -88,7 +91,12 @@ def test_se_script_describe_and_run_with_injected_providers(tmp_path: Path) -> N
 
     description = describe_pipeline(metrics=("si-sdr", "dnsmos"))
     assert description.task == "SE"
-    assert description.pipeline_id == "se.multi.enhancement_quality_nodes"
+    assert description.pipeline_id == "se.any.multi.si_sdr.si_sdr_v1__dnsmos.dnsmos_v1"
+    assert description.pipeline_kind == "bundle"
+    assert description.member_pipeline_ids == (
+        "se.any.si_sdr.si_sdr_v1",
+        "se.any.dnsmos.dnsmos_v1",
+    )
     assert description.node_ids == ("scoring/si_sdr", "scoring/dnsmos")
     assert description.required_roles == ("enhanced_audio", "reference_audio")
 
@@ -107,7 +115,7 @@ def test_se_script_describe_and_run_with_injected_providers(tmp_path: Path) -> N
         output_dir=str(tmp_path / "se_out"),
     )
 
-    assert report.pipeline_id == "se.multi.enhancement_quality_nodes"
+    assert report.pipeline_id == "se.any.multi.si_sdr.si_sdr_v1__dnsmos.dnsmos_v1"
     assert (tmp_path / "se_out" / "report.json").exists()
     assert (tmp_path / "se_out" / "pipeline_description.json").exists()
 
@@ -133,7 +141,7 @@ def test_sure_eval_metric_describe_run_se_si_sdr(tmp_path: Path) -> None:
     )
     assert describe.exit_code == 0, describe.stdout
     payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
-    assert payload["pipeline_id"] == "se.si_sdr.si_sdr"
+    assert payload["pipeline_id"] == "se.any.si_sdr.si_sdr_v1"
     assert payload["required_roles"] == ["samples_jsonl"]
 
     run = runner.invoke(
@@ -156,10 +164,10 @@ def test_sure_eval_metric_describe_run_se_si_sdr(tmp_path: Path) -> None:
     assert run.exit_code == 0, run.stdout
     summary = json.loads(run.stdout)
     assert summary["task"] == "SE"
-    assert summary["metric"] == "si-sdr"
+    assert summary["metric"] == "si_sdr"
     report = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
-    assert report["pipeline_id"] == "se.si_sdr.si_sdr"
-    assert report["details"]["results"]["si-sdr"]["score"] == report["score"]
+    assert report["pipeline_id"] == "se.any.si_sdr.si_sdr_v1"
+    assert report["details"]["results"]["si_sdr"]["score"] == report["score"]
 
 
 def test_metric_describe_run_se_default_metrics_with_injected_runtime(
@@ -217,4 +225,11 @@ def test_metric_describe_run_se_default_metrics_with_injected_runtime(
     assert summary["task"] == "SE"
     assert summary["metric"] == "multi"
     report = json.loads((tmp_path / "out" / "report.json").read_text(encoding="utf-8"))
-    assert list(report["details"]["results"]) == expected_metrics
+    assert list(report["details"]["results"]) == [
+        "si_sdr",
+        "stoi",
+        "pesq",
+        "dnsmos",
+        "wv_mos",
+        "utmos",
+    ]

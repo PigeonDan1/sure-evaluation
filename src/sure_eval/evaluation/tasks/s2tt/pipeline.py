@@ -11,6 +11,7 @@ from sure_eval.evaluation.core.types import (
 from sure_eval.evaluation.nodes.scoring.bleurt_20 import BLEURTRunner, score_bleurt_20
 from sure_eval.evaluation.nodes.scoring.sacrebleu import score_sacrebleu
 from sure_eval.evaluation.nodes.scoring.xcomet_xl import XCOMETRunner, score_xcomet_xl
+from sure_eval.evaluation.pipeline_identity import build_atomic_pipeline_id, component_trace_ids, node_component
 
 _SACREBLEU_CONTRACT = MetricInputContract(
     metric_id="scoring/sacrebleu",
@@ -69,7 +70,7 @@ def evaluate_s2tt_files(
             runner=xcomet_runner,
         )
         pipeline_profile = language
-        pipeline_suffix = "xcomet_xl"
+        components = (node_component("scoring/xcomet_xl"),)
     elif normalized_metric == "bleurt_20":
         input_files = EvaluationFiles.from_ref_hyp(ref_file=ref_file, hyp_file=hyp_file)
         input_contract = _BLEURT_20_CONTRACT
@@ -80,7 +81,7 @@ def evaluate_s2tt_files(
             runner=bleurt_runner,
         )
         pipeline_profile = language
-        pipeline_suffix = "bleurt_20"
+        components = (node_component("scoring/bleurt_20"),)
     else:
         input_files = EvaluationFiles.from_ref_hyp(ref_file=ref_file, hyp_file=hyp_file)
         input_contract = _SACREBLEU_CONTRACT
@@ -90,20 +91,22 @@ def evaluate_s2tt_files(
             language=language,
         )
         pipeline_profile = scoring_result.details["tokenizer_profile"]
-        pipeline_suffix = "sacrebleu"
+        components = (node_component("scoring/sacrebleu", profile=pipeline_profile),)
 
     trace = (scoring_result,)
     result = scoring_result.details["result"]
     result_key = normalized_metric if normalized_metric != "bleu_char" else "bleu_char"
+    pipeline_id = build_atomic_pipeline_id("s2tt", language, normalized_metric, components)
     return EvaluationReport(
         task="S2TT",
         language=language,
         metric=normalized_metric,
         score=float(result[result_key]),
-        pipeline_id=f"s2tt.{pipeline_profile}.{normalized_metric}.{pipeline_suffix}",
+        pipeline_id=pipeline_id,
         pipeline_trace=trace,
         input_contract=input_contract,
         input_files=input_files,
+        computation_node_ids=component_trace_ids(components),
         details={
             "scoring_result": result,
             "input_contract": input_contract.as_dict(),

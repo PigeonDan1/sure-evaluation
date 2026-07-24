@@ -1,12 +1,15 @@
 task: VC
 language_sensitive: true
 routes:
-  - route_id: vc.zh.vc_cer.text.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+  -
     language: zh
-    metric: vc_cer
+    metric: cer
+    aliases:
+      - vc_cer
+    executor_metric: vc_cer
     family: semantic_error_rate
     reference_mode: text
-    pipeline_id: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    pipeline_id: vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
     nodes:
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
@@ -14,12 +17,15 @@ routes:
       - scoring/wenet_cer
     input_contract: semantic/asr_error_rate_with_text
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.zh.vc_cer.audio.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+  -
     language: zh
-    metric: vc_cer
+    metric: cer
+    aliases:
+      - vc_cer
+    executor_metric: vc_cer
     family: semantic_error_rate
     reference_mode: audio
-    pipeline_id: vc.zh.vc_cer.funasr_loader_16k_mono.paraformer_zh.punctuation_strip_norm.wenet_cer
+    pipeline_id: vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
     nodes:
       - frontend/funasr_loader_16k_mono
       - transcription/paraformer_zh
@@ -29,24 +35,30 @@ routes:
       - scoring/wenet_cer
     input_contract: semantic/asr_error_rate_with_audio_reference
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.en.vc_wer.text.whisper_large_v3.whisper_norm.wenet_wer
+  -
     language: en
-    metric: vc_wer
+    metric: wer
+    aliases:
+      - vc_wer
+    executor_metric: vc_wer
     family: semantic_error_rate
     reference_mode: text
-    pipeline_id: vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer
+    pipeline_id: vc.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
     nodes:
       - transcription/whisper_large_v3
       - normalization/whisper_norm
       - scoring/wenet_wer
     input_contract: semantic/asr_error_rate_with_text
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.en.vc_wer.audio.whisper_large_v3.whisper_norm.wenet_wer
+  -
     language: en
-    metric: vc_wer
+    metric: wer
+    aliases:
+      - vc_wer
+    executor_metric: vc_wer
     family: semantic_error_rate
     reference_mode: audio
-    pipeline_id: vc.en.vc_wer.whisper_large_v3.whisper_norm.wenet_wer
+    pipeline_id: vc.en.wer.whisper_large_v3_v1.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
     nodes:
       - transcription/whisper_large_v3
       - transcription/whisper_large_v3
@@ -54,50 +66,65 @@ routes:
       - scoring/wenet_wer
     input_contract: semantic/asr_error_rate_with_audio_reference
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.any.sim_wavlm_large.wavlm_large_sim
-    metric: sim/wavlm-large
+  -
+    metric: spk_sim
+    method: wavlm_large
+    aliases:
+      - sim/wavlm-large
+    executor_metric: sim/wavlm-large
     family: speaker_similarity
-    pipeline_id: vc.{language}.multi.audio_metric_nodes
+    pipeline_id: vc.{language}.spk_sim.wavlm_large_sim_v1
     nodes:
       - scoring/wavlm_large_sim
     input_contract: scoring/wavlm_large_sim
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.any.sim_ecapa_tdnn.ecapa_tdnn_sim
-    metric: sim/ecapa-tdnn
+  -
+    metric: spk_sim
+    method: ecapa_tdnn
+    aliases:
+      - sim/ecapa-tdnn
+    executor_metric: sim/ecapa-tdnn
     family: speaker_similarity
-    pipeline_id: vc.{language}.multi.audio_metric_nodes
+    pipeline_id: vc.{language}.spk_sim.ecapa_tdnn_sim_v1
     nodes:
       - scoring/ecapa_tdnn_sim
     input_contract: scoring/ecapa_tdnn_sim
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.any.sim_eres2net.eres2net_sim
-    metric: sim/eres2net
+  -
+    metric: spk_sim
+    method: eres2net
+    aliases:
+      - sim/eres2net
+    executor_metric: sim/eres2net
     family: speaker_similarity
-    pipeline_id: vc.{language}.multi.audio_metric_nodes
+    pipeline_id: vc.{language}.spk_sim.eres2net_sim_v1
     nodes:
       - scoring/eres2net_sim
     input_contract: scoring/eres2net_sim
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.any.dnsmos.dnsmos
+  -
     metric: dnsmos
     family: mos
-    pipeline_id: vc.{language}.multi.audio_metric_nodes
+    pipeline_id: vc.{language}.dnsmos.dnsmos_v1
     nodes:
       - scoring/dnsmos
     input_contract: scoring/dnsmos
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.any.wv_mos.wv_mos
-    metric: wv-mos
+  -
+    metric: wv_mos
+    aliases:
+      - wv-mos
+    executor_metric: wv-mos
     family: mos
-    pipeline_id: vc.{language}.multi.audio_metric_nodes
+    pipeline_id: vc.{language}.wv_mos.wv_mos_v1
     nodes:
       - scoring/wv_mos
     input_contract: scoring/wv_mos
     executor: sure_eval.evaluation.tasks.vc.pipeline.evaluate_vc_samples
-  - route_id: vc.any.utmos.utmos
+  -
     metric: utmos
     family: mos
-    pipeline_id: vc.{language}.multi.audio_metric_nodes
+    pipeline_id: vc.{language}.utmos.utmos_v1
     nodes:
       - scoring/utmos
     input_contract: scoring/utmos

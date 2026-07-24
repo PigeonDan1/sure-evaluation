@@ -1,77 +1,80 @@
 task: ASR
 language_sensitive: true
 routes:
-  - route_id: asr.zh.cer.wetext_zh_itn.wenet_cer
+  -
     language: zh
     metric: cer
-    pipeline_id: asr.zh.cer.wetext_zh_itn.wenet_cer
+    pipeline_id: asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1
     nodes:
       - normalization/wetext_norm
       - scoring/wenet_cer
     input_contract: scoring/wenet_cer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
-  - route_id: asr.zh.cer.aispeech_norm.wenet_cer
+  -
     language: zh
     metric: cer
-    pipeline_id: asr.zh.cer.aispeech_norm.wenet_cer
+    pipeline_id: asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1
     nodes:
       - normalization/aispeech_norm
       - scoring/wenet_cer
     input_contract: scoring/wenet_cer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
     compatibility: legacy_sure_evaluator
-  - route_id: asr.en.wer.whisper_norm.wenet_wer
+  -
     language: en
     metric: wer
-    pipeline_id: asr.en.wer.whisper_norm.wenet_wer
+    pipeline_id: asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
     nodes:
       - normalization/whisper_norm
       - scoring/wenet_wer
     input_contract: scoring/wenet_wer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
-  - route_id: asr.en.wer.aispeech_norm.wenet_wer
+  -
     language: en
     metric: wer
-    pipeline_id: asr.en.wer.aispeech_norm.wenet_wer
+    pipeline_id: asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1
     nodes:
       - normalization/aispeech_norm
       - scoring/wenet_wer
     input_contract: scoring/wenet_wer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
     compatibility: legacy_sure_evaluator
-  - route_id: asr.zh.cer_canonical.canonical_itn.token_cer
+  -
     language: zh
-    metric: cer_canonical
-    pipeline_id: asr.zh.cer_canonical.canonical_itn.token_cer
+    metric: cer
+    internal_executor_metric: cer_canonical
+    pipeline_id: asr.zh.cer.canonical_itn_zh_v1.token_cer_v1
     nodes:
       - normalization/canonical_itn
       - scoring/token_cer
     input_contract: scoring/token_cer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
-  - route_id: asr.cs.mer_canonical.canonical_itn.token_mer
-    language: cs
-    metric: mer_canonical
-    pipeline_id: asr.cs.mer_canonical.canonical_itn.token_mer
-    nodes:
-      - normalization/canonical_itn
-      - scoring/token_mer
-    input_contract: scoring/token_mer
-    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
-  - route_id: asr.en.wer_canonical.canonical_itn.token_mer
-    language: en
-    metric: wer_canonical
-    pipeline_id: asr.en.wer_canonical.canonical_itn.token_mer
-    nodes:
-      - normalization/canonical_itn
-      - scoring/token_mer
-    input_contract: scoring/token_mer
-    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
-  - route_id: asr.cs.mer.aispeech_norm.wenet_mer
+  -
     language: cs
     metric: mer
-    pipeline_id: asr.cs.mer.aispeech_norm.wenet_mer
+    pipeline_id: asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1
     nodes:
       - normalization/aispeech_norm
       - scoring/wenet_mer
     input_contract: scoring/wenet_mer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: cs
+    metric: mer
+    internal_executor_metric: mer_canonical
+    pipeline_id: asr.cs.mer.canonical_itn_cs_v1.token_mer_v1
+    nodes:
+      - normalization/canonical_itn
+      - scoring/token_mer
+    input_contract: scoring/token_mer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: en
+    metric: wer
+    internal_executor_metric: wer_canonical
+    pipeline_id: asr.en.wer.canonical_itn_en_v1.token_mer_v1
+    nodes:
+      - normalization/canonical_itn
+      - scoring/token_mer
+    input_contract: scoring/token_mer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files

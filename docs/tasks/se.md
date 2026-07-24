@@ -4,17 +4,19 @@ SE evaluates enhanced speech generated from noisy input audio.
 
 ## Metrics
 
-| Metric | Family | Pipeline ID | Nodes | Required roles |
+| Canonical metric | Execution selector | Pipeline ID | Nodes | Required roles |
 | --- | --- | --- | --- | --- |
-| `si-sdr` | full-reference quality | `se.si_sdr.si_sdr` | `scoring/si_sdr` | `enhanced_audio`, `reference_audio` |
-| `stoi` | full-reference intelligibility | `se.stoi.stoi` | `scoring/stoi` | `enhanced_audio`, `reference_audio` |
-| `pesq` | full-reference perceptual quality | `se.pesq.pesq` | `scoring/pesq` | `enhanced_audio`, `reference_audio` |
-| `dnsmos` | no-reference quality | `se.dnsmos.dnsmos` | `scoring/dnsmos` | `enhanced_audio` |
-| `wv-mos` | no-reference quality | `se.wv_mos.wv_mos` | `scoring/wv_mos` | `enhanced_audio` |
-| `utmos` | no-reference quality | `se.utmos.utmos` | `scoring/utmos` | `enhanced_audio` |
+| `si_sdr` | `si_sdr` or `si-sdr` | `se.any.si_sdr.si_sdr_v1` | `scoring/si_sdr` | `enhanced_audio`, `reference_audio` |
+| `stoi` | `stoi` | `se.any.stoi.stoi_v1` | `scoring/stoi` | `enhanced_audio`, `reference_audio` |
+| `pesq` | `pesq` | `se.any.pesq.pesq_v1` | `scoring/pesq` | `enhanced_audio`, `reference_audio` |
+| `dnsmos` | `dnsmos` | `se.any.dnsmos.dnsmos_v1` | `scoring/dnsmos` | `enhanced_audio` |
+| `wv_mos` | `wv_mos` or `wv-mos` | `se.any.wv_mos.wv_mos_v1` | `scoring/wv_mos` | `enhanced_audio` |
+| `utmos` | `utmos` | `se.any.utmos.utmos_v1` | `scoring/utmos` | `enhanced_audio` |
 
 All SE metrics are higher-is-better and aggregate by mean over samples.
 `noisy_audio` is recorded when available and is optional for metric scoring.
+Multi-metric selections use bundle IDs such as
+`se.any.multi.si_sdr.si_sdr_v1__stoi.stoi_v1__pesq.pesq_v1__dnsmos.dnsmos_v1`.
 
 ## Samples JSONL
 
@@ -45,6 +47,15 @@ python scripts/run_se_metric_pipeline.py \
   --metrics si-sdr,stoi,pesq,dnsmos \
   --stub
 ```
+
+## Output
+
+- `report.json` — `score` for the first selected metric, canonical
+  `details.results` keys, and per-sample details.
+- `pipeline_description.json` — canonical `metric`, selected `pipeline_id`,
+  `pipeline_kind`, `member_pipeline_ids`, `execution_metrics`,
+  `computation_node_ids`, relative `task_config_path` / `route_config_path`,
+  `script_entrypoint`, `executor`, and node versions.
 
 ## Environment
 

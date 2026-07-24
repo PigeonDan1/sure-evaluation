@@ -30,6 +30,7 @@ Guarantees and caveats:
 
 Pair with `scoring/token_cer`, which applies the matching tokenization
 (CJK per char / latin words / digits per char) and rapidfuzz edit distance.
-Route: `asr.zh.cer_canonical.canonical_itn.token_cer` (metric
-`cer_canonical`). Empty-text rows are preserved (scored as deletions), and
-files with no parseable `<key>\t<text>` rows raise.
+Public selection uses the exact pipeline id
+`asr.zh.cer.canonical_itn_zh_v1.token_cer_v1`; the reported metric remains
+`cer`. Empty-text rows are preserved (scored as deletions), and files with no
+parseable `<key>\t<text>` rows raise.

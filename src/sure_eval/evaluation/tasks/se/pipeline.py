@@ -12,20 +12,18 @@ from sure_eval.evaluation.nodes.scoring._audio_quality_dispatch import (
     score_mos_metric,
 )
 from sure_eval.evaluation.nodes.scoring._full_reference_audio import PESQProvider, SISDRProvider, STOIProvider
+from sure_eval.evaluation.pipeline_identity import (
+    build_atomic_pipeline_id,
+    build_bundle_pipeline_id,
+    canonical_metric,
+    node_component,
+)
 from sure_eval.evaluation.tasks.se.types import SESample
 
 _ZIP_SENTINEL = object()
 _MOS_METRICS = {"dnsmos", "wv-mos", "utmos"}
 _FULL_REFERENCE_METRICS = {"si-sdr", "stoi", "pesq"}
 _DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
-_SINGLE_PIPELINE_IDS = {
-    "si-sdr": "se.si_sdr.si_sdr",
-    "stoi": "se.stoi.stoi",
-    "pesq": "se.pesq.pesq",
-    "dnsmos": "se.dnsmos.dnsmos",
-    "wv-mos": "se.wv_mos.wv_mos",
-    "utmos": "se.utmos.utmos",
-}
 
 _FULL_REFERENCE_CONTRACT = MetricInputContract(
     metric_id="scoring/full_reference_audio",
@@ -66,6 +64,7 @@ def evaluate_se_samples(
 
     rows = [_base_row(sample) for sample in samples]
     results: dict[str, dict[str, Any]] = {}
+    result_keys: dict[str, str] = {}
     trace = []
 
     reference_providers = dict(reference_providers or {})
@@ -76,7 +75,10 @@ def evaluate_se_samples(
             metric_name=metric_name,
             reference_providers=reference_providers,
         )
-        results[metric_name] = full_reference_result.details["result"]
+        full_reference_payload = dict(full_reference_result.details["result"])
+        full_reference_payload["metric_name"] = canonical_metric(metric_name)
+        full_reference_payload["execution_metric"] = metric_name
+        _store_result(results, result_keys, metric_name, full_reference_payload)
         trace.append(full_reference_result)
 
     mos_providers = dict(mos_providers or {})
@@ -87,7 +89,10 @@ def evaluate_se_samples(
             metric_name=metric_name,
             mos_providers=mos_providers,
         )
-        results[metric_name] = mos_result.details["result"]
+        mos_payload = dict(mos_result.details["result"])
+        mos_payload["metric_name"] = canonical_metric(metric_name)
+        mos_payload["execution_metric"] = metric_name
+        _store_result(results, result_keys, metric_name, mos_payload)
         trace.append(mos_result)
 
     if not results:
@@ -97,17 +102,28 @@ def evaluate_se_samples(
     metric = requested_metrics[0] if len(requested_metrics) == 1 else "multi"
     input_contract = _input_contract_for_metrics(requested_metrics)
     input_contract.validate(input_files)
-    pipeline_id = _SINGLE_PIPELINE_IDS[metric] if len(requested_metrics) == 1 else "se.multi.enhancement_quality_nodes"
+    member_pipeline_ids = tuple(_atomic_pipeline_id(metric_name) for metric_name in requested_metrics)
+    if len(requested_metrics) == 1:
+        pipeline_id = member_pipeline_ids[0]
+        pipeline_kind = "atomic"
+        report_member_pipeline_ids: tuple[str, ...] = ()
+    else:
+        pipeline_id = build_bundle_pipeline_id("se", "any", member_pipeline_ids)
+        pipeline_kind = "bundle"
+        report_member_pipeline_ids = member_pipeline_ids
 
     return EvaluationReport(
         task="SE",
         language="n/a",
-        metric=metric,
-        score=float(results[requested_metrics[0]]["score"]),
+        metric=canonical_metric(metric),
+        score=float(results[result_keys[requested_metrics[0]]]["score"]),
         pipeline_id=pipeline_id,
         pipeline_trace=tuple(trace),
         input_contract=input_contract,
         input_files=input_files,
+        pipeline_kind=pipeline_kind,
+        member_pipeline_ids=report_member_pipeline_ids,
+        computation_node_ids=tuple(_node_id_for_metric(item) for item in requested_metrics),
         details={
             "results": results,
             "rows": rows,
@@ -144,7 +160,9 @@ def _evaluate_full_reference(
         row_indexes.append(index)
     result = score_full_reference_metric(scoring_rows, metric_name=metric_name, provider=provider)
     for row_index, per_sample in _zip_strict(row_indexes, result.details["result"]["per_sample"]):
-        rows[row_index].setdefault("full_reference", {})[metric_name] = per_sample
+        sample_payload = dict(per_sample)
+        sample_payload["execution_metric"] = metric_name
+        rows[row_index].setdefault("full_reference", {})[canonical_metric(metric_name)] = sample_payload
     return result
 
 
@@ -164,8 +182,24 @@ def _evaluate_mos(
     ]
     result = score_mos_metric(mos_rows, metric_name=metric_name, provider=provider)
     for row, per_sample in _zip_strict(rows, result.details["result"]["per_sample"]):
-        row.setdefault("mos", {})[metric_name] = per_sample
+        sample_payload = dict(per_sample)
+        sample_payload["execution_metric"] = metric_name
+        row.setdefault("mos", {})[canonical_metric(metric_name)] = sample_payload
     return result
+
+
+def _store_result(
+    results: dict[str, dict[str, Any]],
+    result_keys: dict[str, str],
+    metric_name: str,
+    result: dict[str, Any],
+) -> str:
+    result_key = canonical_metric(metric_name)
+    if result_key in results:
+        result_key = metric_name.replace("/", "_").replace("-", "_")
+    result_keys[metric_name] = result_key
+    results[result_key] = result
+    return result_key
 
 
 def _default_reference_provider(metric_name: str):
@@ -220,6 +254,26 @@ def _normalize_metric(metric: str) -> str:
         "pesq": "pesq",
     }
     return aliases.get(normalized, normalized)
+
+
+def _atomic_pipeline_id(metric_name: str) -> str:
+    return build_atomic_pipeline_id(
+        "se",
+        "any",
+        metric_name,
+        (node_component(_node_id_for_metric(metric_name)),),
+    )
+
+
+def _node_id_for_metric(metric_name: str) -> str:
+    return {
+        "si-sdr": "scoring/si_sdr",
+        "stoi": "scoring/stoi",
+        "pesq": "scoring/pesq",
+        "dnsmos": "scoring/dnsmos",
+        "wv-mos": "scoring/wv_mos",
+        "utmos": "scoring/utmos",
+    }[metric_name]
 
 
 def _zip_strict(*iterables):
