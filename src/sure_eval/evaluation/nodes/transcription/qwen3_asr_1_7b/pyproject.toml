@@ -1,0 +1,22 @@
+[project]
+name = "sure-eval-transcription-qwen3-asr-1-7b"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=0.33.0",
+    "numpy>=1.24.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pytest>=8.0.0",
+    "pyyaml>=6.0.0",
+    "qwen-asr==0.0.6",
+    "rich>=13.0.0",
+    "safetensors>=0.4.0",
+    "structlog>=23.0.0",
+    "torch>=2.5.0",
+    "torchaudio>=2.5.0",
+    "transformers>=4.57.0",
+]
+
+[tool.uv]
+package = false

@@ -14,7 +14,20 @@ Semantic routes:
 | Language | Canonical metric | Execution selector | Transcription node | Normalization node | Downstream ASR metric |
 | --- | --- | --- | --- | --- | --- |
 | `zh` / `cmn` / `yue` | `cer` | `tts_cer` | `transcription/paraformer_zh` | `normalization/punctuation_strip_norm` | `cer` |
+| `zh` | `cer` | exact `pipeline_id` | `transcription/qwen3_asr_1_7b` | `normalization/punctuation_strip_norm` | `cer` |
 | `en` | `wer` | `tts_wer` | `transcription/whisper_large_v3` | `normalization/whisper_norm` | `wer` |
+| `en` | `wer` | exact `pipeline_id` | `transcription/qwen3_asr_1_7b` | `normalization/whisper_norm` | `wer` |
+
+`tts_cer` and `tts_wer` keep the default Paraformer-ZH and Whisper-large-v3
+routes. Qwen3-ASR-1.7B routes keep the same reported metric and scorer, and are
+selected by exact `pipeline_id`:
+
+- `tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1`
+- `tts.en.wer.qwen3_asr_1_7b_v1.whisper_norm_english_v1.wenet_wer_v1`
+
+The Qwen node passes audio paths to the `qwen-asr` runtime. Decode, mono
+conversion, and 16 kHz resampling are runtime-managed and recorded in trace
+metadata, not modeled as a separate frontend node.
 
 Speaker similarity and MOS routes:
 

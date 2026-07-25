@@ -182,6 +182,20 @@ normalization/punctuation_strip_norm -> scoring/wenet_cer`. This strips
 punctuation only and does not use `normalization/aispeech_norm` unless an
 explicit semantic normalizer selects it.
 
+Qwen3-ASR-1.7B is available as an alternate TTS semantic transcription route
+for the same reported CER/WER metrics. Select it with exact `pipeline_id`, for
+example:
+
+```bash
+sure-eval metric describe tts \
+  --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
+  --output /tmp/tts_qwen_pipeline.json \
+  --json
+```
+
+The Qwen node records decode, mono conversion, and 16 kHz resampling as
+runtime-managed trace metadata rather than as a separate frontend node.
+
 TTS rows use explicit roles:
 
 ```json

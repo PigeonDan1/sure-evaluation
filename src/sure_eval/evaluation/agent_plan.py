@@ -22,6 +22,7 @@ def build_agent_plan(
     language: str | None = None,
     metric: str | None = None,
     metrics: str | list[str] | tuple[str, ...] | None = None,
+    pipeline_id: str | None = None,
     include_root_env: bool = True,
 ) -> dict[str, Any]:
     """Build a deterministic route/env plan without executing metrics.
@@ -31,17 +32,23 @@ def build_agent_plan(
     setup command should be shown before a scoring run.
     """
 
-    if metric and metrics:
-        raise ValueError("Use only one of metric or metrics")
-
-    selected_metrics = _requested_metrics(
-        task=task,
-        language=language,
-        metric=metric,
-        metrics=metrics,
-    )
     checker = NodeEnvChecker()
-    routes = [_route_plan(task, language=language, metric=item, checker=checker) for item in selected_metrics]
+    if pipeline_id:
+        if metric or metrics:
+            raise ValueError("Use either pipeline_id or metric/metrics")
+        spec = build_pipeline_spec(task, language=language, pipeline_id=pipeline_id)
+        selected_metrics = _metrics_from_spec(spec)
+        routes = [_route_plan_from_spec(spec, metric=selected_metrics[0], checker=checker)]
+    else:
+        if metric and metrics:
+            raise ValueError("Use only one of metric or metrics")
+        selected_metrics = _requested_metrics(
+            task=task,
+            language=language,
+            metric=metric,
+            metrics=metrics,
+        )
+        routes = [_route_plan(task, language=language, metric=item, checker=checker) for item in selected_metrics]
     root_env = _root_env_payload() if include_root_env else {"status": "skipped", "checks": []}
     blocking_issues = _blocking_issues(root_env=root_env, routes=routes)
 
@@ -97,6 +104,15 @@ def _route_plan(
     checker: NodeEnvChecker,
 ) -> dict[str, Any]:
     spec = build_pipeline_spec(task, language=language, metric=metric)
+    return _route_plan_from_spec(spec, metric=metric, checker=checker)
+
+
+def _route_plan_from_spec(
+    spec: dict[str, Any],
+    *,
+    metric: str,
+    checker: NodeEnvChecker,
+) -> dict[str, Any]:
     checks = [_node_env_payload(checker, str(node["node_id"])) for node in spec.get("nodes") or ()]
     blocking = [item for item in checks if item.get("blocking")]
     warnings = [item for item in checks if item.get("status") == "warning"]
@@ -140,6 +156,15 @@ def _route_plan(
         "setup_required": bool(blocking),
         "can_run_now": not blocking,
     }
+
+
+def _metrics_from_spec(spec: dict[str, Any]) -> list[str]:
+    values = [str(item).lower() for item in spec.get("metrics") or ()]
+    if not values and spec.get("requested_metric"):
+        values = [str(spec["requested_metric"]).lower()]
+    if not values and spec.get("metric") and spec["metric"] != "multi":
+        values = [str(spec["metric"]).lower()]
+    return values or [str(spec.get("pipeline_id") or "pipeline")]
 
 
 def _node_env_payload(checker: NodeEnvChecker, node_id: str) -> dict[str, Any]:

@@ -72,6 +72,8 @@ Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
 
 For a machine-readable catalog of every metric → pipeline → node mapping, see [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) and [docs/pipeline_catalog.md](./docs/pipeline_catalog.md).
 For agent-facing route and environment readiness, see [docs/agent_contract.md](./docs/agent_contract.md).
+TTS CER/WER defaults remain Paraformer-ZH and Whisper-large-v3; Qwen3-ASR-1.7B
+TTS alternatives are selected by exact `pipeline_id`.
 
 Click any task in the CLI for its route:
 
@@ -107,6 +109,7 @@ Prepare a heavy metric environment:
 sure-eval env list
 sure-eval env setup --task asr --language zh --metric cer --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
+sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos
 ```
 

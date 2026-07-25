@@ -19,6 +19,9 @@ workflow.
    ```bash
    sure-eval agent plan asr --language zh --metric cer --json
    sure-eval agent plan tts --language zh --metrics cer,spk_sim --json
+   sure-eval agent plan tts \
+     --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
+     --json
    ```
 
    The plan resolves the configured pipeline from `tasks/<task>/routes.yaml`,
@@ -105,5 +108,8 @@ catalog is canonical. When one metric has multiple route variants, agents
 should select the exact `pipeline_id`. Compatibility aliases and method
 selectors are recorded as `execution_metrics`; for example,
 `sim/wavlm-large` executes a `spk_sim` pipeline through the WavLM node.
+For example, TTS `cer` defaults to the Paraformer-ZH route, while
+`tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1`
+selects the Qwen3-ASR-1.7B transcription route for the same reported metric.
 Multi-metric requests are `pipeline_kind=bundle` and list atomic members in
 `member_pipeline_ids`.

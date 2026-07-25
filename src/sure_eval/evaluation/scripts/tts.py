@@ -12,6 +12,7 @@ from sure_eval.evaluation.scripts.contracts import (
     contract_from_manifest,
     describe_from_contracts,
     find_metric_route,
+    find_pipeline_route,
     load_task_manifest,
     load_task_routes,
     normalize_metric_list,
@@ -27,12 +28,17 @@ def _semantic_metric_for_language(language: str) -> str:
     return "tts_cer" if language.lower().startswith(("zh", "cmn", "yue")) else "tts_wer"
 
 
-def describe_pipeline(*, language: str, metrics: str | list[str] | tuple[str, ...] | None = None):
-    manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(
-        language=language, metrics=metrics
+def describe_pipeline(
+    *,
+    language: str | None = None,
+    metrics: str | list[str] | tuple[str, ...] | None = None,
+    pipeline_id: str | None = None,
+):
+    manifest, manifest_path, routes_path, resolved_language, routes, requested_metrics = _select_routes(
+        language=language, metrics=metrics, pipeline_id=pipeline_id
     )
     return _describe_from_routes(
-        language=language,
+        language=resolved_language,
         manifest=manifest,
         manifest_path=manifest_path,
         routes_path=routes_path,
@@ -85,21 +91,48 @@ def _describe_from_routes(
 
 def _select_routes(
     *,
-    language: str,
+    language: str | None,
     metrics: str | list[str] | tuple[str, ...] | None = None,
+    pipeline_id: str | None = None,
 ):
+    if metrics is not None and pipeline_id:
+        raise ValueError("Use either metrics or pipeline_id, not both")
     manifest, manifest_path = load_task_manifest("tts")
     routes_config, routes_path = load_task_routes("tts")
+    if pipeline_id:
+        route = find_pipeline_route(routes_config, pipeline_id=pipeline_id, language=language)
+        resolved_language = str(route.get("language") or _language_from_pipeline_id(pipeline_id) or language or "zh")
+        selected_routes = (route,)
+        return (
+            manifest,
+            manifest_path,
+            routes_path,
+            resolved_language,
+            selected_routes,
+            route_execution_metrics(selected_routes),
+        )
+
+    resolved_language = language or "zh"
     requested_metrics = normalize_metric_list(
         metrics,
-        (manifest.get("default_metrics", {}).get(language) or _semantic_metric_for_language(language),),
+        (
+            manifest.get("default_metrics", {}).get(resolved_language)
+            or _semantic_metric_for_language(resolved_language),
+        ),
     )
     selected_routes: list[dict[str, Any]] = []
 
     for metric in requested_metrics:
-        selected_routes.append(find_metric_route(routes_config, metric=metric, language=language))
+        selected_routes.append(find_metric_route(routes_config, metric=metric, language=resolved_language))
 
-    return manifest, manifest_path, routes_path, tuple(selected_routes), route_execution_metrics(tuple(selected_routes))
+    return (
+        manifest,
+        manifest_path,
+        routes_path,
+        resolved_language,
+        tuple(selected_routes),
+        route_execution_metrics(tuple(selected_routes)),
+    )
 
 
 def run(
@@ -112,17 +145,19 @@ def run(
     mos_providers: Mapping[str, Any] | None = None,
     device: str = "cuda",
     cache_dir: str | Path | None = None,
+    pipeline_id: str | None = None,
 ):
     if not output_dir:
         raise ValueError("output_dir is required")
     language = _common_language([sample.language for sample in samples])
     requested_metrics = tuple(metric.lower() for metric in metrics) if metrics is not None else None
-    manifest, manifest_path, routes_path, selected_routes, normalized_metrics = _select_routes(
+    manifest, manifest_path, routes_path, resolved_language, selected_routes, normalized_metrics = _select_routes(
         language=language,
         metrics=requested_metrics,
+        pipeline_id=pipeline_id,
     )
     description = _describe_from_routes(
-        language=language,
+        language=resolved_language,
         manifest=manifest,
         manifest_path=manifest_path,
         routes_path=routes_path,
@@ -133,9 +168,11 @@ def run(
         _shared_executor_path(selected_routes),
         samples=samples,
         metrics=normalized_metrics,
+        semantic_transcription_node=_semantic_transcription_node(selected_routes),
         transcribers=_default_transcribers(
-            language=language,
+            language=resolved_language,
             metrics=normalized_metrics,
+            semantic_transcription_node=_semantic_transcription_node(selected_routes),
             transcribers=transcribers,
             device=device,
             cache_dir=cache_dir,
@@ -165,12 +202,22 @@ def _default_transcribers(
     *,
     language: str,
     metrics: tuple[str, ...],
+    semantic_transcription_node: str | None,
     transcribers: Mapping[str, Any] | None,
     device: str,
     cache_dir: str | Path | None,
 ) -> Mapping[str, Any] | None:
     if transcribers is not None or not (set(metrics) & {"tts_wer", "tts_cer"}):
         return transcribers
+
+    if semantic_transcription_node == "transcription/qwen3_asr_1_7b":
+        from sure_eval.evaluation.nodes.transcription.qwen3_asr_1_7b.node import DEFAULT_CACHE_DIR as DEFAULT_QWEN_CACHE_DIR
+        from sure_eval.evaluation.nodes.transcription.common.providers import Qwen3ASR17BTranscriber
+
+        cache_path = Path(cache_dir) if cache_dir is not None else DEFAULT_QWEN_CACHE_DIR
+        semantic_cache = cache_path / "semantic" if cache_dir is not None else cache_path
+        family = "zh" if language.lower().startswith(("zh", "cmn", "yue")) else "en"
+        return {family: Qwen3ASR17BTranscriber(device=device, cache_dir=semantic_cache)}
 
     if language.lower().startswith(("zh", "cmn", "yue")):
         from sure_eval.evaluation.nodes.transcription.paraformer_zh.node import DEFAULT_CACHE_DIR as DEFAULT_PARAFORMER_CACHE_DIR
@@ -193,3 +240,20 @@ def _common_language(languages: list[str]) -> str:
     if len(unique) != 1:
         raise ValueError("TTS script route requires one language per call")
     return unique.pop()
+
+
+def _semantic_transcription_node(selected_routes: tuple[dict[str, Any], ...]) -> str | None:
+    for route in selected_routes:
+        if route.get("family") != "semantic_error_rate":
+            continue
+        for node_id in route.get("nodes") or ():
+            if str(node_id).startswith("transcription/"):
+                return str(node_id)
+    return None
+
+
+def _language_from_pipeline_id(pipeline_id: str) -> str | None:
+    parts = str(pipeline_id).split(".")
+    if len(parts) > 1 and parts[1]:
+        return parts[1]
+    return None

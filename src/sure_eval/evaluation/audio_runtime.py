@@ -15,6 +15,7 @@ def build_tts_runtime(
     language: str,
     device: str = "cuda",
     cache_dir: str | Path | None = None,
+    transcription_node_id: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Build the injected runtime objects needed by ``evaluate_tts_samples``."""
 
@@ -23,6 +24,7 @@ def build_tts_runtime(
         language=language,
         device=device,
         cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("tts"),
+        transcription_node_id=transcription_node_id,
     )
 
 
@@ -40,6 +42,7 @@ def build_vc_runtime(
         language=language,
         device=device,
         cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("vc"),
+        transcription_node_id=None,
     )
 
 
@@ -57,6 +60,7 @@ def build_se_runtime(
         language="n/a",
         device=device,
         cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("se"),
+        transcription_node_id=None,
     )
     reference_providers: dict[str, Any] = {}
     if "si-sdr" in requested:
@@ -91,6 +95,7 @@ def build_tse_runtime(
         language=language,
         device=device,
         cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("tse"),
+        transcription_node_id=None,
     )
 
 
@@ -100,6 +105,7 @@ def _build_audio_runtime(
     language: str,
     device: str,
     cache_dir: Path,
+    transcription_node_id: str | None,
 ) -> dict[str, dict[str, Any]]:
     requested = {metric.lower() for metric in metrics}
     transcribers: dict[str, Any] = {}
@@ -107,7 +113,20 @@ def _build_audio_runtime(
     mos_providers: dict[str, Any] = {}
 
     if requested & {"tts_wer", "tts_cer", "vc_wer", "vc_cer", "tse_wer", "tse_cer"}:
-        if language.lower().startswith(("zh", "cmn", "yue")):
+        if transcription_node_id == "transcription/qwen3_asr_1_7b":
+            from sure_eval.evaluation.nodes.transcription.common.providers import (
+                NodeLocalTranscriber,
+            )
+
+            family = "zh" if language.lower().startswith(("zh", "cmn", "yue")) else "en"
+            transcribers[family] = NodeLocalTranscriber(
+                node_id="transcription/qwen3_asr_1_7b",
+                node_dir=NODES_ROOT / "transcription" / "qwen3_asr_1_7b",
+                device=device,
+            )
+        elif transcription_node_id not in {None, "transcription/paraformer_zh", "transcription/whisper_large_v3"}:
+            raise ValueError(f"Unsupported semantic transcription node: {transcription_node_id}")
+        elif language.lower().startswith(("zh", "cmn", "yue")):
             from sure_eval.evaluation.nodes.transcription.common.providers import (
                 NodeLocalTranscriber,
             )

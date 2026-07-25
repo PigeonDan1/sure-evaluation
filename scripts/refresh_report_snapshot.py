@@ -26,7 +26,7 @@ def main() -> int:
     report_manager = ReportManager()
     sota_manager = SOTAManager()
 
-    markdown = report_manager.generate_markdown_report(args.markdown)
+    report_manager.generate_markdown_report(args.markdown)
     summary = {
         "num_models": len(report_manager.list_models()),
         "num_sota_datasets": len(sota_manager.list_datasets()),

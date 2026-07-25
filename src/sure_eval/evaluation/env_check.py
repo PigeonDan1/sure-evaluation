@@ -26,6 +26,7 @@ NODE_LOCAL_PROJECTS = {
     "scoring/utmos",
     "scoring/xcomet_xl",
     "transcription/paraformer_zh",
+    "transcription/qwen3_asr_1_7b",
     "transcription/whisper_large_v3",
 }
 
@@ -67,6 +68,10 @@ DEFAULT_CHECKPOINTS_BY_NODE = {
     "transcription/paraformer_zh": (
         "PARAFORMER_ZH_CHECKPOINT",
         "checkpoints/modelscope/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch/model.pt",
+    ),
+    "transcription/qwen3_asr_1_7b": (
+        "QWEN3_ASR_1_7B_CHECKPOINT",
+        "checkpoints/huggingface/hub/models--Qwen--Qwen3-ASR-1.7B",
     ),
     "transcription/whisper_large_v3": (
         "WHISPER_LARGE_V3_CHECKPOINT",

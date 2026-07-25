@@ -1,0 +1,42 @@
+id: transcription/qwen3_asr_1_7b
+version: v1
+stage: transcription
+language_sensitive: true
+languages: [zh, en]
+input_schema: audio_path
+output_schema: transcript_text
+implementation: sure_eval.evaluation.nodes.transcription.qwen3_asr_1_7b.node
+default_runner: sure_eval.evaluation.nodes.transcription.Qwen3ASR17BTranscriber
+runtime:
+  package: qwen-asr
+  package_version: 0.0.6
+  model_id: Qwen/Qwen3-ASR-1.7B
+  backend: transformers
+audio_frontend:
+  audio_input_mode: path
+  audio_frontend_policy: runtime_managed
+  resample_policy: qwen_asr_runtime_managed
+  runtime_audio_normalizer: qwen_asr.inference.utils.normalize_audio_input
+  runtime_normalized_sample_rate_hz: 16000
+  runtime_normalized_channels: 1
+  runtime_audio_dtype: float32
+  external_frontend_node:
+inference_defaults:
+  dtype: auto_bfloat16_cuda_else_float32
+  device_map: cuda:0
+  max_inference_batch_size: 32
+  max_new_tokens: 256
+  timestamps_enabled: false
+  forced_aligner:
+internal_stages:
+  - runtime_managed_audio_frontend
+  - asr_inference
+  - text_extraction
+used_by:
+  - TTS semantic CER alternative route
+  - TTS semantic WER alternative route
+notes:
+  - The qwen-asr runtime accepts path input and manages decode, mono conversion, 16 kHz resampling, and float32 normalization internally.
+  - This node does not expose a separate frontend/downsampling node; preprocessing is recorded in trace details as runtime_managed.
+  - The node can receive an injected runner for tests and lightweight smoke checks.
+  - CER/WER scoring is calculated by the ASR task route after transcription.

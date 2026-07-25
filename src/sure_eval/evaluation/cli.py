@@ -226,6 +226,9 @@ def agent_plan(
     language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
     metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Single metric name"),
     metrics: Optional[str] = typer.Option(None, "--metrics", help="Comma-separated metric names"),
+    pipeline_id: Optional[str] = typer.Option(
+        None, "--pipeline-id", help="Exact atomic pipeline_id to plan"
+    ),
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Write plan JSON to this path"
     ),
@@ -236,6 +239,8 @@ def agent_plan(
     selected_task = task_opt or task_arg
     if not selected_task:
         raise typer.BadParameter("Task is required as an argument or --task")
+    if pipeline_id and (metric or metrics):
+        raise typer.BadParameter("Use either --pipeline-id or --metric/--metrics")
     if metric and metrics:
         raise typer.BadParameter("Use only one of --metric or --metrics")
 
@@ -245,6 +250,7 @@ def agent_plan(
             language=language,
             metric=metric,
             metrics=metrics,
+            pipeline_id=pipeline_id,
         )
     except Exception as exc:
         _print_error(exc, json_output=json_output)

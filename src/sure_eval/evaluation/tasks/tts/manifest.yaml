@@ -16,6 +16,11 @@ default_pipelines:
     tts_cer: tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
   en:
     tts_wer: tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
+alternative_pipelines:
+  zh:
+    tts_cer_qwen3_asr_1_7b: tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1
+  en:
+    tts_wer_qwen3_asr_1_7b: tts.en.wer.qwen3_asr_1_7b_v1.whisper_norm_english_v1.wenet_wer_v1
 input_contracts:
   audio_samples_jsonl:
     purpose: tts_cli_audio_samples_batch_input
@@ -87,6 +92,13 @@ pipeline_nodes:
     normalization: normalization/whisper_norm
     downstream_task: ASR
     downstream_metric: wer
+  qwen3_asr_1_7b:
+    transcription: transcription/qwen3_asr_1_7b
+    downstream_task: ASR
+    frontend_policy: runtime_managed
+    audio_input_mode: path
+    runtime_normalized_sample_rate_hz: 16000
+    route_selection: exact_pipeline_id
   speaker_similarity:
     wavlm-large: scoring/wavlm_large_sim
     ecapa-tdnn: scoring/ecapa_tdnn_sim
@@ -101,6 +113,8 @@ notes:
   - Semantic WER/CER must transcribe audio first, then call the canonical ASR scoring path.
   - Mandarin semantic CER uses punctuation-only normalization before WeNet CER and does not use AISpeech number text normalization by default.
   - English semantic WER uses OpenAI Whisper English normalization before WeNet WER.
+  - Qwen3-ASR-1.7B TTS semantic routes are alternatives selected by exact pipeline_id; they do not replace the default Paraformer-ZH or Whisper-large-v3 routes.
+  - Qwen3-ASR-1.7B audio decode, mono conversion, and 16 kHz resampling are managed inside the qwen-asr runtime and are recorded as runtime_managed trace metadata, not as a separate frontend node.
   - WeTextProcessing profiles are available only through explicit semantic_normalizer arguments and do not change default TTS routes.
   - Mandarin CER keeps CV3-compatible Paraformer execution by passing the original audio path to FunASR AutoModel.generate; frontend/funasr_loader_16k_mono records the internal loader contract.
   - Speaker similarity and MOS use concrete backend scoring nodes with provider-backed model execution.

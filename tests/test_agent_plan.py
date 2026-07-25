@@ -57,6 +57,33 @@ def test_agent_plan_accepts_task_option_for_non_positional_callers() -> None:
     ]
 
 
+def test_agent_plan_accepts_tts_qwen_pipeline_id() -> None:
+    runner = CliRunner()
+    qwen_pipeline_id = "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+
+    result = runner.invoke(
+        app,
+        ["agent", "plan", "tts", "--pipeline-id", qwen_pipeline_id, "--json"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["metrics"] == ["tts_cer"]
+    route = payload["selected_routes"][0]
+    assert route["pipeline_id"] == qwen_pipeline_id
+    assert route["metric"] == "tts_cer"
+    assert route["resolved_metric"] == "cer"
+    assert [node["node_id"] for node in route["nodes"]] == [
+        "transcription/qwen3_asr_1_7b",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+    qwen_check = next(
+        check for check in route["env_checks"] if check["node_id"] == "transcription/qwen3_asr_1_7b"
+    )
+    assert qwen_check["runtime"] == "node_local_project"
+
+
 def test_agent_plan_reports_blocking_setup_hints(monkeypatch) -> None:
     from sure_eval.evaluation import agent_plan
 

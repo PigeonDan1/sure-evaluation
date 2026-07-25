@@ -17,6 +17,19 @@ routes:
     input_contract: semantic/asr_error_rate
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
   -
+    language: zh
+    metric: cer
+    method: qwen3_asr_1_7b
+    executor_metric: tts_cer
+    family: semantic_error_rate
+    pipeline_id: tts.{language}.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1
+    nodes:
+      - transcription/qwen3_asr_1_7b
+      - normalization/punctuation_strip_norm
+      - scoring/wenet_cer
+    input_contract: semantic/asr_error_rate
+    executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
+  -
     language: en
     metric: wer
     aliases:
@@ -26,6 +39,19 @@ routes:
     pipeline_id: tts.{language}.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1
     nodes:
       - transcription/whisper_large_v3
+      - normalization/whisper_norm
+      - scoring/wenet_wer
+    input_contract: semantic/asr_error_rate
+    executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
+  -
+    language: en
+    metric: wer
+    method: qwen3_asr_1_7b
+    executor_metric: tts_wer
+    family: semantic_error_rate
+    pipeline_id: tts.{language}.wer.qwen3_asr_1_7b_v1.whisper_norm_english_v1.wenet_wer_v1
+    nodes:
+      - transcription/qwen3_asr_1_7b
       - normalization/whisper_norm
       - scoring/wenet_wer
     input_contract: semantic/asr_error_rate

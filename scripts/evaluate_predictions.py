@@ -206,7 +206,16 @@ def _git_state() -> dict[str, Any]:
 def _runtime_versions(pipeline_description: dict[str, Any] | None = None) -> dict[str, Any]:
     packages = {
         name: _package_version(name)
-        for name in ("sure-eval", "torch", "transformers", "funasr", "sacrebleu", "meeteval", "PyYAML")
+        for name in (
+            "sure-eval",
+            "torch",
+            "transformers",
+            "funasr",
+            "qwen-asr",
+            "sacrebleu",
+            "meeteval",
+            "PyYAML",
+        )
     }
     nodes = []
     if pipeline_description:

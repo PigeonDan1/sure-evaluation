@@ -116,6 +116,46 @@ def test_tts_en_semantic_route_reuses_asr_wer_pipeline() -> None:
     assert report.details["scoring_result"] == report.details["results"]["wer"]["asr_result"]
 
 
+def test_tts_qwen_semantic_route_records_runtime_managed_frontend() -> None:
+    from sure_eval.evaluation.tasks.tts.pipeline import evaluate_tts_samples
+    from sure_eval.evaluation.tasks.tts.compat import TTSSample
+
+    transcriber = RecordingTranscriber({"hyp.wav": "你好世界"})
+    report = evaluate_tts_samples(
+        [
+            TTSSample(
+                prediction_audio="hyp.wav",
+                reference_text="你好世界",
+                reference_audio="ref.wav",
+                language="zh",
+                sample_id="utt1",
+            )
+        ],
+        metrics=("tts_cer",),
+        semantic_transcription_node="transcription/qwen3_asr_1_7b",
+        transcribers={"zh": transcriber},
+    )
+
+    assert report.pipeline_id == (
+        "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+    )
+    assert [node.node_id for node in report.pipeline_trace] == [
+        "transcription/qwen3_asr_1_7b",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+    qwen_trace = report.pipeline_trace[0]
+    assert qwen_trace.details["model_id"] == "Qwen/Qwen3-ASR-1.7B"
+    assert qwen_trace.details["runtime_package"] == "qwen-asr"
+    assert qwen_trace.details["audio_frontend_policy"] == "runtime_managed"
+    assert qwen_trace.details["resample_policy"] == "qwen_asr_runtime_managed"
+    assert qwen_trace.details["runtime_normalized_sample_rate_hz"] == 16000
+    assert qwen_trace.details["external_frontend_node"] is None
+    assert qwen_trace.details["language_hint"] == "Chinese"
+    assert "frontend/funasr_loader_16k_mono" not in [node.node_id for node in report.pipeline_trace]
+    assert transcriber.calls == [("hyp.wav", "zh")]
+
+
 def test_tts_semantic_route_can_explicitly_use_wetext_normalizer(monkeypatch) -> None:
     from sure_eval.evaluation.tasks.asr import pipeline as asr_pipeline
     from sure_eval.evaluation.tasks.tts.pipeline import evaluate_tts_samples

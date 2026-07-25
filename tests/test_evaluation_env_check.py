@@ -148,11 +148,19 @@ def test_audio_runtime_uses_node_local_transcription_subprocesses() -> None:
 
     zh_runtime = build_tts_runtime(metrics=("tts_cer",), language="zh", device="cpu")
     en_runtime = build_tts_runtime(metrics=("tts_wer",), language="en", device="cpu")
+    qwen_runtime = build_tts_runtime(
+        metrics=("tts_cer",),
+        language="zh",
+        device="cpu",
+        transcription_node_id="transcription/qwen3_asr_1_7b",
+    )
 
     assert isinstance(zh_runtime["transcribers"]["zh"], NodeLocalTranscriber)
     assert zh_runtime["transcribers"]["zh"].node_id == "transcription/paraformer_zh"
     assert isinstance(en_runtime["transcribers"]["en"], NodeLocalTranscriber)
     assert en_runtime["transcribers"]["en"].node_id == "transcription/whisper_large_v3"
+    assert isinstance(qwen_runtime["transcribers"]["zh"], NodeLocalTranscriber)
+    assert qwen_runtime["transcribers"]["zh"].node_id == "transcription/qwen3_asr_1_7b"
 
 
 def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:

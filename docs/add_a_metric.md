@@ -120,6 +120,7 @@ Examples:
   canonical normalization;
 - an explicit `wetext_norm` route for an existing ASR metric;
 - an SCTK-backed WER route alongside an existing WER route.
+- a Qwen3-ASR-1.7B transcription route for existing TTS CER/WER.
 
 Required work:
 
@@ -141,6 +142,9 @@ Minimum tests:
 - illegal combinations are rejected with clear errors;
 - `describe_pipeline(...)` returns the expected `pipeline_id` and node IDs;
 - end-to-end route run produces the expected report trace.
+- runtime-managed preprocessing, such as Qwen3-ASR audio decode and 16 kHz
+  resampling, is recorded in node trace metadata when it is not a separate
+  declared frontend node.
 
 Documentation rule:
 

@@ -10,6 +10,7 @@ from typing import Any, Mapping, Protocol
 from sure_eval.evaluation.core.types import EvaluationReport, PipelineNodeResult
 from sure_eval.evaluation.nodes.frontend.funasr_loader_16k_mono import describe_funasr_loader_16k_mono
 from sure_eval.evaluation.nodes.transcription.paraformer_zh import transcribe_paraformer_zh
+from sure_eval.evaluation.nodes.transcription.qwen3_asr_1_7b import transcribe_qwen3_asr_1_7b
 from sure_eval.evaluation.nodes.transcription.whisper_large_v3 import transcribe_whisper_large_v3
 from sure_eval.evaluation.pipeline_identity import PipelineComponent, node_component
 from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
@@ -52,18 +53,21 @@ def semantic_pipeline_components(
     asr_report: EvaluationReport,
     *,
     transcription_passes: int = 1,
+    transcription_node_id: str | None = None,
 ) -> tuple[PipelineComponent, ...]:
     """Return logical audio-semantic components for a report-level pipeline ID."""
 
     components: list[PipelineComponent] = []
     for _ in range(transcription_passes):
-        if uses_cer(language):
-            components.append(node_component("frontend/funasr_loader_16k_mono"))
-            components.append(node_component("transcription/paraformer_zh"))
-        else:
-            components.append(node_component("transcription/whisper_large_v3"))
+        components.extend(_transcription_components(language, transcription_node_id))
     components.extend(_asr_trace_components(asr_report.pipeline_trace))
     return tuple(components)
+
+
+def semantic_trace_components(trace: tuple[PipelineNodeResult, ...]) -> tuple[PipelineComponent, ...]:
+    """Return identity components from the actual semantic trace."""
+
+    return tuple(node_component(node.node_id, profile=_profile_for_asr_node(node)) for node in trace)
 
 
 def transcriber_for_language(
@@ -76,6 +80,12 @@ def transcriber_for_language(
         return transcribers[language]
     family = "zh" if uses_cer(language) else "en"
     return transcribers.get(family)
+
+
+def transcription_node_needs_frontend(node_id: str, language: str) -> bool:
+    """Return whether a transcription route includes the FunASR loader frontend."""
+
+    return node_id == "transcription/paraformer_zh" or (not node_id and uses_cer(language))
 
 
 def _asr_trace_components(trace: tuple[PipelineNodeResult, ...]) -> tuple[PipelineComponent, ...]:
@@ -105,8 +115,18 @@ def transcribe_audio(
     language: str,
     runner: TranscriptionRunner | None,
     role: str,
+    transcription_node_id: str | None = None,
 ) -> tuple[str, tuple[PipelineNodeResult, ...]]:
-    if uses_cer(language):
+    selected_node = transcription_node_id or _default_transcription_node_id(language)
+    if selected_node == "transcription/qwen3_asr_1_7b":
+        transcript, transcription_result = transcribe_qwen3_asr_1_7b(
+            audio_path,
+            language=language,
+            runner=runner,
+            role=role,
+        )
+        return transcript, (transcription_result,)
+    if selected_node == "transcription/paraformer_zh":
         frontend_result = describe_funasr_loader_16k_mono(
             audio_path,
             language=language,
@@ -119,6 +139,8 @@ def transcribe_audio(
             role=role,
         )
         return transcript, (frontend_result, transcription_result)
+    if selected_node != "transcription/whisper_large_v3":
+        raise ValueError(f"Unsupported semantic transcription node: {selected_node}")
     transcript, transcription_result = transcribe_whisper_large_v3(
         audio_path,
         language=language,
@@ -126,6 +148,27 @@ def transcribe_audio(
         role=role,
     )
     return transcript, (transcription_result,)
+
+
+def _transcription_components(
+    language: str,
+    transcription_node_id: str | None,
+) -> tuple[PipelineComponent, ...]:
+    selected_node = transcription_node_id or _default_transcription_node_id(language)
+    if selected_node == "transcription/qwen3_asr_1_7b":
+        return (node_component("transcription/qwen3_asr_1_7b"),)
+    if selected_node == "transcription/paraformer_zh":
+        return (
+            node_component("frontend/funasr_loader_16k_mono"),
+            node_component("transcription/paraformer_zh"),
+        )
+    if selected_node == "transcription/whisper_large_v3":
+        return (node_component("transcription/whisper_large_v3"),)
+    raise ValueError(f"Unsupported semantic transcription node: {selected_node}")
+
+
+def _default_transcription_node_id(language: str) -> str:
+    return "transcription/paraformer_zh" if uses_cer(language) else "transcription/whisper_large_v3"
 
 
 def score_transcripts_with_asr(

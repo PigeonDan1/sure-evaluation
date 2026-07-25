@@ -68,6 +68,8 @@ cat /tmp/asr_eval/report.json | grep score
 每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 
 如需 metrics → pipelines → nodes 的机器可读对照表，查看 [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) 和 [docs/pipeline_catalog.md](./docs/pipeline_catalog.md)。
+TTS CER/WER 默认仍使用 Paraformer-ZH 和 Whisper-large-v3；Qwen3-ASR-1.7B
+作为同一指标的替代 TTS 路由，需要用精确 `pipeline_id` 选择。
 
 在 CLI 中查看任意任务的路由：
 
@@ -102,6 +104,7 @@ export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
 ```bash
 sure-eval env list
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
+sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos
 ```
 

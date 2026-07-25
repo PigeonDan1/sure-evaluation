@@ -629,6 +629,39 @@ def test_metric_describe_tts_accepts_metrics_alias_and_samples_role(tmp_path: Pa
     assert "transcription/paraformer_zh" in [slot["default"] for slot in payload["pipeline"]]
 
 
+def test_metric_describe_tts_accepts_qwen3_asr_pipeline_id(tmp_path: Path) -> None:
+    runner = CliRunner()
+    pipeline_path = tmp_path / "tts_qwen_pipeline.json"
+    qwen_pipeline_id = "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+
+    result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "tts",
+            "--pipeline-id",
+            qwen_pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
+    assert payload["pipeline_id"] == qwen_pipeline_id
+    assert payload["metric"] == "cer"
+    assert payload["metrics"] == ["tts_cer"]
+    assert payload["pipeline_kind"] == "atomic"
+    assert payload["required_roles"] == ["samples_jsonl"]
+    assert [slot["default"] for slot in payload["pipeline"]] == [
+        "transcription/qwen3_asr_1_7b",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+
+
 def test_metric_run_executes_tts_samples_jsonl_with_standard_outputs(
     monkeypatch, tmp_path: Path
 ) -> None:
@@ -712,6 +745,85 @@ def test_metric_run_executes_tts_samples_jsonl_with_standard_outputs(
     assert report_payload["details"]["results"]["spk_sim"]["score"] == 0.7
     assert report_payload["details"]["results"]["dnsmos"]["score"] == 3.1
     assert (output_dir / "pipeline_description.json").exists()
+
+
+def test_metric_run_executes_tts_qwen3_asr_pipeline_id(monkeypatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.nodes.transcription import StaticTranscriber
+
+    import sure_eval.evaluation.audio_runtime as audio_runtime
+
+    runner = CliRunner()
+    pipeline_path = tmp_path / "tts_qwen_pipeline.json"
+    samples_jsonl = tmp_path / "samples.jsonl"
+    output_dir = tmp_path / "tts_qwen_out"
+    qwen_pipeline_id = "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+    (tmp_path / "generated.wav").write_bytes(b"fake")
+    calls: list[dict[str, object]] = []
+    _write_jsonl(
+        samples_jsonl,
+        [
+            {
+                "sample_id": "utt1",
+                "prediction_audio": "generated.wav",
+                "reference_text": "你好世界",
+                "language": "zh",
+            }
+        ],
+    )
+
+    def fake_build_tts_runtime(**kwargs):
+        calls.append(kwargs)
+        return {
+            "transcribers": {"zh": StaticTranscriber("你好世界")},
+            "speaker_providers": {},
+            "mos_providers": {},
+        }
+
+    monkeypatch.setattr(audio_runtime, "build_tts_runtime", fake_build_tts_runtime)
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "tts",
+            "--pipeline-id",
+            qwen_pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--samples-jsonl",
+            str(samples_jsonl),
+            "--device",
+            "cpu",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    payload = json.loads(run_result.stdout)
+    assert payload["pipeline_id"] == qwen_pipeline_id
+    assert calls[0]["transcription_node_id"] == "transcription/qwen3_asr_1_7b"
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert [node["node_id"] for node in report_payload["pipeline_trace"]] == [
+        "transcription/qwen3_asr_1_7b",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+    assert report_payload["pipeline_trace"][0]["details"]["audio_frontend_policy"] == "runtime_managed"
 
 
 def test_metric_run_executes_vc_samples_jsonl_with_standard_outputs(

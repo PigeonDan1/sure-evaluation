@@ -56,9 +56,15 @@ sure-eval agent plan tts --language zh --metrics cer,dnsmos --json
 sure-eval env list
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
 sure-eval env check --task tts --language zh --metrics cer,dnsmos
+sure-eval agent plan tts \
+  --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
+  --json
+sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 ```
 
 Node environments are declared by `node_env.yaml` files under
 `src/sure_eval/evaluation/nodes/**`.
+Heavy transcription alternatives such as `transcription/qwen3_asr_1_7b`
+declare their own node-local uv project and checkpoint target.
 For agent-facing route and environment readiness, see
 [`docs/agent_contract.md`](agent_contract.md).

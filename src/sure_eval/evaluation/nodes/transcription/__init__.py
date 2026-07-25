@@ -2,6 +2,7 @@
 
 from sure_eval.evaluation.nodes.transcription.common.providers import (
     ParaformerZHTranscriber,
+    Qwen3ASR17BTranscriber,
     StaticTranscriber,
     TTSSemanticErrorRateProvider,
     Transcriber,
@@ -12,6 +13,7 @@ from sure_eval.evaluation.nodes.transcription.common.providers import (
 
 __all__ = [
     "ParaformerZHTranscriber",
+    "Qwen3ASR17BTranscriber",
     "StaticTranscriber",
     "TTSSemanticErrorRateProvider",
     "Transcriber",

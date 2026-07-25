@@ -12,6 +12,7 @@ sure-eval agent plan asr --language zh --metric cer --json
 sure-eval env list --json
 sure-eval env check --node scoring/dnsmos --json
 sure-eval env check --task tts --language zh --metrics cer,dnsmos --json
+sure-eval env check --node transcription/qwen3_asr_1_7b --json
 ```
 
 Use `agent plan` first when an agent or harness needs a single readiness
@@ -24,6 +25,7 @@ Prepare environments:
 ```bash
 sure-eval env setup --task asr --language zh --metric cer --dry-run
 sure-eval env setup --node scoring/dnsmos --dry-run
+sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --group tts-vc-mos --dry-run
 ```
 

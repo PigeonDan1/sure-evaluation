@@ -18,6 +18,8 @@ For heavyweight metrics, reproducibility also requires:
 - environment-variable override
 - license and citation notes
 - setup or download command
+- runtime-managed preprocessing details when a node owns decode, resampling, or
+  text extraction internally
 
 Use dry-run commands before preparing large assets:
 

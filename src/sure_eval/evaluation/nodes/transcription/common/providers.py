@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import importlib.metadata
 import os
 import subprocess
 import tempfile
@@ -48,6 +49,84 @@ class StaticTranscriber:
 
     def transcribe(self, audio_path: str, *, language: str = "en") -> str:
         return self.transcript
+
+
+QWEN3_ASR_1_7B_NODE_ID = "transcription/qwen3_asr_1_7b"
+QWEN3_ASR_1_7B_NODE_VERSION = "v1"
+QWEN3_ASR_1_7B_MODEL_ID = "Qwen/Qwen3-ASR-1.7B"
+QWEN3_ASR_RUNTIME_PACKAGE = "qwen-asr"
+QWEN3_ASR_DECLARED_PACKAGE_VERSION = "0.0.6"
+QWEN3_ASR_CHECKPOINT_ENV = "QWEN3_ASR_1_7B_CHECKPOINT"
+QWEN3_ASR_DEFAULT_MAX_INFERENCE_BATCH_SIZE = 32
+QWEN3_ASR_DEFAULT_MAX_NEW_TOKENS = 256
+QWEN3_ASR_RUNTIME_SAMPLE_RATE_HZ = 16000
+
+
+def qwen3_asr_language_hint(language: str) -> str | None:
+    """Return the Qwen3-ASR language prompt used for routed TTS evaluation."""
+
+    normalized = str(language).strip().lower()
+    if normalized.startswith(("zh", "cmn")):
+        return "Chinese"
+    if normalized.startswith("yue"):
+        return "Cantonese"
+    if normalized.startswith("en"):
+        return "English"
+    return None
+
+
+def qwen3_asr_trace_details(
+    *,
+    audio_path: str,
+    language: str,
+    role: str,
+    transcript: str,
+    runner: Any | None = None,
+    detected_language: str | None = None,
+    language_hint: str | None = None,
+) -> dict[str, Any]:
+    """Build stable trace metadata for the Qwen3-ASR transcription node."""
+
+    return {
+        "audio_path": audio_path,
+        "language": language,
+        "role": role,
+        "transcript": transcript,
+        "model_id": getattr(runner, "model_id", QWEN3_ASR_1_7B_MODEL_ID),
+        "resolved_model_id": getattr(runner, "resolved_model_id", None),
+        "runtime_package": QWEN3_ASR_RUNTIME_PACKAGE,
+        "runtime_package_version": getattr(
+            runner,
+            "runtime_package_version",
+            _installed_package_version(QWEN3_ASR_RUNTIME_PACKAGE)
+            or QWEN3_ASR_DECLARED_PACKAGE_VERSION,
+        ),
+        "backend": getattr(runner, "backend", "transformers"),
+        "audio_input_mode": "path",
+        "audio_frontend_policy": "runtime_managed",
+        "resample_policy": "qwen_asr_runtime_managed",
+        "runtime_audio_normalizer": "qwen_asr.inference.utils.normalize_audio_input",
+        "runtime_normalized_sample_rate_hz": QWEN3_ASR_RUNTIME_SAMPLE_RATE_HZ,
+        "runtime_normalized_channels": 1,
+        "runtime_audio_dtype": "float32",
+        "external_frontend_node": None,
+        "dtype": getattr(runner, "dtype_name", "auto_bfloat16_cuda_else_float32"),
+        "device_map": getattr(runner, "device_map", None),
+        "max_inference_batch_size": getattr(
+            runner,
+            "max_inference_batch_size",
+            QWEN3_ASR_DEFAULT_MAX_INFERENCE_BATCH_SIZE,
+        ),
+        "max_new_tokens": getattr(
+            runner,
+            "max_new_tokens",
+            QWEN3_ASR_DEFAULT_MAX_NEW_TOKENS,
+        ),
+        "language_hint": language_hint or qwen3_asr_language_hint(language),
+        "detected_language": detected_language,
+        "timestamps_enabled": False,
+        "forced_aligner": None,
+    }
 
 
 @dataclass(frozen=True)
@@ -148,6 +227,12 @@ class NodeLocalTranscriber:
                     "role": role,
                     "transcript": payload.get("transcript", ""),
                 }
+            payload_internal_stages = payload.get("internal_stages")
+            internal_stages = (
+                tuple(str(item) for item in payload_internal_stages)
+                if isinstance(payload_internal_stages, list)
+                else ("audio_decode", "asr_inference", "text_extraction")
+            )
             results.append(
                 (
                     str(payload.get("transcript", "")),
@@ -156,7 +241,7 @@ class NodeLocalTranscriber:
                         node_id=str(payload.get("node_id", self.node_id)),
                         version=str(payload.get("version", "v1")),
                         details=trace_details,
-                        internal_stages=("audio_decode", "asr_inference", "text_extraction"),
+                        internal_stages=internal_stages,
                     ),
                 )
             )
@@ -363,6 +448,163 @@ class ParaformerZHTranscriber:
         return str(result)
 
 
+class Qwen3ASR17BTranscriber:
+    """Qwen3-ASR-1.7B transcriber for explicit TTS semantic routes."""
+
+    model_id = QWEN3_ASR_1_7B_MODEL_ID
+    backend = "transformers"
+
+    def __init__(
+        self,
+        model_id: str | None = None,
+        device: str = "cuda",
+        cache_dir: str | Path | None = None,
+        *,
+        max_inference_batch_size: int = QWEN3_ASR_DEFAULT_MAX_INFERENCE_BATCH_SIZE,
+        max_new_tokens: int = QWEN3_ASR_DEFAULT_MAX_NEW_TOKENS,
+        dtype: str = "auto",
+        device_map: str | None = None,
+    ) -> None:
+        self.model_id = model_id or self.model_id
+        self.device = device
+        self.cache_dir = cache_dir
+        self.max_inference_batch_size = max_inference_batch_size
+        self.max_new_tokens = max_new_tokens
+        self.dtype = dtype
+        self.device_map = device_map or self._normalize_device_map(device)
+        self.dtype_name = self._dtype_name(dtype=dtype, device_map=self.device_map)
+        self.runtime_package_version = (
+            _installed_package_version(QWEN3_ASR_RUNTIME_PACKAGE)
+            or QWEN3_ASR_DECLARED_PACKAGE_VERSION
+        )
+        self.resolved_model_id: str | None = None
+        self.last_detected_language: str | None = None
+        self.last_language_hint: str | None = None
+        self._model: Any | None = None
+
+    def _resolved_model_id(self) -> str:
+        explicit_checkpoint = os.environ.get(QWEN3_ASR_CHECKPOINT_ENV)
+        if explicit_checkpoint:
+            return str(Path(explicit_checkpoint).expanduser())
+        return self.model_id
+
+    def _load(self) -> Any:
+        if self._model is None:
+            configure_model_cache(self.cache_dir)
+            if self.cache_dir is not None:
+                os.environ.setdefault("HF_HUB_OFFLINE", "1")
+                os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+            install_deepspeed_stub()
+
+            import torch
+            from qwen_asr import Qwen3ASRModel
+
+            self.resolved_model_id = self._resolved_model_id()
+            self._model = Qwen3ASRModel.from_pretrained(
+                self.resolved_model_id,
+                dtype=self._torch_dtype(torch),
+                device_map=self.device_map,
+                max_inference_batch_size=self.max_inference_batch_size,
+                max_new_tokens=self.max_new_tokens,
+            )
+        return self._model
+
+    def transcribe(self, audio_path: str, *, language: str = "en") -> str:
+        language_hint = qwen3_asr_language_hint(language)
+        result = self._transcribe_raw(audio_path, language_hint=language_hint)
+        transcript, detected_language = _qwen3_asr_result_text_and_language(result)
+        self.last_detected_language = detected_language
+        self.last_language_hint = language_hint
+        return transcript
+
+    def transcribe_batch(
+        self,
+        audio_paths: list[str],
+        *,
+        language: str = "en",
+        role: str = "prediction_audio",
+    ) -> list[tuple[str, PipelineNodeResult]]:
+        if not audio_paths:
+            return []
+
+        language_hint = qwen3_asr_language_hint(language)
+        raw_results = self._transcribe_raw(audio_paths, language_hint=language_hint)
+        if not isinstance(raw_results, list):
+            raw_results = [raw_results]
+        if len(raw_results) != len(audio_paths):
+            raise RuntimeError(
+                f"{QWEN3_ASR_1_7B_NODE_ID} returned {len(raw_results)} transcript(s) "
+                f"for {len(audio_paths)} input(s)"
+            )
+
+        results: list[tuple[str, PipelineNodeResult]] = []
+        for audio_path, raw_result in zip(audio_paths, raw_results, strict=True):
+            transcript, detected_language = _qwen3_asr_result_text_and_language(raw_result)
+            trace_details = qwen3_asr_trace_details(
+                audio_path=audio_path,
+                language=language,
+                role=role,
+                transcript=transcript,
+                runner=self,
+                detected_language=detected_language,
+                language_hint=language_hint,
+            )
+            results.append(
+                (
+                    transcript,
+                    PipelineNodeResult(
+                        stage="transcription",
+                        node_id=QWEN3_ASR_1_7B_NODE_ID,
+                        version=QWEN3_ASR_1_7B_NODE_VERSION,
+                        details=trace_details,
+                        internal_stages=(
+                            "runtime_managed_audio_frontend",
+                            "asr_inference",
+                            "text_extraction",
+                        ),
+                    ),
+                )
+            )
+        return results
+
+    def _transcribe_raw(self, audio: str | list[str], *, language_hint: str | None) -> Any:
+        if language_hint:
+            return self._load().transcribe(audio=audio, language=language_hint)
+        return self._load().transcribe(audio=audio)
+
+    def _torch_dtype(self, torch_module: Any) -> Any:
+        dtype = str(self.dtype).strip().lower()
+        if dtype in {"auto", ""}:
+            return torch_module.float32 if self.device_map == "cpu" else torch_module.bfloat16
+        if dtype in {"bfloat16", "bf16", "torch.bfloat16"}:
+            return torch_module.bfloat16
+        if dtype in {"float16", "fp16", "torch.float16"}:
+            return torch_module.float16
+        if dtype in {"float32", "fp32", "torch.float32"}:
+            return torch_module.float32
+        raise ValueError(f"Unsupported Qwen3-ASR dtype: {self.dtype!r}")
+
+    @staticmethod
+    def _normalize_device_map(device: str) -> str:
+        normalized = str(device).strip().lower()
+        if normalized in {"", "cuda"}:
+            return "cuda:0"
+        if normalized in {"cpu", "mps"}:
+            return normalized
+        if normalized.startswith("cuda:"):
+            return normalized
+        if normalized.isdigit():
+            return f"cuda:{normalized}"
+        return str(device)
+
+    @staticmethod
+    def _dtype_name(*, dtype: str, device_map: str) -> str:
+        normalized = str(dtype).strip().lower()
+        if normalized in {"", "auto"}:
+            return "float32" if device_map == "cpu" else "bfloat16"
+        return normalized.removeprefix("torch.")
+
+
 class TTSSemanticErrorRateProvider:
     """Score TTS intelligibility by transcribing audio and applying SURE WER/CER."""
 
@@ -393,3 +635,22 @@ class TTSSemanticErrorRateProvider:
             "audio_path": str(Path(prediction)),
             "sure_result": result.details.get("sure_result", {}),
         }
+
+
+def _qwen3_asr_result_text_and_language(result: Any) -> tuple[str, str | None]:
+    if isinstance(result, dict):
+        text = str(result.get("text", ""))
+        language = result.get("language")
+        return text, str(language) if language else None
+    text = str(getattr(result, "text", ""))
+    language = getattr(result, "language", None)
+    if not text:
+        text = str(result)
+    return text, str(language) if language else None
+
+
+def _installed_package_version(package_name: str) -> str | None:
+    try:
+        return importlib.metadata.version(package_name)
+    except importlib.metadata.PackageNotFoundError:
+        return None

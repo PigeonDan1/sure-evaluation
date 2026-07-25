@@ -9,11 +9,20 @@ Evaluate synthesized speech for intelligibility, speaker similarity, and quality
 | Canonical metric | Execution selector | Language | Pipeline ID | Nodes |
 |:-----------------|:-------------------|:---------|:------------|:------|
 | `cer` | `cer` or `tts_cer` | `zh` / `cmn` / `yue` | `tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
+| `cer` | exact `pipeline_id` | `zh` | `tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1` | `transcription/qwen3_asr_1_7b` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
 | `wer` | `wer` or `tts_wer` | `en` | `tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1` | `transcription/whisper_large_v3` → `normalization/whisper_norm` → `scoring/wenet_wer` |
+| `wer` | exact `pipeline_id` | `en` | `tts.en.wer.qwen3_asr_1_7b_v1.whisper_norm_english_v1.wenet_wer_v1` | `transcription/qwen3_asr_1_7b` → `normalization/whisper_norm` → `scoring/wenet_wer` |
 
 Mandarin semantic CER strips punctuation only before WeNet CER. It does not
 use `normalization/aispeech_norm` by default, so numbers, case, and
 non-punctuation text are preserved.
+
+The `cer` / `tts_cer` and `wer` / `tts_wer` selectors keep the default
+Paraformer-ZH and Whisper-large-v3 routes. Qwen3-ASR-1.7B is an alternate
+transcription route for the same reported metrics and must be selected by exact
+`pipeline_id`. It passes audio paths to the `qwen-asr` runtime; decode, mono
+conversion, and 16 kHz resampling are runtime-managed and recorded in node
+trace details, not represented as a separate frontend node.
 
 ### Speaker similarity
 
@@ -78,6 +87,16 @@ sure-eval metric run --pipeline /tmp/tts.json \
   --device cuda \
   --cache-dir /tmp/sure_eval_cache \
   --validate-env
+
+# Select the Qwen3-ASR-1.7B CER route explicitly
+sure-eval metric describe tts \
+  --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
+  --output /tmp/tts_qwen.json
+sure-eval metric run --pipeline /tmp/tts_qwen.json \
+  --samples-jsonl samples.jsonl \
+  --output-dir /tmp/tts_qwen_eval \
+  --device cuda \
+  --validate-env
 ```
 
 ## Python API
@@ -107,6 +126,8 @@ print(report.score)
 
 ## Environment Notes
 
-- Semantic metrics need ASR transcription nodes (`transcription/paraformer_zh` or `transcription/whisper_large_v3`).
+- Semantic metrics need ASR transcription nodes (`transcription/paraformer_zh`,
+  `transcription/whisper_large_v3`, or the exact-route
+  `transcription/qwen3_asr_1_7b` alternative).
 - Speaker similarity and MOS require their respective scoring nodes.
 - Use `export SURE_EVAL_CACHE_DIR=/path/to/large/disk` for model checkpoints and caches.

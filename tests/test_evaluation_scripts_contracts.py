@@ -1258,6 +1258,26 @@ def test_tts_and_vc_nonsemantic_descriptions_match_runtime_aggregate_pipeline_id
     assert vc_description.pipeline_kind == "atomic"
 
 
+def test_tts_describe_can_select_qwen3_asr_pipeline_id() -> None:
+    from sure_eval.evaluation.scripts.tts import describe_pipeline
+
+    description = describe_pipeline(
+        pipeline_id="tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+    )
+
+    assert description.pipeline_id == (
+        "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+    )
+    assert description.metric == "cer"
+    assert description.execution_metrics == ("tts_cer",)
+    assert description.node_ids == (
+        "transcription/qwen3_asr_1_7b",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    )
+    assert "frontend/funasr_loader_16k_mono" not in description.node_ids
+
+
 def test_tts_script_run_calls_task_level_executor_with_normalized_metrics(monkeypatch, tmp_path: Path) -> None:
     import sure_eval.evaluation.tasks.tts.pipeline as tts_pipeline
     from sure_eval.evaluation.core.types import EvaluationReport
@@ -1378,6 +1398,69 @@ def test_tts_script_run_injects_shared_transcriber_for_semantic_metric(monkeypat
     assert transcribers["en"].device == "cuda"
     assert str(transcribers["en"].cache_dir).endswith(
         "src/sure_eval/evaluation/nodes/transcription/whisper_large_v3/checkpoints"
+    )
+
+
+def test_tts_script_run_selects_qwen3_asr_transcriber_by_pipeline_id(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import sure_eval.evaluation.tasks.tts.pipeline as tts_pipeline
+    from sure_eval.evaluation.core.types import EvaluationReport
+    from sure_eval.evaluation.scripts.tts import run
+    from sure_eval.evaluation.tasks.tts.types import TTSSample
+
+    calls: dict[str, object] = {}
+    qwen_pipeline_id = "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+
+    class FakeQwenTranscriber:
+        def __init__(self, *, device: str, cache_dir: object) -> None:
+            self.device = device
+            self.cache_dir = cache_dir
+
+    def fake_executor(**kwargs):
+        calls["kwargs"] = kwargs
+        return EvaluationReport(
+            task="TTS",
+            language="zh",
+            metric="cer",
+            score=0.0,
+            pipeline_id=qwen_pipeline_id,
+            pipeline_trace=(),
+            computation_node_ids=(
+                "transcription/qwen3_asr_1_7b",
+                "normalization/punctuation_strip_norm",
+                "scoring/wenet_cer",
+            ),
+            details={"results": {"cer": {"score": 0.0}}},
+        )
+
+    monkeypatch.setattr(tts_pipeline, "evaluate_tts_samples", fake_executor)
+    monkeypatch.setattr(
+        "sure_eval.evaluation.nodes.transcription.common.providers.Qwen3ASR17BTranscriber",
+        FakeQwenTranscriber,
+    )
+
+    run(
+        [
+            TTSSample(
+                prediction_audio="hyp.wav",
+                reference_text="你好世界",
+                reference_audio="ref.wav",
+                language="zh",
+                sample_id="utt1",
+            )
+        ],
+        pipeline_id=qwen_pipeline_id,
+        output_dir=str(tmp_path / "tts_out"),
+    )
+
+    assert calls["kwargs"]["metrics"] == ("tts_cer",)
+    assert calls["kwargs"]["semantic_transcription_node"] == "transcription/qwen3_asr_1_7b"
+    transcribers = calls["kwargs"]["transcribers"]
+    assert set(transcribers) == {"zh"}
+    assert isinstance(transcribers["zh"], FakeQwenTranscriber)
+    assert str(transcribers["zh"].cache_dir).endswith(
+        "src/sure_eval/evaluation/nodes/transcription/qwen3_asr_1_7b/checkpoints"
     )
 
 

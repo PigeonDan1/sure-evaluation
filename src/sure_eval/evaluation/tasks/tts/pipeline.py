@@ -43,6 +43,7 @@ def evaluate_tts_samples(
     transcribers: Mapping[str, Any] | None = None,
     speaker_providers: Mapping[str, Any] | None = None,
     mos_providers: Mapping[str, Any] | None = None,
+    semantic_transcription_node: str | None = None,
 ) -> EvaluationReport:
     """Evaluate TTS metrics through task-level pipeline nodes."""
 
@@ -78,6 +79,7 @@ def evaluate_tts_samples(
             language=language,
             semantic_normalizer=effective_semantic_normalizer,
             transcribers=transcribers,
+            semantic_transcription_node=semantic_transcription_node,
         )
         semantic_result = _semantic_metric_result(metric_name, semantic)
         semantic_components = _semantic_components(language=language, semantic=semantic)
@@ -198,12 +200,14 @@ def _evaluate_semantic(
     language: str,
     semantic_normalizer: str | None,
     transcribers: Mapping[str, Any] | None,
+    semantic_transcription_node: str | None,
 ):
     from sure_eval.evaluation.nodes.transcription.common.audio_semantic import (
         asr_metric_for_semantic,
         score_transcripts_with_asr,
         transcribe_audio,
         transcriber_for_language,
+        transcription_node_needs_frontend,
     )
 
     runner = transcriber_for_language(language, transcribers)
@@ -225,7 +229,8 @@ def _evaluate_semantic(
                 f"TTS semantic transcriber returned {len(batch_results)} transcript(s) "
                 f"for {len(samples)} sample(s)"
             )
-        if _uses_cer(language):
+        batch_node_id = batch_results[0][1].node_id if batch_results else semantic_transcription_node or ""
+        if transcription_node_needs_frontend(batch_node_id, language):
             frontend_trace = [
                 describe_funasr_loader_16k_mono(
                     sample.prediction_audio,
@@ -250,6 +255,7 @@ def _evaluate_semantic(
                 language=sample.language,
                 runner=runner,
                 role="prediction_audio",
+                transcription_node_id=semantic_transcription_node,
             )
         else:
             transcript, transcription_trace = sample_transcripts[index - 1]
@@ -363,10 +369,10 @@ def _asr_metric_for_semantic(metric: str, language: str) -> str:
 
 def _semantic_components(*, language: str, semantic) -> tuple:
     from sure_eval.evaluation.nodes.transcription.common.audio_semantic import (
-        semantic_pipeline_components,
+        semantic_trace_components,
     )
 
-    return semantic_pipeline_components(language, semantic.asr_report)
+    return semantic_trace_components(semantic.trace)
 
 
 def _record_atomic_metric(

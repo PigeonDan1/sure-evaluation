@@ -1,0 +1,18 @@
+id: transcription/qwen3_asr_1_7b
+group: asr-transcription
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: Qwen/Qwen3-ASR-1.7B
+    provider: huggingface
+    target: checkpoints/huggingface/hub/models--Qwen--Qwen3-ASR-1.7B
+    env: QWEN3_ASR_1_7B_CHECKPOINT
+verify:
+  imports:
+    - qwen_asr
+    - torch
+    - transformers

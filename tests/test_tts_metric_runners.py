@@ -119,6 +119,7 @@ def test_node_local_transcriber_batch_invokes_node_once(monkeypatch) -> None:
                         "role": row["role"],
                         "transcript": f"transcript-{index}",
                     },
+                    "internal_stages": ["runtime_managed_audio_frontend", "asr_inference"],
                 },
                 ensure_ascii=False,
             )
@@ -144,6 +145,10 @@ def test_node_local_transcriber_batch_invokes_node_once(monkeypatch) -> None:
     assert [transcript for transcript, _trace in results] == ["transcript-0", "transcript-1"]
     assert all(isinstance(trace, PipelineNodeResult) for _transcript, trace in results)
     assert [trace.details["role"] for _transcript, trace in results] == ["prediction_audio", "prediction_audio"]
+    assert [trace.internal_stages for _transcript, trace in results] == [
+        ("runtime_managed_audio_frontend", "asr_inference"),
+        ("runtime_managed_audio_frontend", "asr_inference"),
+    ]
 
 
 def test_node_local_transcriber_batch_can_chunk_invocations(monkeypatch) -> None:
