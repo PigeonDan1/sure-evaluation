@@ -10,6 +10,10 @@ The pipeline description records `pipeline_id`, canonical `metric`,
 versions, config paths, and input contracts. `computation_node_ids` includes
 score-affecting conversions.
 
+When a run starts from a pipeline JSON, `pipeline_id` is the selected execution
+identity. The run path validates that the returned report still matches the
+described `pipeline_id`, `pipeline_kind`, member IDs, and computation nodes.
+
 For heavyweight metrics, reproducibility also requires:
 
 - `node_env.yaml`

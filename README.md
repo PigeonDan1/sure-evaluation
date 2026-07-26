@@ -72,8 +72,9 @@ Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
 
 For a machine-readable catalog of every metric → pipeline → node mapping, see [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) and [docs/pipeline_catalog.md](./docs/pipeline_catalog.md).
 For agent-facing route and environment readiness, see [docs/agent_contract.md](./docs/agent_contract.md).
-TTS CER/WER defaults remain Paraformer-ZH and Whisper-large-v3; Qwen3-ASR-1.7B
-TTS alternatives are selected by exact `pipeline_id`.
+Route variants with the same reported metric, such as ASR normalization
+variants, TTS Qwen3-ASR CER/WER, or `spk_sim` provider variants, are selected
+by exact `pipeline_id`.
 
 Click any task in the CLI for its route:
 
@@ -134,6 +135,10 @@ when a task needs a compatibility alias or method-specific selector such as
 `pipeline_kind=bundle` and list atomic members in `member_pipeline_ids`.
 `task_config_path` and `route_config_path` are repository-relative paths;
 `script_entrypoint` and `executor` link the route to runnable code.
+When a pipeline JSON contains an exact `pipeline_id`,
+`sure-eval metric run --pipeline ...` executes that selected route and rejects reports whose
+`pipeline_id`, `pipeline_kind`, member IDs, or computation nodes diverge from
+the description.
 
 Example entries:
 

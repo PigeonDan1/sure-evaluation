@@ -49,14 +49,15 @@ def run(
 ):
     if not output_dir:
         raise ValueError("output_dir is required")
-    description = describe_pipeline(output_mode=output_mode, pipeline_id=pipeline_id)
     _, _, _, route = _select_route(output_mode=output_mode, pipeline_id=pipeline_id)
+    resolved_output_mode = str(route.get("output_mode") or output_mode)
+    description = describe_pipeline(output_mode=resolved_output_mode, pipeline_id=pipeline_id)
     report = call_route_executor(
         route,
         ref_file=ref_file,
         hyp_file=hyp_file,
         prompt_jsonl=prompt_jsonl,
-        output_mode=output_mode,
+        output_mode=resolved_output_mode,
     )
     return write_route_run_outputs(report=report, description=description, output_dir=output_dir)
 

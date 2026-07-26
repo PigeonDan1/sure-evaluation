@@ -140,6 +140,56 @@ def test_metric_describe_can_select_asr_pipeline_id(tmp_path: Path) -> None:
     assert "internal_executor_metric" not in json.dumps(payload, ensure_ascii=False)
 
 
+def test_metric_run_uses_exact_asr_pipeline_id_selectors(tmp_path: Path) -> None:
+    runner = CliRunner()
+    pipeline_path = tmp_path / "asr_aispeech_pipeline.json"
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    output_dir = tmp_path / "asr_aispeech_out"
+    pipeline_id = "asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1"
+    _write_key_text(ref_file, [("utt1", "你好世界")])
+    _write_key_text(hyp_file, [("utt1", "你好世界")])
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "asr",
+            "--pipeline-id",
+            pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--ref-file",
+            str(ref_file),
+            "--hyp-file",
+            str(hyp_file),
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    payload = json.loads(run_result.stdout)
+    assert payload["pipeline_id"] == pipeline_id
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report_payload["pipeline_id"] == pipeline_id
+    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/aispeech_norm"
+
+
 def test_metric_run_executes_pipeline_file_and_writes_outputs(tmp_path: Path) -> None:
     _require_wetext_node_env()
     runner = CliRunner()
@@ -460,6 +510,70 @@ def test_metric_run_executes_slu_prompt_norm_pipeline(tmp_path: Path) -> None:
     assert payload["pipeline_id"] == "slu.any.accuracy.prompt_norm_choice_id_v1.classify_v1"
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/prompt_norm"
+
+
+def test_metric_run_uses_exact_slu_choice_text_pipeline_id(tmp_path: Path) -> None:
+    runner = CliRunner()
+    pipeline_path = tmp_path / "slu_choice_text_pipeline.json"
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    prompt_jsonl = tmp_path / "prompt.jsonl"
+    output_dir = tmp_path / "slu_choice_text_out"
+    pipeline_id = "slu.any.accuracy.prompt_norm_choice_text_v1.classify_v1"
+    _write_key_text(ref_file, [("utt1", "B")])
+    _write_key_text(hyp_file, [("utt1", "dog")])
+    _write_jsonl(
+        prompt_jsonl,
+        [
+            {
+                "key": "utt1",
+                "choices": [
+                    {"id": "A", "text": "cat"},
+                    {"id": "B", "text": "dog"},
+                ],
+            }
+        ],
+    )
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "slu",
+            "--pipeline-id",
+            pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--ref-file",
+            str(ref_file),
+            "--hyp-file",
+            str(hyp_file),
+            "--prompt-jsonl",
+            str(prompt_jsonl),
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    payload = json.loads(run_result.stdout)
+    assert payload["pipeline_id"] == pipeline_id
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report_payload["pipeline_trace"][0]["details"]["output_mode"] == "choice_text"
 
 
 def test_metric_run_executes_kws_macro_recall_pipeline(tmp_path: Path) -> None:
@@ -909,3 +1023,313 @@ def test_metric_run_executes_vc_samples_jsonl_with_standard_outputs(
     assert report_payload["details"]["results"]["spk_sim"]["score"] == 0.8
     assert report_payload["details"]["results"]["utmos"]["score"] == 3.7
     assert (output_dir / "pipeline_description.json").exists()
+
+
+def test_metric_run_executes_vc_exact_audio_reference_pipeline_id(
+    monkeypatch, tmp_path: Path
+) -> None:
+    from sure_eval.evaluation.nodes.transcription import StaticTranscriber
+
+    import sure_eval.evaluation.audio_runtime as audio_runtime
+
+    runner = CliRunner()
+    pipeline_path = tmp_path / "vc_audio_ref_pipeline.json"
+    samples_jsonl = tmp_path / "samples.jsonl"
+    output_dir = tmp_path / "vc_audio_ref_out"
+    pipeline_id = (
+        "vc.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "funasr_loader_16k_mono_v1.paraformer_zh_v1."
+        "punctuation_strip_norm_v1.wenet_cer_v1"
+    )
+    (tmp_path / "converted.wav").write_bytes(b"fake")
+    (tmp_path / "reference.wav").write_bytes(b"fake")
+    _write_jsonl(
+        samples_jsonl,
+        [
+            {
+                "sample_id": "utt1",
+                "converted_audio": "converted.wav",
+                "reference_audio": "reference.wav",
+                "language": "zh",
+            }
+        ],
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_build_vc_runtime(**kwargs):
+        calls.append(kwargs)
+        return {
+            "transcribers": {"zh": StaticTranscriber("你好世界")},
+            "speaker_providers": {},
+            "mos_providers": {},
+        }
+
+    monkeypatch.setattr(audio_runtime, "build_vc_runtime", fake_build_vc_runtime)
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "vc",
+            "--pipeline-id",
+            pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--samples-jsonl",
+            str(samples_jsonl),
+            "--device",
+            "cpu",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    assert calls[0]["metrics"] == ("vc_cer",)
+    assert calls[0]["transcription_node_id"] == "transcription/paraformer_zh"
+    payload = json.loads(run_result.stdout)
+    assert payload["pipeline_id"] == pipeline_id
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert [node["node_id"] for node in report_payload["pipeline_trace"]] == [
+        "frontend/funasr_loader_16k_mono",
+        "transcription/paraformer_zh",
+        "frontend/funasr_loader_16k_mono",
+        "transcription/paraformer_zh",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    ]
+
+
+def test_metric_run_executes_vc_exact_speaker_pipeline_id(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import sure_eval.evaluation.audio_runtime as audio_runtime
+
+    runner = CliRunner()
+    pipeline_path = tmp_path / "vc_ecapa_pipeline.json"
+    samples_jsonl = tmp_path / "samples.jsonl"
+    output_dir = tmp_path / "vc_ecapa_out"
+    pipeline_id = "vc.zh.spk_sim.ecapa_tdnn_sim_v1"
+    (tmp_path / "converted.wav").write_bytes(b"fake")
+    (tmp_path / "reference.wav").write_bytes(b"fake")
+    _write_jsonl(
+        samples_jsonl,
+        [
+            {
+                "sample_id": "utt1",
+                "converted_audio": "converted.wav",
+                "reference_audio": "reference.wav",
+                "language": "zh",
+            }
+        ],
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_build_vc_runtime(**kwargs):
+        calls.append(kwargs)
+        return {
+            "transcribers": {},
+            "speaker_providers": {"ecapa-tdnn": lambda prediction, reference, **_: {"ASV": 0.66}},
+            "mos_providers": {},
+        }
+
+    monkeypatch.setattr(audio_runtime, "build_vc_runtime", fake_build_vc_runtime)
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "vc",
+            "--pipeline-id",
+            pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--samples-jsonl",
+            str(samples_jsonl),
+            "--device",
+            "cpu",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    assert calls[0]["metrics"] == ("sim/ecapa-tdnn",)
+    payload = json.loads(run_result.stdout)
+    assert payload["pipeline_id"] == pipeline_id
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report_payload["pipeline_trace"][0]["node_id"] == "scoring/ecapa_tdnn_sim"
+
+
+def test_metric_run_executes_se_exact_dnsmos_pipeline_id(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import sure_eval.evaluation.audio_runtime as audio_runtime
+
+    runner = CliRunner()
+    pipeline_path = tmp_path / "se_dnsmos_pipeline.json"
+    samples_jsonl = tmp_path / "samples.jsonl"
+    output_dir = tmp_path / "se_dnsmos_out"
+    pipeline_id = "se.any.dnsmos.dnsmos_v1"
+    (tmp_path / "enhanced.wav").write_bytes(b"fake")
+    _write_jsonl(
+        samples_jsonl,
+        [
+            {
+                "sample_id": "utt1",
+                "enhanced_audio": "enhanced.wav",
+            }
+        ],
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_build_se_runtime(**kwargs):
+        calls.append(kwargs)
+        return {
+            "reference_providers": {},
+            "mos_providers": {"dnsmos": lambda prediction, reference="", **_: {"OVRL": 4.2}},
+        }
+
+    monkeypatch.setattr(audio_runtime, "build_se_runtime", fake_build_se_runtime)
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "se",
+            "--pipeline-id",
+            pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--samples-jsonl",
+            str(samples_jsonl),
+            "--device",
+            "cpu",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    assert calls[0]["metrics"] == ("dnsmos",)
+    payload = json.loads(run_result.stdout)
+    assert payload["pipeline_id"] == pipeline_id
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report_payload["pipeline_trace"][0]["node_id"] == "scoring/dnsmos"
+
+
+def test_metric_run_executes_tse_exact_speaker_pipeline_id(
+    monkeypatch, tmp_path: Path
+) -> None:
+    import sure_eval.evaluation.audio_runtime as audio_runtime
+
+    runner = CliRunner()
+    pipeline_path = tmp_path / "tse_ecapa_pipeline.json"
+    samples_jsonl = tmp_path / "samples.jsonl"
+    output_dir = tmp_path / "tse_ecapa_out"
+    pipeline_id = "tse.zh.spk_sim.ecapa_tdnn_sim_v1"
+    (tmp_path / "prediction.wav").write_bytes(b"fake")
+    (tmp_path / "reference.wav").write_bytes(b"fake")
+    _write_jsonl(
+        samples_jsonl,
+        [
+            {
+                "sample_id": "utt1",
+                "prediction_audio": "prediction.wav",
+                "reference_audio": "reference.wav",
+                "language": "zh",
+            }
+        ],
+    )
+    calls: list[dict[str, object]] = []
+
+    def fake_build_tse_runtime(**kwargs):
+        calls.append(kwargs)
+        return {
+            "transcribers": {},
+            "speaker_providers": {"ecapa-tdnn": lambda prediction, reference, **_: {"ASV": 0.77}},
+            "mos_providers": {},
+        }
+
+    monkeypatch.setattr(audio_runtime, "build_tse_runtime", fake_build_tse_runtime)
+
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "tse",
+            "--pipeline-id",
+            pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    run_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--samples-jsonl",
+            str(samples_jsonl),
+            "--device",
+            "cpu",
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+    )
+
+    assert run_result.exit_code == 0, run_result.stdout
+    assert calls[0]["metrics"] == ("sim/ecapa-tdnn",)
+    payload = json.loads(run_result.stdout)
+    assert payload["pipeline_id"] == pipeline_id
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report_payload["pipeline_trace"][0]["node_id"] == "scoring/ecapa_tdnn_sim"

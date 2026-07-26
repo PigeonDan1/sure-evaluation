@@ -51,13 +51,13 @@ def run(
 ):
     if not output_dir:
         raise ValueError("output_dir is required")
-    description = describe_pipeline(task=task, metric="accuracy", pipeline_id=pipeline_id)
-    _, _, _, route, _ = _select_route(task=task, pipeline_id=pipeline_id)
+    _, _, _, route, normalized_task = _select_route(task=task, pipeline_id=pipeline_id)
+    description = describe_pipeline(task=normalized_task, metric="accuracy", pipeline_id=pipeline_id)
     report = call_route_executor(
         route,
         ref_file=ref_file,
         hyp_file=hyp_file,
-        task=task,
+        task=normalized_task,
         label_spec=label_spec,
     )
     return write_route_run_outputs(report=report, description=description, output_dir=output_dir)

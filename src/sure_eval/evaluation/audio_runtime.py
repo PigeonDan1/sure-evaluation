@@ -34,6 +34,7 @@ def build_vc_runtime(
     language: str,
     device: str = "cuda",
     cache_dir: str | Path | None = None,
+    transcription_node_id: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Build the injected runtime objects needed by ``evaluate_vc_samples``."""
 
@@ -42,7 +43,7 @@ def build_vc_runtime(
         language=language,
         device=device,
         cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("vc"),
-        transcription_node_id=None,
+        transcription_node_id=transcription_node_id,
     )
 
 
@@ -87,6 +88,7 @@ def build_tse_runtime(
     language: str,
     device: str = "cuda",
     cache_dir: str | Path | None = None,
+    transcription_node_id: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Build the injected runtime objects needed by ``evaluate_tse_samples``."""
 
@@ -95,7 +97,7 @@ def build_tse_runtime(
         language=language,
         device=device,
         cache_dir=Path(cache_dir) if cache_dir else _default_cache_dir("tse"),
-        transcription_node_id=None,
+        transcription_node_id=transcription_node_id,
     )
 
 

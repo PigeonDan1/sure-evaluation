@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from sure_eval.evaluation.scripts.contracts import (
     call_route_executor,
     contract_from_manifest,
@@ -65,6 +67,7 @@ def run(
         hyp_file=hyp_file,
         language=route.get("language") or language or description.language,
         metric=executor_metric,
+        **_executor_selectors_from_route(route),
     )
     return write_route_run_outputs(report=report, description=description, output_dir=output_dir)
 
@@ -99,3 +102,45 @@ def _normalize_metric(*, language: str, metric: str) -> str:
     if language == "cs" and normalized in {"wer", "cer"}:
         return "mer"
     return normalized
+
+
+def _executor_selectors_from_route(route: dict) -> dict[str, str]:
+    selectors: dict[str, str] = {}
+    for node_id in route.get("nodes") or ():
+        if node_id == "normalization/wetext_norm":
+            selectors["normalizer"] = f"wetext:{_wetext_profile_from_pipeline_id(route['pipeline_id'])}"
+        elif node_id == "normalization/whisper_norm":
+            selectors["normalizer"] = "whisper"
+        elif node_id == "normalization/aispeech_norm":
+            if not _is_codeswitch_wenet_route(route):
+                selectors["normalizer"] = "aispeech"
+        elif node_id == "normalization/canonical_itn":
+            selectors["normalizer"] = "canonical"
+        elif node_id == "normalization/punctuation_strip_norm":
+            selectors["normalizer"] = "punctuation_strip"
+        elif node_id in {"scoring/wenet_cer", "scoring/wenet_wer", "scoring/wenet_mer"}:
+            selectors["scorer"] = "wenet"
+        elif node_id == "scoring/token_cer":
+            selectors["scorer"] = "token"
+        elif node_id == "scoring/token_mer":
+            selectors["scorer"] = "token_mer"
+        elif node_id == "scoring/sctk_sclite":
+            selectors["scorer"] = "sctk_sclite"
+    return selectors
+
+
+def _is_codeswitch_wenet_route(route: dict) -> bool:
+    return (
+        route.get("language") == "cs"
+        and route.get("metric") == "mer"
+        and not route.get("internal_executor_metric")
+    )
+
+
+def _wetext_profile_from_pipeline_id(pipeline_id: str) -> str:
+    for component in str(pipeline_id).split(".")[3:]:
+        if component.startswith("wetext_norm_"):
+            profile = re.sub(r"_v[0-9]+$", "", component.removeprefix("wetext_norm_"))
+            if profile:
+                return profile
+    raise ValueError(f"Cannot infer wetext_norm profile from pipeline_id={pipeline_id!r}")

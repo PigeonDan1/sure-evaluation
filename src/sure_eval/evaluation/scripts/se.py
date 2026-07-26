@@ -12,6 +12,7 @@ from sure_eval.evaluation.scripts.contracts import (
     contract_from_manifest,
     describe_from_contracts,
     find_metric_route,
+    find_pipeline_route,
     load_task_manifest,
     load_task_routes,
     normalize_metric_list,
@@ -26,9 +27,15 @@ DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
 
 
 def describe_pipeline(
-    *, metrics: str | list[str] | tuple[str, ...] | None = None, language: str = "n/a"
+    *,
+    metrics: str | list[str] | tuple[str, ...] | None = None,
+    language: str = "n/a",
+    pipeline_id: str | None = None,
 ):
-    manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(metrics=metrics)
+    manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(
+        metrics=metrics,
+        pipeline_id=pipeline_id,
+    )
     return _describe_from_routes(
         manifest=manifest,
         manifest_path=manifest_path,
@@ -77,9 +84,18 @@ def _describe_from_routes(
     )
 
 
-def _select_routes(*, metrics: str | list[str] | tuple[str, ...] | None = None):
+def _select_routes(
+    *,
+    metrics: str | list[str] | tuple[str, ...] | None = None,
+    pipeline_id: str | None = None,
+):
+    if metrics is not None and pipeline_id:
+        raise ValueError("Use either metrics or pipeline_id, not both")
     manifest, manifest_path = load_task_manifest("se")
     routes_config, routes_path = load_task_routes("se")
+    if pipeline_id:
+        route = find_pipeline_route(routes_config, pipeline_id=pipeline_id)
+        return manifest, manifest_path, routes_path, (route,), route_execution_metrics((route,))
     if isinstance(metrics, str):
         metrics = tuple(item.strip() for item in metrics.split(",") if item.strip())
     requested_metrics = normalize_metric_list(metrics, DEFAULT_METRICS)
@@ -99,6 +115,7 @@ def run(
     reference_providers: Mapping[str, Any] | None = None,
     device: str = "cuda",
     cache_dir: str | Path | None = None,
+    pipeline_id: str | None = None,
 ):
     if not output_dir:
         raise ValueError("output_dir is required")
@@ -108,7 +125,8 @@ def run(
     if not requested_metrics:
         requested_metrics = None
     manifest, manifest_path, routes_path, selected_routes, normalized_metrics = _select_routes(
-        metrics=requested_metrics
+        metrics=requested_metrics,
+        pipeline_id=pipeline_id,
     )
     description = _describe_from_routes(
         manifest=manifest,

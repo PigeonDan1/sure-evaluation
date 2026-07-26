@@ -11,6 +11,7 @@ from sure_eval.evaluation.scripts.contracts import (
     contract_from_manifest,
     describe_from_contracts,
     find_metric_route,
+    find_pipeline_route,
     load_task_manifest,
     load_task_routes,
     normalize_metric_list,
@@ -24,17 +25,20 @@ from sure_eval.evaluation.tasks.vc.types import VCSample
 
 def describe_pipeline(
     *,
-    language: str,
+    language: str | None = None,
     metrics: str | list[str] | tuple[str, ...] | None = None,
     reference_mode: str = "text",
+    pipeline_id: str | None = None,
 ):
     manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(
         language=language,
         metrics=metrics,
         reference_mode=reference_mode,
+        pipeline_id=pipeline_id,
     )
+    resolved_language = str(routes[0].get("language") or language or "zh")
     return _describe_from_routes(
-        language=language,
+        language=resolved_language,
         manifest=manifest,
         manifest_path=manifest_path,
         routes_path=routes_path,
@@ -87,12 +91,19 @@ def _describe_from_routes(
 
 def _select_routes(
     *,
-    language: str,
+    language: str | None,
     metrics: str | list[str] | tuple[str, ...] | None = None,
     reference_mode: str = "text",
+    pipeline_id: str | None = None,
 ):
+    if metrics is not None and pipeline_id:
+        raise ValueError("Use either metrics or pipeline_id, not both")
     manifest, manifest_path = load_task_manifest("vc")
     routes_config, routes_path = load_task_routes("vc")
+    if pipeline_id:
+        route = find_pipeline_route(routes_config, pipeline_id=pipeline_id, language=language)
+        return manifest, manifest_path, routes_path, (route,), route_execution_metrics((route,))
+    language = language or "zh"
     requested_metrics = normalize_metric_list(metrics, (manifest["default_metrics"][language],))
     selected_routes: list[dict[str, Any]] = []
 
@@ -111,6 +122,7 @@ def run(
     transcribers: Mapping[str, Any] | None = None,
     speaker_providers: Mapping[str, Any] | None = None,
     mos_providers: Mapping[str, Any] | None = None,
+    pipeline_id: str | None = None,
 ):
     if not output_dir:
         raise ValueError("output_dir is required")
@@ -118,12 +130,18 @@ def run(
     requested_metrics = tuple(metric.lower() for metric in metrics) if metrics is not None else None
     reference_mode = "text" if all(bool(sample.reference_text) for sample in samples) else "audio"
     manifest, manifest_path, routes_path, selected_routes, normalized_metrics = _select_routes(
-        language=language,
+        language=None if pipeline_id else language,
         metrics=requested_metrics,
         reference_mode=reference_mode,
+        pipeline_id=pipeline_id,
     )
+    resolved_language = str(selected_routes[0].get("language") or language)
+    if pipeline_id and resolved_language != language:
+        raise ValueError(
+            f"pipeline_id language {resolved_language!r} does not match VC samples language {language!r}"
+        )
     description = _describe_from_routes(
-        language=language,
+        language=resolved_language,
         manifest=manifest,
         manifest_path=manifest_path,
         routes_path=routes_path,

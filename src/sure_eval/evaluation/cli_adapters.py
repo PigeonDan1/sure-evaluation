@@ -57,10 +57,6 @@ def build_pipeline_spec(
     normalized_task = normalize_task(task)
     if metric and pipeline_id:
         raise ValueError("Use either metric/metrics or pipeline_id, not both")
-    if pipeline_id and normalized_task in AUDIO_SAMPLE_TASKS - {"tts"}:
-        raise ValueError(
-            "Use metrics to describe audio bundle tasks; TTS supports atomic pipeline_id selection"
-        )
     describe_kwargs = _describe_kwargs(
         normalized_task,
         original_task=task,
@@ -284,18 +280,24 @@ def _describe_kwargs(
             kwargs["language"] = language or "zh"
         if metric:
             kwargs["metrics"] = split_metric_csv(metric)
-        if task == "tts" and pipeline_id:
+        if pipeline_id:
             kwargs["pipeline_id"] = pipeline_id
         return kwargs
     if task in {"se", "speech_enhancement"}:
         kwargs = {"language": "n/a"}
         if metric:
             kwargs["metrics"] = split_metric_csv(metric)
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
         return kwargs
     if task == "tse":
-        kwargs = {"language": language or "zh"}
+        kwargs = {}
+        if language or not pipeline_id:
+            kwargs["language"] = language or "zh"
         if metric:
             kwargs["metrics"] = split_metric_csv(metric)
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
         return kwargs
     return {}
 
@@ -422,16 +424,19 @@ def _run_kwargs_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
         kwargs["language"] = pipeline["language"]
     if task == "classification":
         kwargs["task"] = pipeline.get("task_alias") or "classification"
+        if pipeline.get("pipeline_id"):
+            kwargs["pipeline_id"] = pipeline["pipeline_id"]
     elif task in {"ser", "gr", "slu"}:
-        pass
+        if pipeline.get("pipeline_id"):
+            kwargs["pipeline_id"] = pipeline["pipeline_id"]
     elif task in AUDIO_SAMPLE_TASKS:
-        use_atomic_tts_pipeline_id = (
-            task == "tts" and pipeline.get("pipeline_kind") == "atomic" and pipeline.get("pipeline_id")
+        use_atomic_pipeline_id = (
+            pipeline.get("pipeline_kind") == "atomic" and pipeline.get("pipeline_id")
         )
         metrics = _metrics_from_pipeline(pipeline, task=task)
-        if metrics and not use_atomic_tts_pipeline_id:
+        if metrics and not use_atomic_pipeline_id:
             kwargs["metrics"] = metrics
-        if use_atomic_tts_pipeline_id:
+        if use_atomic_pipeline_id:
             kwargs["pipeline_id"] = pipeline["pipeline_id"]
     elif pipeline.get("pipeline_id"):
         kwargs["pipeline_id"] = pipeline["pipeline_id"]
@@ -511,6 +516,7 @@ def _audio_sample_kwargs(
             language=samples[0].language,
             device=device,
             cache_dir=cache_dir,
+            transcription_node_id=_semantic_transcription_node_from_pipeline(pipeline),
         )
     elif task in {"se", "speech_enhancement"}:
         from sure_eval.evaluation.audio_runtime import build_se_runtime
@@ -532,6 +538,7 @@ def _audio_sample_kwargs(
             language=samples[0].language,
             device=device,
             cache_dir=cache_dir,
+            transcription_node_id=_semantic_transcription_node_from_pipeline(pipeline),
         )
     else:
         return {}

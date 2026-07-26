@@ -111,5 +111,10 @@ selectors are recorded as `execution_metrics`; for example,
 For example, TTS `cer` defaults to the Paraformer-ZH route, while
 `tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1`
 selects the Qwen3-ASR-1.7B transcription route for the same reported metric.
+Likewise, `spk_sim` variants such as WavLM, ECAPA-TDNN, and ERes2Net are
+distinguished by exact `pipeline_id`, not by changing the canonical `metric`.
+After `metric describe` writes a pipeline JSON, `metric run --pipeline` must
+execute that selected identity and reject reports whose `pipeline_id`,
+`pipeline_kind`, member IDs, or computation nodes diverge from the description.
 Multi-metric requests are `pipeline_kind=bundle` and list atomic members in
 `member_pipeline_ids`.

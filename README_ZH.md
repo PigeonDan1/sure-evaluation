@@ -68,8 +68,9 @@ cat /tmp/asr_eval/report.json | grep score
 每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 
 如需 metrics → pipelines → nodes 的机器可读对照表，查看 [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) 和 [docs/pipeline_catalog.md](./docs/pipeline_catalog.md)。
-TTS CER/WER 默认仍使用 Paraformer-ZH 和 Whisper-large-v3；Qwen3-ASR-1.7B
-作为同一指标的替代 TTS 路由，需要用精确 `pipeline_id` 选择。
+同一报告指标下的不同路由变体，例如 ASR 归一化变体、TTS Qwen3-ASR
+CER/WER，或 `spk_sim` 的不同说话人相似度 provider，都需要用精确
+`pipeline_id` 选择。
 
 在 CLI 中查看任意任务的路由：
 
@@ -129,6 +130,9 @@ SURE-EVAL 把每个指标都暴露为声明式流水线。`pipeline_catalog.json
 多指标行使用 `pipeline_kind=bundle`，并在 `member_pipeline_ids` 中列出
 原子成员。`task_config_path` 和 `route_config_path` 使用仓库相对路径；
 `script_entrypoint` 和 `executor` 将路由连接到可执行代码。
+当 pipeline JSON 中包含精确 `pipeline_id` 时，
+`sure-eval metric run --pipeline ...` 会执行该路由，并拒绝
+`pipeline_id`、`pipeline_kind`、成员 ID 或计算节点与描述不一致的报告。
 
 示例条目：
 

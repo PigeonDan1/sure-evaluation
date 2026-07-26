@@ -12,6 +12,7 @@ from sure_eval.evaluation.scripts.contracts import (
     contract_from_manifest,
     describe_from_contracts,
     find_metric_route,
+    find_pipeline_route,
     load_task_manifest,
     load_task_routes,
     normalize_metric_list,
@@ -27,12 +28,20 @@ def _default_metric(language: str) -> str:
     return "si_sdr"
 
 
-def describe_pipeline(*, language: str, metrics: str | list[str] | tuple[str, ...] | None = None):
+def describe_pipeline(
+    *,
+    language: str | None = None,
+    metrics: str | list[str] | tuple[str, ...] | None = None,
+    pipeline_id: str | None = None,
+):
     manifest, manifest_path, routes_path, routes, requested_metrics = _select_routes(
-        language=language, metrics=metrics
-    )
-    return _describe_from_routes(
         language=language,
+        metrics=metrics,
+        pipeline_id=pipeline_id,
+    )
+    resolved_language = str(routes[0].get("language") or language or "zh")
+    return _describe_from_routes(
+        language=resolved_language,
         manifest=manifest,
         manifest_path=manifest_path,
         routes_path=routes_path,
@@ -85,11 +94,18 @@ def _describe_from_routes(
 
 def _select_routes(
     *,
-    language: str,
+    language: str | None,
     metrics: str | list[str] | tuple[str, ...] | None = None,
+    pipeline_id: str | None = None,
 ):
+    if metrics is not None and pipeline_id:
+        raise ValueError("Use either metrics or pipeline_id, not both")
     manifest, manifest_path = load_task_manifest("tse")
     routes_config, routes_path = load_task_routes("tse")
+    if pipeline_id:
+        route = find_pipeline_route(routes_config, pipeline_id=pipeline_id, language=language)
+        return manifest, manifest_path, routes_path, (route,), route_execution_metrics((route,))
+    language = language or "zh"
     requested_metrics = normalize_metric_list(
         metrics,
         (manifest.get("default_metrics", {}).get(language) or _default_metric(language),),
@@ -112,6 +128,7 @@ def run(
     mos_providers: Mapping[str, Any] | None = None,
     device: str = "cuda",
     cache_dir: str | Path | None = None,
+    pipeline_id: str | None = None,
 ):
     if not output_dir:
         raise ValueError("output_dir is required")
@@ -120,11 +137,17 @@ def run(
     if not requested_metrics:
         requested_metrics = None
     manifest, manifest_path, routes_path, selected_routes, normalized_metrics = _select_routes(
-        language=language,
+        language=None if pipeline_id else language,
         metrics=requested_metrics,
+        pipeline_id=pipeline_id,
     )
+    resolved_language = str(selected_routes[0].get("language") or language)
+    if pipeline_id and resolved_language != language:
+        raise ValueError(
+            f"pipeline_id language {resolved_language!r} does not match TSE samples language {language!r}"
+        )
     description = _describe_from_routes(
-        language=language,
+        language=resolved_language,
         manifest=manifest,
         manifest_path=manifest_path,
         routes_path=routes_path,
@@ -136,7 +159,7 @@ def run(
         samples=samples,
         metrics=normalized_metrics,
         transcribers=_default_transcribers(
-            language=language,
+            language=resolved_language,
             metrics=normalized_metrics,
             transcribers=transcribers,
             device=device,
