@@ -65,9 +65,17 @@ def semantic_pipeline_components(
 
 
 def semantic_trace_components(trace: tuple[PipelineNodeResult, ...]) -> tuple[PipelineComponent, ...]:
-    """Return identity components from the actual semantic trace."""
+    """Return report-level identity components from the actual semantic trace."""
 
-    return tuple(node_component(node.node_id, profile=_profile_for_asr_node(node)) for node in trace)
+    components: list[PipelineComponent] = []
+    seen: set[PipelineComponent] = set()
+    for node in trace:
+        component = node_component(node.node_id, profile=_profile_for_asr_node(node))
+        if component in seen:
+            continue
+        components.append(component)
+        seen.add(component)
+    return tuple(components)
 
 
 def transcriber_for_language(

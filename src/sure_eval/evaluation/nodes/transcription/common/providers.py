@@ -638,6 +638,10 @@ class TTSSemanticErrorRateProvider:
 
 
 def _qwen3_asr_result_text_and_language(result: Any) -> tuple[str, str | None]:
+    if isinstance(result, (list, tuple)):
+        if not result:
+            return "", None
+        return _qwen3_asr_result_text_and_language(result[0])
     if isinstance(result, dict):
         text = str(result.get("text", ""))
         language = result.get("language")

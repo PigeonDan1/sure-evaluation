@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 
 class RecordingTranscriber:
     def __init__(self, transcripts: dict[str, str]) -> None:
@@ -24,6 +26,19 @@ def _fake_wetext_normalizer(files, *, profile: str):
             internal_stages=("fake_wetext",),
         ),
     )
+
+
+def test_qwen3_asr_result_extraction_unwraps_single_result_list() -> None:
+    from sure_eval.evaluation.nodes.transcription.common.providers import (
+        _qwen3_asr_result_text_and_language,
+    )
+
+    text, language = _qwen3_asr_result_text_and_language(
+        [SimpleNamespace(text="Lobster, Ellen Newberg.", language="English")]
+    )
+
+    assert text == "Lobster, Ellen Newberg."
+    assert language == "English"
 
 
 def test_tts_zh_semantic_route_uses_punctuation_strip_norm() -> None:
@@ -154,6 +169,42 @@ def test_tts_qwen_semantic_route_records_runtime_managed_frontend() -> None:
     assert qwen_trace.details["language_hint"] == "Chinese"
     assert "frontend/funasr_loader_16k_mono" not in [node.node_id for node in report.pipeline_trace]
     assert transcriber.calls == [("hyp.wav", "zh")]
+
+
+def test_tts_qwen_pipeline_id_deduplicates_sample_traces() -> None:
+    from sure_eval.evaluation.tasks.tts.pipeline import evaluate_tts_samples
+    from sure_eval.evaluation.tasks.tts.compat import TTSSample
+
+    transcriber = RecordingTranscriber({"hyp1.wav": "你好世界", "hyp2.wav": "你好世界"})
+    report = evaluate_tts_samples(
+        [
+            TTSSample(
+                prediction_audio="hyp1.wav",
+                reference_text="你好世界",
+                language="zh",
+                sample_id="utt1",
+            ),
+            TTSSample(
+                prediction_audio="hyp2.wav",
+                reference_text="你好世界",
+                language="zh",
+                sample_id="utt2",
+            ),
+        ],
+        metrics=("tts_cer",),
+        semantic_transcription_node="transcription/qwen3_asr_1_7b",
+        transcribers={"zh": transcriber},
+    )
+
+    assert report.pipeline_id == (
+        "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+    )
+    assert report.computation_node_ids == (
+        "transcription/qwen3_asr_1_7b",
+        "normalization/punctuation_strip_norm",
+        "scoring/wenet_cer",
+    )
+    assert [node.node_id for node in report.pipeline_trace].count("transcription/qwen3_asr_1_7b") == 2
 
 
 def test_tts_semantic_route_can_explicitly_use_wetext_normalizer(monkeypatch) -> None:
