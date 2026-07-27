@@ -10,7 +10,10 @@ runtime setup, model provider, toolkit wrapper, or version.
   internal stages.
 - Update `node_env.yaml` for dependencies, binaries, checkpoints, downloads, or
   environment variables.
-- Update node README when runtime behavior is user-visible.
+- Update node README using
+  [Node README Template](../node_readme_template.md). At minimum, document
+  task scenarios, input/output schemas, versioned computation, runtime assets,
+  source/reference links, and known limitations.
 - Add a new node version, node id, or route when scores are expected to change.
 - Keep runtime assets local; do not commit model files or generated outputs.
 
@@ -28,4 +31,6 @@ runtime setup, model provider, toolkit wrapper, or version.
 - Whether scores are expected to change.
 - Runtime assets and environment variables.
 - External toolkit, model id, checkpoint, and license constraints.
+- Node README sections updated and any unknown external source explicitly
+  marked.
 - Smoke test command and result for heavyweight nodes.

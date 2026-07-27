@@ -21,6 +21,8 @@ category applies.
 - Keep `metric` canonical, such as `cer`, `wer`, `spk_sim`, or `dnsmos`.
 - Put method or compatibility selectors in `execution_metrics`.
 - Select same-metric variants with exact `pipeline_id`.
+- For every node/tool/version change, update the node README using
+  [Node README Template](./node_readme_template.md).
 - Do not change a default route without saying so in the PR.
 - Do not commit model weights, checkpoints, `.venv`, caches, reports, secrets,
   or private absolute paths.

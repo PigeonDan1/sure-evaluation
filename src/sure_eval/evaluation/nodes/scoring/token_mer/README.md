@@ -1,43 +1,70 @@
-# Mixed / English Token Error Rate
+# Mixed and English Token Error Rate
 
-Scores canonical written-form key-text files with mixed-token edit distance:
-English at the word level, CJK at the character level, digits per character.
-This is the right口径 for English-heavy and code-switch references, where
-pure char-CER is unfair and can flip comparisons.
+## Purpose
 
-The node applies the **exact same scorer and tokenizer** as
-`scoring/token_cer`: CJK at character level, latin spans at word level, digits
-per character, and symbols per character. The route difference lives in the
-normalization stage and in the public `pipeline_id`. For `en`/`cs`
-canonical-ITN routes, `normalization/canonical_itn` additionally
-whisper-normalizes latin spans before the shared token chain, using the
-Whisper English normalizer already vendored under `normalization/whisper_norm`:
+`scoring/token_mer` scores canonical written-form key-text files with a mixed
+token edit-distance policy: CJK at character level, Latin text at word level,
+digits per character, and symbols per character. It is used for English-heavy
+and code-switch canonical ASR routes where pure character CER is not the right
+comparison unit.
 
-- contraction expansion (`it's been` → `it has been`, `haven't` → `have not`),
-- spoken numbers to digits (`fifty percent` → `50%`, ITN direction),
-- spoken-filler removal on both sides (`um uh hmm mm mhm mmm`),
-- British→American spelling fold (`colour` ≡ `color`).
+## Task Scenarios
 
-Spans without latin letters pass through the whisper stage unchanged, so the
-degeneration guarantees hold by construction and are locked by tests:
+- ASR English canonical WER:
+  `asr.en.wer.canonical_itn_en_v1.token_mer_v1`.
+- ASR code-switch canonical MER:
+  `asr.cs.mer.canonical_itn_cs_v1.token_mer_v1`.
 
-- text with **no latin letters** scores identically for the canonical ASR MER
-  and CER pipeline IDs (token-for-token);
-- text with **no CJK** scores identically for the canonical ASR MER and WER
-  pipeline IDs.
+## Input
 
-Scoring and coverage policy match `scoring/token_cer`: rapidfuzz minimal
-edit operations, corpus micro-average `(sub+del+ins)/ref_tokens`, missing
-hypotheses scored as deletions, zero covered reference tokens raise, and
-the shared word-spacing repair cancels pure spacing artifacts (a word whose
-letters exactly equal 2-4 consecutive words on the other side is split;
-any letter difference stays fully scored; count reported as
-`spacing_repairs`).
+- Schema: `key_text_files`.
+- Row format: `<key><TAB><canonical text>`.
+- Required roles: `ref`, `hyp`.
+- Text should already be normalized by `normalization/canonical_itn`.
 
-English apostrophe policy (chosen for maximal equivalence under the
-inherent non-transitivity of contractions): unambiguous bare forms are
-restored before Whisper expansion (`dont` ≡ `don't` ≡ `do not`), while `'s`
-is collapsed instead of expanded (`it's` ≡ `its`, `john's` ≡ `johns`) since
-it is three-ways ambiguous (possessive / is / has). The one forgone
-equivalence — `it's` vs `it is` — is documented in tests as an intentional
-trade-off.
+## Output
+
+- Schema: `metric_result`.
+- Report fields include total reference tokens, `sub`, `del`, `ins`,
+  missing/extra hypothesis counts, `spacing_repairs`, and `score`.
+- Lower scores are better.
+
+## Versioned Computation
+
+- Node id: `scoring/token_mer`.
+- Version: `v1`.
+- It uses the same scorer and tokenizer as `scoring/token_cer`.
+- For `en` and `cs`, Latin spans are Whisper-normalized before the shared token
+  chain.
+- Internal stages:
+  - `canonical_tokenization`
+  - `token_edit_distance`
+  - `sdi_decomposition`
+
+Degeneration guarantees are locked by tests:
+
+- Text with no Latin letters scores identically to the canonical CER path.
+- Text with no CJK scores identically to the canonical WER path.
+
+## Runtime and Assets
+
+- Runtime: optional `pip` node.
+- Package: `rapidfuzz>=3.0,<4`.
+- Install with:
+
+```bash
+pip install -e ".[canonical]"
+```
+
+## Source and References
+
+- RapidFuzz: https://github.com/rapidfuzz/RapidFuzz
+- Whisper normalizer source for Latin spans:
+  https://github.com/openai/whisper/tree/main/whisper/normalizers
+
+## Limitations
+
+- Apostrophe handling intentionally collapses ambiguous `'s` forms instead of
+  expanding every case.
+- The node assumes canonical normalized input and should not be used directly
+  on raw ASR text.

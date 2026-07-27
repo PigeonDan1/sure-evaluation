@@ -31,6 +31,7 @@ Guide followed:
 - Task routes: yes / no / n/a
 - Node manifest: yes / no / n/a
 - `node_env.yaml`: yes / no / n/a
+- Node README follows `docs/node_readme_template.md`: yes / no / n/a
 - Catalog generator and `docs/pipeline_catalog.jsonl`: yes / no / n/a
 
 ## Validation

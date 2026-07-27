@@ -1,25 +1,70 @@
 # Token-Level CER Scoring
 
-Scores canonical written-form key-text files (see
-`normalization/canonical_itn`) with token-level edit distance.
+## Purpose
 
-- Tokenization matches the canonical chain: CJK one token per character,
-  latin letter runs one token per word, digits one token per character,
-  surviving semantic symbols (% $ ¥ ° . -) one token each.
-- Distance: rapidfuzz Levenshtein with unit costs; S/D/I decomposition from
-  minimal edit operations. Corpus score is the micro-average
-  `(sub + del + ins) / total_reference_tokens`.
-- Coverage policy matches the other ASR scoring nodes: missing hypothesis
-  utterances are scored as empty hypotheses (pure deletions) and reported
-  via `num_hyp_missing_utts`; hypothesis-only utterances are counted in
-  `num_hyp_extra_utts`; covering zero reference tokens raises instead of
-  reporting a perfect 0.0.
-- Word-spacing repair: a latin word token on one side is split when its
-  letters exactly equal the concatenation of 2-4 consecutive word tokens on
-  the other side ("tenthe" vs "ten the"), cancelling pure spacing artifacts
-  while any letter difference stays fully scored. Repair count is reported
-  as `spacing_repairs`. Deterministic and per-utterance; CJK/digit/symbol
-  tokens never participate.
-- An empty reference with a non-empty hypothesis contributes pure
-  insertions, so corpus scores may exceed 100% on hallucination-style sets
-  by design.
+`scoring/token_cer` scores canonical written-form key-text files with
+token-level edit distance. It is designed to pair with
+`normalization/canonical_itn`.
+
+## Task Scenarios
+
+- ASR Chinese canonical CER:
+  `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1`.
+
+## Input
+
+- Schema: `key_text_files`.
+- Row format: `<key><TAB><canonical text>`.
+- Required roles: `ref`, `hyp`.
+- Text should already be normalized by `normalization/canonical_itn`.
+
+## Output
+
+- Schema: `metric_result`.
+- Report fields include total reference tokens, `sub`, `del`, `ins`,
+  missing/extra hypothesis counts, `spacing_repairs`, and `score`.
+- Score is corpus micro-average:
+
+```text
+(sub + del + ins) / total_reference_tokens
+```
+
+- Lower scores are better.
+
+## Versioned Computation
+
+- Node id: `scoring/token_cer`.
+- Version: `v1`.
+- Tokenization:
+  - CJK: one token per character.
+  - Latin letter runs: one token per word.
+  - Digits: one token per character.
+  - Surviving semantic symbols: one token each.
+- Distance: RapidFuzz Levenshtein with unit costs.
+- Internal stages:
+  - `canonical_tokenization`
+  - `token_edit_distance`
+  - `sdi_decomposition`
+
+## Runtime and Assets
+
+- Runtime: optional `pip` node.
+- Package: `rapidfuzz>=3.0,<4`.
+- Install with:
+
+```bash
+pip install -e ".[canonical]"
+```
+
+## Source and References
+
+- RapidFuzz: https://github.com/rapidfuzz/RapidFuzz
+- Local tokenizer and coverage policy:
+  `src/sure_eval/evaluation/nodes/scoring/token_cer/node.py`
+
+## Limitations
+
+- It assumes canonical written-form input; using raw ASR text will change the
+  metric meaning.
+- Missing hypothesis utterances are scored as empty hypotheses.
+- Zero covered reference tokens raise instead of reporting 0.0.

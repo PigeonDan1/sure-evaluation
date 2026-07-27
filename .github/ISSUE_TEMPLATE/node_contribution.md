@@ -13,5 +13,11 @@ about: Propose a new normalization, transcription, frontend, or scoring node
 
 ## Routes using this node
 
-## Tests
+## Source or references
 
+Official repository, model card, paper, or state that the source is local /
+unknown.
+
+## Input and output schema
+
+## Tests

@@ -1,95 +1,68 @@
 # NIST SCTK sclite Scoring
 
-This node wraps the NIST SCTK `sclite` binary as an optional ASR scoring
-backend. It does not install SCTK into the main Python environment and is not
-used by default ASR routes.
+## Purpose
 
-The first supported path is:
+`scoring/sctk_sclite` wraps the NIST SCTK `sclite` binary as an optional ASR
+scoring backend. It does not install SCTK into the main Python environment and
+is not selected by default ASR routes.
 
-```text
-normalized key-text files -> TRN -> sclite -> parsed WER/CER report
-```
+## Task Scenarios
 
-## Binary Resolution
+- Optional ASR WER/CER backend for users who need SCTK-compatible reports.
+- Default ASR scoring remains `scoring/wenet_wer`, `scoring/wenet_cer`, or
+  `scoring/wenet_mer`.
 
-At execution time the node resolves `sclite` in this order:
+## Input
 
-1. Explicit `sclite_bin=` argument
-2. `SURE_EVAL_SCLITE_BIN`
-3. `PATH`
-4. `SURE_EVAL_SCTK_ROOT/<pinned_commit>/bin/sclite`
-5. `${SURE_EVAL_CACHE_DIR:-~/.cache/sure-eval}/tools/sctk/<pinned_commit>/bin/sclite`
-6. This node's `.local/sctk/<pinned_commit>/bin/sclite`
+- Schema: `normalized_key_text_files`.
+- Row format: `<key><TAB><normalized text>`.
+- Required roles: `ref`, `hyp`.
+- Intermediate schema: TRN.
+- Reference and hypothesis key sets must match exactly.
 
-If no executable is found, the runtime error includes every searched path.
+## Output
 
-## Build
+- Schema: `sctk_sclite_metric_report`.
+- Metrics: `wer`, `cer`.
+- Lower scores are better.
+- Parsed report fields come from `sclite` output.
 
-Build SCTK explicitly:
+## Versioned Computation
+
+- Node id: `scoring/sctk_sclite`.
+- Version: `v1`.
+- Toolkit: NIST SCTK `sclite`.
+- Pinned commit: `9688a26882a688132a5e414cadcb4c19b6fffaba`.
+- Internal stages:
+  - `key_text_parse`
+  - `trn_materialize`
+  - `sclite`
+  - `sclite_report_parse`
+
+## Runtime and Assets
+
+- Runtime: optional external binary.
+- Build script:
 
 ```bash
 bash src/sure_eval/evaluation/nodes/scoring/sctk_sclite/build_sctk.sh
 ```
 
-The default install prefix is:
+Binary resolution order:
 
-```text
-${SURE_EVAL_CACHE_DIR:-~/.cache/sure-eval}/tools/sctk/9688a26882a688132a5e414cadcb4c19b6fffaba
-```
+1. Explicit `sclite_bin=` argument.
+2. `SURE_EVAL_SCLITE_BIN`.
+3. `PATH`.
+4. `SURE_EVAL_SCTK_ROOT/<pinned_commit>/bin/sclite`.
+5. `${SURE_EVAL_CACHE_DIR:-~/.cache/sure-eval}/tools/sctk/<pinned_commit>/bin/sclite`.
+6. This node's `.local/sctk/<pinned_commit>/bin/sclite`.
 
-You can override it:
+## Source and References
 
-```bash
-bash src/sure_eval/evaluation/nodes/scoring/sctk_sclite/build_sctk.sh \
-  --prefix /path/to/sctk \
-  --commit 9688a26882a688132a5e414cadcb4c19b6fffaba
-```
+- NIST SCTK: https://github.com/usnistgov/SCTK
 
-Then either export:
+## Limitations
 
-```bash
-export SURE_EVAL_SCLITE_BIN=/path/to/sctk/bin/sclite
-```
-
-or install under the default cache path.
-
-## ASR Use
-
-The ASR task can select this scorer explicitly:
-
-```python
-from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
-
-report = evaluate_asr_files(
-    "ref.txt",
-    "hyp.txt",
-    language="en",
-    metric="wer",
-    scorer="sctk_sclite",
-)
-```
-
-Default ASR scoring remains `scoring/wenet_wer` or `scoring/wenet_cer`.
-
-## Docker
-
-For Docker execution, either install SCTK inside the image and set:
-
-```bash
-SURE_EVAL_SCLITE_BIN=/usr/local/bin/sclite
-```
-
-or mount the host cache read-only and set:
-
-```bash
--v ${SURE_EVAL_CACHE_DIR:-~/.cache/sure-eval}/tools/sctk:/opt/sure-eval/tools/sctk:ro
--e SURE_EVAL_SCLITE_BIN=/opt/sure-eval/tools/sctk/9688a26882a688132a5e414cadcb4c19b6fffaba/bin/sclite
-```
-
-## Notes
-
-- Input files must be `key<TAB>text`.
-- Reference and hypothesis key sets must match exactly.
-- Normalization is upstream; this node does not normalize text.
-- CER uses `sclite -c NOASCII` after upstream normalization.
+- This implementation currently supports key-text to TRN scoring.
 - STM/CTM timed scoring is intentionally left for a later extension.
+- Normalization must happen upstream.
