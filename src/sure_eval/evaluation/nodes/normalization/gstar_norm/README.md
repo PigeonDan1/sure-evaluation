@@ -48,9 +48,11 @@ Task-specific formats such as STM are converted by
 
 ## Source and References
 
+- G-STAR paper: G-STAR: End-to-End Global Speaker-Tracking Attributed
+  Recognition, https://arxiv.org/pdf/2603.10468v2
 - Source: local SURE legacy compatibility implementation.
-- External source not identified; this node documents the project-local G-STAR
-  compatibility behavior preserved from the existing evaluator.
+- This node documents the project-local G-STAR compatibility behavior preserved
+  from the existing evaluator.
 
 ## Limitations
 
