@@ -1,59 +1,62 @@
+## Start Here
+
+Read [Contributing](docs/contributing.md). If the category is unclear, use
+[Add Evaluation Capabilities](docs/add_a_metric.md).
+
 ## Summary
 
-## Contribution Type
+## PR Type
 
-Select one category from `docs/add_a_metric.md`:
+Select one guide:
 
-- [ ] New task
-- [ ] New metric for an existing task
-- [ ] New pipeline route for an existing metric
-- [ ] Node, tool, environment, or version change
-- [ ] Bug fix / docs / tests only
+- [ ] [New task](docs/pr_guides/new_task.md)
+- [ ] [New metric](docs/pr_guides/new_metric.md)
+- [ ] [New pipeline route](docs/pr_guides/new_route.md)
+- [ ] [Node/tool/version change](docs/pr_guides/node_change.md)
+- [ ] [Maintenance](docs/pr_guides/maintenance.md)
+
+Guide followed:
 
 ## Evaluation Identity
 
-- Reported metric(s):
-- Execution selector(s), if different:
-- Added or changed `pipeline_id` values:
+- Reported `metric`:
+- `execution_metrics`, if different:
+- Added or changed `pipeline_id`:
 - Default route changed: yes / no
 - Score comparability changed: yes / no
 
-## Route And Node Changes
+## Changed Declarations
 
-- Task manifest updated: yes / no / n/a
-- Task routes updated: yes / no / n/a
-- Node manifest or `node_env.yaml` updated: yes / no / n/a
-- Runtime assets required:
-- External toolkit, model, or checkpoint:
-
-## Documentation
-
-- [ ] Task guide updated when user-visible behavior changes
-- [ ] Node README updated for new or changed nodes
-- [ ] `scripts/generate_pipeline_catalog.py` updated when routes change
-- [ ] `docs/pipeline_catalog.jsonl` regenerated when routes change
-- [ ] README or agent docs updated when public workflow changes
+- Task manifest: yes / no / n/a
+- Task routes: yes / no / n/a
+- Node manifest: yes / no / n/a
+- `node_env.yaml`: yes / no / n/a
+- Catalog generator and `docs/pipeline_catalog.jsonl`: yes / no / n/a
 
 ## Validation
 
-Paste the exact checks run:
+Paste exact commands run:
 
 ```bash
 
 ```
 
-For route changes, include at least one `describe -> run -> report` check using
-the exact `pipeline_id`.
+For route or metric PRs, include one exact `pipeline_id` check:
 
-For heavyweight nodes, include the real smoke test or explain why it is skipped:
+```bash
+# sure-eval metric describe ... --pipeline-id ...
+# sure-eval metric run --pipeline ...
+```
+
+For heavyweight nodes, include a real smoke test or explain the skip:
 
 ```bash
 
 ```
 
-## Safety Checklist
+## Safety
 
 - [ ] No `.venv`, checkpoints, generated reports, local cache paths, or credentials committed
 - [ ] No private absolute paths in committed config or docs
-- [ ] New score-affecting behavior is declared in route/node identity
-- [ ] Existing default route behavior is covered by tests or explicitly changed
+- [ ] Score-affecting behavior is declared in route/node identity
+- [ ] Existing default route behavior is tested or explicitly changed

@@ -1,61 +1,33 @@
 # Contributing
 
-SURE-EVAL contributions must be reproducible from declarations, route identity,
-and tests. Before changing evaluation behavior, classify the PR with
-[Add Evaluation Capabilities](./add_a_metric.md).
+Start here for every PR. SURE-EVAL contributions are reviewed by route
+identity, reproducibility, and tests.
 
-## Contributor Flow
+## Pick One Guide
 
-1. Classify the change.
+Use [Add Evaluation Capabilities](./add_a_metric.md) if you are unsure which
+category applies.
 
-   Use one category: new task, new metric for an existing task, new pipeline
-   route for an existing metric, or node/tool/version change. Do not describe a
-   route selector as a new metric.
+| PR type | Use when | Guide |
+|:--|:--|:--|
+| New task | New input roles, row format, alignment, or aggregation | [New Task](./pr_guides/new_task.md) |
+| New metric | New reported score definition for an existing task | [New Metric](./pr_guides/new_metric.md) |
+| New pipeline route | Same reported metric, different node chain or backend | [New Pipeline Route](./pr_guides/new_route.md) |
+| Node/tool/version change | One route stage changes implementation, environment, or version | [Node Change](./pr_guides/node_change.md) |
+| Bug, docs, tests only | No user-visible scoring route change | [Maintenance](./pr_guides/maintenance.md) |
 
-2. Update declarations first.
+## Common Rules
 
-   Task behavior belongs in `src/sure_eval/evaluation/tasks/<task>/`.
-   Reusable work belongs in `src/sure_eval/evaluation/nodes/<stage>/<name>/`.
-   Route selection belongs in `routes.yaml`; public metric names belong in the
-   task manifest and docs.
+- Keep `metric` canonical, such as `cer`, `wer`, `spk_sim`, or `dnsmos`.
+- Put method or compatibility selectors in `execution_metrics`.
+- Select same-metric variants with exact `pipeline_id`.
+- Do not change a default route without saying so in the PR.
+- Do not commit model weights, checkpoints, `.venv`, caches, reports, secrets,
+  or private absolute paths.
 
-3. Preserve identity.
+## Common Checks
 
-   Every user-visible route must have a stable `pipeline_id` in the form
-   `task.language.metric.node_version...`. The reported `metric` is canonical.
-   Method-specific selectors such as `sim/wavlm-large` belong in
-   `execution_metrics`, not in the reported metric name.
-
-4. Validate describe, run, and report together.
-
-   For route changes, generate a pipeline JSON with the exact `pipeline_id`,
-   run it on a small fixture, and confirm `report.json` and
-   `pipeline_description.json` keep the same identity.
-
-5. Fill the PR template.
-
-   State the contribution category, changed `pipeline_id` values, default route
-   impact, score comparability impact, docs updated, and checks run.
-
-## Files To Update
-
-Update only the files that match the change:
-
-- task manifest: `src/sure_eval/evaluation/tasks/<task>/manifest.yaml`
-- task routes: `src/sure_eval/evaluation/tasks/<task>/routes.yaml`
-- task pipeline code: `src/sure_eval/evaluation/tasks/<task>/pipeline.py`
-- script adapter: `src/sure_eval/evaluation/scripts/<task>.py`
-- node manifest or environment: `src/sure_eval/evaluation/nodes/<stage>/<name>/`
-- task guide: `docs/tasks/<task>.md`
-- task-local README: `src/sure_eval/evaluation/tasks/<task>/README.md`
-- catalog generator: `scripts/generate_pipeline_catalog.py`
-- generated catalog: `docs/pipeline_catalog.jsonl`
-- public docs: `README.md`, `docs/agent_contract.md`, or
-  `docs/pipeline_catalog.md` when workflow or schema semantics change
-
-## Required Checks
-
-Run focused checks for the changed task, then broader checks when shared code is
+Run focused tests for the changed task, then broader checks when shared code is
 touched:
 
 ```bash
@@ -64,7 +36,7 @@ PYTHONPATH=src uv run ruff check .
 git diff --check
 ```
 
-Regenerate the catalog after route changes:
+After route changes, regenerate and inspect the catalog:
 
 ```bash
 PYTHONPATH=src uv run python scripts/generate_pipeline_catalog.py
@@ -78,18 +50,8 @@ sure-eval env check --node <node-id>
 sure-eval env setup --node <node-id> --dry-run
 ```
 
-If real inference is required but unsuitable for CI, run one local smoke test
-and record the node id, backend, checkpoint or model id, input fixture, and
-score in the PR.
+## Open The PR
 
-## Do Not Commit
-
-- virtual environments
-- checkpoints or model weights
-- generated reports
-- local caches
-- private absolute paths
-- API keys or credentials
-
-Use `node_env.yaml` and environment variables to describe heavyweight runtime
-requirements without committing local assets.
+Use the PR template and link the guide you followed. For route or metric
+changes, include a small `describe -> run -> report` check that proves the
+selected `pipeline_id` is preserved.

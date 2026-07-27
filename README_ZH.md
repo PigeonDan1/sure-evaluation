@@ -217,13 +217,16 @@ sure-eval metric run       ──►  report.json + pipeline_description.json
 
 ## 🤝 如何贡献
 
-1. 在 `src/sure_eval/evaluation/nodes/` 下添加或扩展节点。
-2. 编写 `manifest.yaml` 和 `node_env.yaml`（如节点较复杂）。
-3. 在 `tasks/<task>/routes.yaml` 中添加或更新路由。
-4. 添加测试和文档。
-5. 用 `sure-eval metric describe` 和 `sure-eval metric run` 验证。
+从 [docs/contributing.md](docs/contributing.md) 开始。它会按 PR 类型进入
+对应短手册：
 
-详见 [docs/contributing.md](docs/contributing.md) 和 [docs/add_a_metric.md](docs/add_a_metric.md)。
+- 新任务
+- 新指标
+- 新 pipeline route
+- 节点 / 工具 / 版本变更
+- 维护类改动
+
+如果不确定分类，再看 [docs/add_a_metric.md](docs/add_a_metric.md)。
 
 ---
 

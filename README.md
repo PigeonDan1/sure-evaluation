@@ -223,13 +223,17 @@ This makes every score traceable to the exact code, config, and inputs that prod
 
 ## 🤝 How to Contribute
 
-1. Add or extend a node under `src/sure_eval/evaluation/nodes/`.
-2. Write `manifest.yaml` and `node_env.yaml` (if non-trivial).
-3. Add or update routes in `tasks/<task>/routes.yaml`.
-4. Add tests and docs.
-5. Run `sure-eval metric describe` and `sure-eval metric run` to verify.
+Start with [docs/contributing.md](docs/contributing.md). It routes each PR type
+to the right short guide:
 
-See [docs/contributing.md](docs/contributing.md) and [docs/add_a_metric.md](docs/add_a_metric.md).
+- new task
+- new metric
+- new pipeline route
+- node/tool/version change
+- maintenance
+
+Use [docs/add_a_metric.md](docs/add_a_metric.md) only when the category is
+unclear.
 
 ---
 
