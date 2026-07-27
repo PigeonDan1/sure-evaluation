@@ -257,8 +257,8 @@ def test_metric_run_rejects_node_choice_not_declared_by_describe(tmp_path: Path)
     pipeline_path = tmp_path / "asr_pipeline.json"
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"
-    _write_key_text(ref_file, [("utt1", "你好世界")])
-    _write_key_text(hyp_file, [("utt1", "你好世界")])
+    _write_key_text(ref_file, [("utt1", "hello world")])
+    _write_key_text(hyp_file, [("utt1", "hello world")])
 
     result = runner.invoke(
         app,
@@ -267,9 +267,9 @@ def test_metric_run_rejects_node_choice_not_declared_by_describe(tmp_path: Path)
             "describe",
             "asr",
             "--language",
-            "zh",
+            "en",
             "--metric",
-            "cer",
+            "wer",
             "--output",
             str(pipeline_path),
         ],
@@ -662,8 +662,8 @@ def test_metric_run_human_mode_prints_environment_note(tmp_path: Path) -> None:
     pipeline_path = tmp_path / "asr_pipeline.json"
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"
-    _write_key_text(ref_file, [("utt1", "你好世界")])
-    _write_key_text(hyp_file, [("utt1", "你好世界")])
+    _write_key_text(ref_file, [("utt1", "hello world")])
+    _write_key_text(hyp_file, [("utt1", "hello world")])
 
     describe_result = runner.invoke(
         app,
@@ -672,9 +672,9 @@ def test_metric_run_human_mode_prints_environment_note(tmp_path: Path) -> None:
             "describe",
             "asr",
             "--language",
-            "zh",
+            "en",
             "--metric",
-            "cer",
+            "wer",
             "--output",
             str(pipeline_path),
         ],

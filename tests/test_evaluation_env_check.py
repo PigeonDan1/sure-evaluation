@@ -229,7 +229,21 @@ def test_cache_dir_uses_sure_eval_cache_dir(monkeypatch, tmp_path: Path) -> None
     assert cache_dir.exists()
 
 
-def test_doctor_treats_optional_node_failures_as_warning(monkeypatch) -> None:
+def test_doctor_skips_optional_node_failures_by_default(monkeypatch) -> None:
+    from sure_eval.evaluation import env_check
+
+    def _unexpected_check_node(self, node_id: str):
+        raise AssertionError("default doctor must not inspect optional nodes")
+
+    monkeypatch.setattr(env_check.NodeEnvChecker, "check_node", _unexpected_check_node)
+
+    payload = env_check.doctor_payload()
+
+    assert payload["status"] in {"ok", "warning"}
+    assert [item for item in payload["checks"] if item.get("node_id")] == []
+
+
+def test_doctor_can_treat_optional_node_failures_as_warning(monkeypatch) -> None:
     from sure_eval.evaluation import env_check
 
     def _fake_check_node(self, node_id: str):
@@ -245,7 +259,7 @@ def test_doctor_treats_optional_node_failures_as_warning(monkeypatch) -> None:
 
     monkeypatch.setattr(env_check.NodeEnvChecker, "check_node", _fake_check_node)
 
-    payload = env_check.doctor_payload()
+    payload = env_check.doctor_payload(include_optional_nodes=True)
 
     assert payload["status"] in {"ok", "warning"}
     node_checks = [item for item in payload["checks"] if item.get("node_id")]

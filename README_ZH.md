@@ -30,16 +30,23 @@ SURE-EVAL 是一个面向语音与音频基准测试的**确定性评测系统**
 ## 🚀 30 秒快速上手
 
 ```bash
-# 安装轻量基础包
+# 克隆并安装轻量基础包
+git clone https://github.com/PigeonDan1/sure-evaluation.git
+cd sure-evaluation
 pip install -e .
 
 # 检查安装
 sure-eval doctor
 
-# 描述并运行一个 ASR 指标
-sure-eval metric describe asr --language zh --metric cer --output /tmp/asr.json
+# 准备一个极小的纯文本 ASR demo
+printf "utt1\thello world\nutt2\tthis is a test\n" > /tmp/sure_ref.txt
+printf "utt1\thello world\nutt2\tthis is test\n" > /tmp/sure_hyp.txt
+
+# 查看、描述并运行一个全 in-process 的 ASR 指标
+sure-eval agent plan asr --language en --metric wer --json
+sure-eval metric describe asr --language en --metric wer --output /tmp/asr.json
 sure-eval metric run --pipeline /tmp/asr.json \
-  --ref-file ref.txt --hyp-file hyp.txt --output-dir /tmp/asr_eval
+  --ref-file /tmp/sure_ref.txt --hyp-file /tmp/sure_hyp.txt --output-dir /tmp/asr_eval
 
 # 查看分数
 cat /tmp/asr_eval/report.json | grep score

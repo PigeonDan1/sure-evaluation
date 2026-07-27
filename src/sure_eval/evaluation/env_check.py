@@ -442,7 +442,7 @@ def iter_known_node_ids() -> tuple[str, ...]:
     return tuple(sorted(discovered | NODE_LOCAL_PROJECTS))
 
 
-def doctor_checks() -> list[EnvCheckResult]:
+def doctor_checks(*, include_optional_nodes: bool = False) -> list[EnvCheckResult]:
     checks = [
         EnvCheckResult(
             name="python",
@@ -469,6 +469,9 @@ def doctor_checks() -> list[EnvCheckResult]:
             details={"env_var": CACHE_ENV_VAR},
         ),
     ]
+    if not include_optional_nodes:
+        return checks
+
     checker = NodeEnvChecker()
     for node_id in sorted(NODE_LOCAL_PROJECTS):
         result = checker.check_node(node_id)
@@ -480,8 +483,8 @@ def doctor_checks() -> list[EnvCheckResult]:
     return checks
 
 
-def doctor_payload() -> dict[str, Any]:
-    checks = doctor_checks()
+def doctor_payload(*, include_optional_nodes: bool = False) -> dict[str, Any]:
+    checks = doctor_checks(include_optional_nodes=include_optional_nodes)
     failed = [check for check in checks if check.status == "failed"]
     warnings = [check for check in checks if check.status == "warning"]
     status = "failed" if failed else "warning" if warnings else "ok"

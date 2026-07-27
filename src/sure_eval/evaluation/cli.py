@@ -281,11 +281,16 @@ def main(
 
 @app.command("doctor")
 def doctor(
-    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON")
+    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
+    optional_nodes: bool = typer.Option(
+        False,
+        "--optional-nodes",
+        help="Also check optional node-local environments and checkpoints",
+    ),
 ) -> None:
-    """Check root package and optional node environment status."""
+    """Check root package installation status."""
 
-    payload = doctor_payload()
+    payload = doctor_payload(include_optional_nodes=optional_nodes)
     if json_output:
         sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     else:

@@ -30,19 +30,23 @@ Use it as a **CLI**, a **Python library**, or a module in larger agent workflows
 ## 🚀 30-Second Quick Start
 
 ```bash
-# Install the lightweight base package
+# Clone and install the lightweight base package
+git clone https://github.com/PigeonDan1/sure-evaluation.git
+cd sure-evaluation
 pip install -e .
 
 # Check the installation
 sure-eval doctor
 
-# Inspect the route and selected node environments
-sure-eval agent plan asr --language zh --metric cer --json
+# Prepare a tiny text-only ASR demo
+printf "utt1\thello world\nutt2\tthis is a test\n" > /tmp/sure_ref.txt
+printf "utt1\thello world\nutt2\tthis is test\n" > /tmp/sure_hyp.txt
 
-# Describe and run an ASR metric
-sure-eval metric describe asr --language zh --metric cer --output /tmp/asr.json
+# Inspect, describe, and run an in-process ASR metric
+sure-eval agent plan asr --language en --metric wer --json
+sure-eval metric describe asr --language en --metric wer --output /tmp/asr.json
 sure-eval metric run --pipeline /tmp/asr.json \
-  --ref-file ref.txt --hyp-file hyp.txt --output-dir /tmp/asr_eval
+  --ref-file /tmp/sure_ref.txt --hyp-file /tmp/sure_hyp.txt --output-dir /tmp/asr_eval
 
 # View the score
 cat /tmp/asr_eval/report.json | grep score

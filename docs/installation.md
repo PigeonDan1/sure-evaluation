@@ -7,8 +7,12 @@ git clone https://github.com/PigeonDan1/sure-evaluation.git
 cd sure-evaluation
 pip install -e .
 sure-eval doctor
-sure-eval metric describe asr --language zh --metric cer --json
-sure-eval agent plan asr --language zh --metric cer --json
+printf "utt1\thello world\nutt2\tthis is a test\n" > /tmp/sure_ref.txt
+printf "utt1\thello world\nutt2\tthis is test\n" > /tmp/sure_hyp.txt
+sure-eval agent plan asr --language en --metric wer --json
+sure-eval metric describe asr --language en --metric wer --output /tmp/asr.json
+sure-eval metric run --pipeline /tmp/asr.json \
+  --ref-file /tmp/sure_ref.txt --hyp-file /tmp/sure_hyp.txt --output-dir /tmp/asr_eval
 ```
 
 The project is not currently published to PyPI. Install from a source checkout.
@@ -26,6 +30,8 @@ weights or creating node-local environments.
 Mandarin ASR CER selects `normalization/wetext_norm` (`zh_itn`) by default.
 That node owns its pinned WeTextProcessing/Pynini environment under
 `src/sure_eval/evaluation/nodes/normalization/wetext_norm/`.
+The base smoke test above uses English ASR WER because it runs entirely
+in-process and does not require a node-local uv environment.
 
 Optional extras:
 
@@ -70,5 +76,9 @@ Node environments are declared by `node_env.yaml` files under
 `src/sure_eval/evaluation/nodes/**`.
 Heavy transcription alternatives such as `transcription/qwen3_asr_1_7b`
 declare their own node-local uv project and checkpoint target.
+`sure-eval doctor` checks the base installation by default; use
+`sure-eval doctor --optional-nodes`, `sure-eval env check --all`, or a
+task/pipeline-specific `sure-eval env check ...` command when you want optional
+node-local environment diagnostics.
 For agent-facing route and environment readiness, see
 [`docs/agent_contract.md`](agent_contract.md).
