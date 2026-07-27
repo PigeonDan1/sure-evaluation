@@ -58,7 +58,7 @@ print(report.score)
 SD requires `meeteval`. Install with:
 
 ```bash
-pip install "sure-evaluation[diarization]"
+pip install -e ".[diarization]"
 ```
 
 Or ensure the `scoring/meeteval` node environment is set up:

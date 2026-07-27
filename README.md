@@ -87,18 +87,20 @@ sure-eval metric describe <task> --help
 ## 🛠️ Installing Optional Parts
 
 ```bash
-# Base package
-pip install sure-evaluation
+# From a source checkout; the package is not currently published to PyPI.
+git clone https://github.com/PigeonDan1/sure-evaluation.git
+cd sure-evaluation
+pip install -e .
 
 # Development
 pip install -e ".[dev]"
 
-# Optional extras
-pip install "sure-evaluation[diarization]"  # MeetEval for SD / SA-ASR
-pip install "sure-evaluation[audio]"        # Local audio helpers
-pip install "sure-evaluation[download]"     # Hugging Face / ModelScope download helpers
-pip install "sure-evaluation[wetext]"       # compatibility no-op; wetext_norm uses node-local uv
-pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER routes
+# Optional extras, from the repository root
+pip install -e ".[diarization]"  # MeetEval for SD / SA-ASR
+pip install -e ".[audio]"        # Local audio helpers
+pip install -e ".[download]"     # Hugging Face / ModelScope download helpers
+pip install -e ".[wetext]"       # compatibility no-op; wetext_norm uses node-local uv
+pip install -e ".[canonical]"    # canonical ASR CER/MER/WER routes
 
 # Put caches on a large disk
 export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache

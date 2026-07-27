@@ -83,18 +83,20 @@ sure-eval metric describe <task> --help
 ## 🛠️ 安装可选组件
 
 ```bash
-# 基础包
-pip install sure-evaluation
+# 从源码安装；当前项目尚未发布到 PyPI。
+git clone https://github.com/PigeonDan1/sure-evaluation.git
+cd sure-evaluation
+pip install -e .
 
 # 开发
 pip install -e ".[dev]"
 
-# 可选 extras
-pip install "sure-evaluation[diarization]"  # SD / SA-ASR 所需的 MeetEval
-pip install "sure-evaluation[audio]"        # 本地音频辅助库
-pip install "sure-evaluation[download]"     # Hugging Face / ModelScope 下载辅助
-pip install "sure-evaluation[wetext]"       # 兼容空 extra；WeTextProcessing 已包含在基础依赖中
-pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER 路由
+# 可选 extras，在仓库根目录执行
+pip install -e ".[diarization]"  # SD / SA-ASR 所需的 MeetEval
+pip install -e ".[audio]"        # 本地音频辅助库
+pip install -e ".[download]"     # Hugging Face / ModelScope 下载辅助
+pip install -e ".[wetext]"       # 兼容空 extra；wetext_norm 使用 node-local uv
+pip install -e ".[canonical]"    # canonical ASR CER/MER/WER 路由
 
 # 把缓存放到大容量磁盘
 export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache

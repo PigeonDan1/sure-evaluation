@@ -61,5 +61,5 @@ print(report.score)  # cpWER
 SA-ASR requires `meeteval`. Install with:
 
 ```bash
-pip install "sure-evaluation[diarization]"
+pip install -e ".[diarization]"
 ```

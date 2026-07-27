@@ -3,13 +3,17 @@
 ## Base Package
 
 ```bash
-pip install sure-evaluation
+git clone https://github.com/PigeonDan1/sure-evaluation.git
+cd sure-evaluation
+pip install -e .
 sure-eval doctor
 sure-eval metric describe asr --language zh --metric cer --json
 sure-eval agent plan asr --language zh --metric cer --json
 ```
 
-For local development:
+The project is not currently published to PyPI. Install from a source checkout.
+
+For local development, use the development extra from the repository root:
 
 ```bash
 pip install -e ".[dev]"
@@ -26,11 +30,11 @@ That node owns its pinned WeTextProcessing/Pynini environment under
 Optional extras:
 
 ```bash
-pip install "sure-evaluation[audio]"        # local audio helpers
-pip install "sure-evaluation[download]"     # Hugging Face / ModelScope asset download helpers
-pip install "sure-evaluation[diarization]"  # MeetEval for SD and SA-ASR
-pip install "sure-evaluation[wetext]"       # compatibility no-op; wetext_norm uses node-local uv
-pip install "sure-evaluation[canonical]"    # canonical ASR CER/MER/WER routes
+pip install -e ".[audio]"        # local audio helpers
+pip install -e ".[download]"     # Hugging Face / ModelScope asset download helpers
+pip install -e ".[diarization]"  # MeetEval for SD and SA-ASR
+pip install -e ".[wetext]"       # compatibility no-op; wetext_norm uses node-local uv
+pip install -e ".[canonical]"    # canonical ASR CER/MER/WER routes
 ```
 
 For maintainers:
