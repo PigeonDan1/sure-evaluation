@@ -1,0 +1,13 @@
+[project]
+name = "sure-eval-normalization-funasr"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "pynini>=2.1.6,<2.2",
+    "joblib>=1.0.0",
+    "tqdm>=4.0.0",
+    "regex>=2020.0.0",
+]
+
+[tool.uv]
+package = false

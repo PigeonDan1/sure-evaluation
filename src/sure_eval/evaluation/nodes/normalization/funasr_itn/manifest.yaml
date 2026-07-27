@@ -1,0 +1,53 @@
+id: normalization/funasr_itn
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.funasr_itn.node
+runtime: node_local_optional
+package:
+  name: fun_text_processing
+  vendored: true
+profiles:
+  zh:
+    language: zh
+    direction: itn
+  en:
+    language: en
+    direction: itn
+  ja:
+    language: ja
+    direction: itn
+  es:
+    language: es
+    direction: itn
+  fr:
+    language: fr
+    direction: itn
+  de:
+    language: de
+    direction: itn
+  ko:
+    language: ko
+    direction: itn
+  ru:
+    language: ru
+    direction: itn
+  pt:
+    language: pt
+    direction: itn
+  vi:
+    language: vi
+    direction: itn
+  id:
+    language: id
+    direction: itn
+  tl:
+    language: tl
+    direction: itn
+default_for: []
+notes:
+  - FunASR InverseTextNormalization (ITN) using pynini WFST grammars.
+  - fun_text_processing is vendored under this node directory.
+  - Supports: zh, en, ja, es, fr, de, ko, ru, pt, vi, id, tl.

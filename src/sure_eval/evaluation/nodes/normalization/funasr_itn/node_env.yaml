@@ -1,0 +1,18 @@
+id: normalization/funasr_itn
+group: normalization-extra
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: false
+packages:
+  - name: pynini
+  - name: joblib
+  - name: tqdm
+  - name: regex
+verify:
+  imports:
+    - pynini
+    - fun_text_processing.inverse_text_normalization.inverse_normalize
+  files: []
