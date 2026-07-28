@@ -11,6 +11,7 @@ packages:
   - name: joblib
   - name: tqdm
   - name: regex
+  - name: inflect
 verify:
   imports:
     - pynini
