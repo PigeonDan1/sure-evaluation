@@ -22,7 +22,10 @@ from sure_eval.evaluation.nodes.normalization.punctuation_strip_norm import (
     normalize_punctuation_strip_key_text_files,
 )
 from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
-from sure_eval.evaluation.nodes.normalization.funasr_itn import normalize_funasr_files
+from sure_eval.evaluation.nodes.normalization.funasr_itn import (
+    SUPPORTED_PROFILES as FUNASR_PROFILES,
+    normalize_funasr_files,
+)
 from sure_eval.evaluation.nodes.normalization.wetext_norm import (
     SUPPORTED_PROFILES as WETEXT_SUPPORTED_PROFILES,
     normalize_wetext_key_text_files,
@@ -252,6 +255,8 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
             return "whisper"
         if language == "zh" and metric == "cer":
             return "wetext:zh_itn"
+        if language in FUNASR_PROFILES:
+            return f"funasr:{language}"
         return "aispeech"
     if normalized.startswith("wetext:"):
         profile = normalized.split(":", 1)[1]

@@ -5,6 +5,16 @@ default_metrics:
   zh: cer
   en: wer
   cs: mer
+  ja: cer
+  es: wer
+  fr: wer
+  de: wer
+  ko: cer
+  ru: wer
+  pt: wer
+  vi: wer
+  id: wer
+  tl: wer
 default_pipelines:
   zh:
     cer:
@@ -26,6 +36,56 @@ default_pipelines:
       variants:
         aispeech_norm_cs: asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1
         canonical_itn_cs: asr.cs.mer.canonical_itn_cs_v1.token_mer_v1
+  ja:
+    cer:
+      default: asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1
+      variants:
+        funasr_itn_ja: asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1
+  es:
+    wer:
+      default: asr.es.wer.funasr_itn_es_v1.wenet_wer_v1
+      variants:
+        funasr_itn_es: asr.es.wer.funasr_itn_es_v1.wenet_wer_v1
+  fr:
+    wer:
+      default: asr.fr.wer.funasr_itn_fr_v1.wenet_wer_v1
+      variants:
+        funasr_itn_fr: asr.fr.wer.funasr_itn_fr_v1.wenet_wer_v1
+  de:
+    wer:
+      default: asr.de.wer.funasr_itn_de_v1.wenet_wer_v1
+      variants:
+        funasr_itn_de: asr.de.wer.funasr_itn_de_v1.wenet_wer_v1
+  ko:
+    cer:
+      default: asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1
+      variants:
+        funasr_itn_ko: asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1
+  ru:
+    wer:
+      default: asr.ru.wer.funasr_itn_ru_v1.wenet_wer_v1
+      variants:
+        funasr_itn_ru: asr.ru.wer.funasr_itn_ru_v1.wenet_wer_v1
+  pt:
+    wer:
+      default: asr.pt.wer.funasr_itn_pt_v1.wenet_wer_v1
+      variants:
+        funasr_itn_pt: asr.pt.wer.funasr_itn_pt_v1.wenet_wer_v1
+  vi:
+    wer:
+      default: asr.vi.wer.funasr_itn_vi_v1.wenet_wer_v1
+      variants:
+        funasr_itn_vi: asr.vi.wer.funasr_itn_vi_v1.wenet_wer_v1
+  id:
+    wer:
+      default: asr.id.wer.funasr_itn_id_v1.wenet_wer_v1
+      variants:
+        funasr_itn_id: asr.id.wer.funasr_itn_id_v1.wenet_wer_v1
+  tl:
+    wer:
+      default: asr.tl.wer.funasr_itn_tl_v1.wenet_wer_v1
+      variants:
+        funasr_itn_tl: asr.tl.wer.funasr_itn_tl_v1.wenet_wer_v1
 input_contracts:
   scoring/wenet_cer:
     purpose: character_error_rate

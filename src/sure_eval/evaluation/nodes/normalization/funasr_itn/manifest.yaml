@@ -46,7 +46,17 @@ profiles:
   tl:
     language: tl
     direction: itn
-default_for: []
+default_for:
+  - ASR/ja/cer
+  - ASR/es/wer
+  - ASR/fr/wer
+  - ASR/de/wer
+  - ASR/ko/cer
+  - ASR/ru/wer
+  - ASR/pt/wer
+  - ASR/vi/wer
+  - ASR/id/wer
+  - ASR/tl/wer
 notes:
   - FunASR InverseTextNormalization (ITN) using pynini WFST grammars.
   - fun_text_processing is vendored under this node directory.

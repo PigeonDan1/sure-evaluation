@@ -12,13 +12,17 @@ The node normalizes text only. It does not calculate WER, CER, or MER.
 
 ## Task Scenarios
 
-This node is available through the Python API via the `normalizer` parameter.
-It is not registered in `routes.yaml` as a default or alternative route;
-users select it explicitly at runtime:
+This node is the **default normalizer** for 10 languages (ja, ko, es, fr, de, ru,
+pt, vi, id, tl) — calling `evaluate_asr_files(language="ja", metric="cer")`
+without a `normalizer` argument automatically selects `funasr:ja`:
 
 ```python
 from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 
+# Default (funasr automatically selected for ja/ko/es/fr/de/ru/pt/vi/id/tl)
+evaluate_asr_files(ref_file="ref.txt", hyp_file="hyp.txt", language="ja", metric="cer")
+
+# Explicit override (e.g., for zh/en which default to wetext/whisper)
 evaluate_asr_files(
     ref_file="ref.txt", hyp_file="hyp.txt",
     language="zh", metric="cer",
