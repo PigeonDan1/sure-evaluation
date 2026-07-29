@@ -6,8 +6,9 @@ Evaluate multi-speaker ASR outputs. Reports cpWER as the main metric and DER as 
 
 | Metric | Pipeline ID | Nodes | Params |
 |:-------|:------------|:------|:-------|
-| `cpwer` (main) | `sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1` | `conversion/sa_asr__cpwer` → `normalization/gstar_norm` → `scoring/meeteval` | `collar: 0.5` |
-| `der` (companion) | same | same | recorded alongside cpWER |
+| `cpwer` (main, en) | `sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1` | `conversion/sa_asr__cpwer` → `normalization/whisper_norm` → `scoring/meeteval` | `collar: 0.5`, `profile: english` |
+| `cpwer` (main, zh) | `sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1` | `conversion/sa_asr__cpwer` → `normalization/gstar_norm` → `scoring/meeteval` | `collar: 0.5` |
+| `der` (companion) | same selected route | same selected route | recorded alongside cpWER |
 
 ## Input Format
 
@@ -23,14 +24,16 @@ Example:
 meeting_001 1 spk_A 12.34 14.80 hello world
 ```
 
-The pipeline converts STM to key-text for normalization, normalizes with `gstar_norm`, then converts back to STM before MeetEval scoring.
+The pipeline converts STM to key-text for normalization, normalizes the transcript text with the language-selected normalization node, then converts back to STM before MeetEval scoring.
 
 ## CLI Usage
 
 ```bash
-sure-eval metric describe sa_asr --metric cpwer --output /tmp/sa_asr.json
-sure-eval metric run --pipeline /tmp/sa_asr.json \
+sure-eval metric describe sa_asr --language en --metric cpwer --output /tmp/sa_asr_en.json
+sure-eval metric run --pipeline /tmp/sa_asr_en.json \
   --ref-file ref.stm --hyp-file hyp.stm --output-dir /tmp/sa_asr_eval
+
+sure-eval metric describe sa_asr --language zh --metric cpwer --output /tmp/sa_asr_zh.json
 ```
 
 ## Python API
@@ -42,6 +45,7 @@ report = run_task(
     "sa_asr",
     ref_file="ref.stm",
     hyp_file="hyp.stm",
+    language="en",
     metric="cpwer",
     output_dir="/tmp/sa_asr_eval",
 )

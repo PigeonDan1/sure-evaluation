@@ -1,9 +1,10 @@
 task: SA-ASR
-language_sensitive: false
+language_sensitive: true
 routes:
   -
+    language: zh
     metric: cpwer
-    pipeline_id: sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1
+    pipeline_id: sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1
     nodes:
       - normalization/gstar_norm
       - scoring/meeteval
@@ -11,5 +12,20 @@ routes:
     executor: sure_eval.evaluation.tasks.sa_asr.pipeline.evaluate_sa_asr_files
     params:
       collar: 0.5
+      normalization_node: normalization/gstar_norm
+      companion_metrics:
+        - der
+  -
+    language: en
+    metric: cpwer
+    pipeline_id: sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1
+    nodes:
+      - normalization/whisper_norm
+      - scoring/meeteval
+    input_contract: scoring/meeteval
+    executor: sure_eval.evaluation.tasks.sa_asr.pipeline.evaluate_sa_asr_files
+    params:
+      collar: 0.5
+      normalization_node: normalization/whisper_norm
       companion_metrics:
         - der

@@ -168,13 +168,47 @@ def test_sa_asr_script_describes_meeteval_cpwer_route_with_der_companion() -> No
     from sure_eval.evaluation.scripts.sa_asr import describe_pipeline
 
     description = describe_pipeline(metric="cpwer")
+    zh_description = describe_pipeline(metric="cpwer", language="zh")
 
-    assert description.pipeline_id == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
-    assert description.node_ids == ("normalization/gstar_norm", "scoring/meeteval")
+    assert description.pipeline_id == (
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1"
+    )
+    assert zh_description.pipeline_id == (
+        "sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    )
+    assert description.node_ids == ("normalization/whisper_norm", "scoring/meeteval")
+    assert zh_description.language == "zh"
+    assert zh_description.node_ids == ("normalization/gstar_norm", "scoring/meeteval")
     assert description.required_roles == ("hyp", "ref")
     assert description.contracts[0]["row_format"] == "meeteval_annotation"
     assert description.contracts[0]["aggregation"] == "meeteval_combined_error_rate"
     assert any(item["id"] == "sa_asr__cpwer" for item in description.conversion_steps)
+
+
+def test_sa_asr_script_describes_language_specific_pipeline_ids() -> None:
+    from sure_eval.evaluation.scripts.sa_asr import describe_pipeline
+
+    en_pipeline_id = (
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1"
+    )
+    zh_pipeline_id = "sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+
+    en_description = describe_pipeline(pipeline_id=en_pipeline_id)
+    zh_description = describe_pipeline(pipeline_id=zh_pipeline_id)
+
+    assert en_description.pipeline_id == en_pipeline_id
+    assert en_description.language == "en"
+    assert en_description.node_ids == ("normalization/whisper_norm", "scoring/meeteval")
+    assert zh_description.pipeline_id == zh_pipeline_id
+    assert zh_description.language == "zh"
+    assert zh_description.node_ids == ("normalization/gstar_norm", "scoring/meeteval")
+
+
+def test_sa_asr_script_rejects_unknown_language() -> None:
+    from sure_eval.evaluation.scripts.sa_asr import describe_pipeline
+
+    with pytest.raises(ValueError, match="No configured route found"):
+        describe_pipeline(metric="cpwer", language="ja")
 
 
 def test_simple_task_routes_declare_nodes_contract_and_executor() -> None:
@@ -1109,11 +1143,14 @@ def test_sa_asr_script_run_reports_cpwer_and_der_companion(monkeypatch: pytest.M
     assert report.task == "SA-ASR"
     assert report.metric == "cpwer"
     assert report.score == pytest.approx(0.375)
-    assert report_payload["pipeline_id"] == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    assert report_payload["pipeline_id"] == (
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1"
+    )
     assert report_payload["details"]["scoring_result"]["cpwer"] == pytest.approx(0.375)
     assert report_payload["details"]["scoring_result"]["der"] == pytest.approx(0.2)
-    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/gstar_norm"
+    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/whisper_norm"
     assert report_payload["pipeline_trace"][0]["details"]["input_schema"] == "key_text_files"
+    assert report_payload["pipeline_trace"][0]["details"]["profile"] == "english"
     assert report_payload["pipeline_trace"][1]["details"]["params"]["companion_metrics"] == ["der"]
     assert report_payload["details"]["conversion_trace"][0]["id"] == "sa_asr__cpwer"
     assert report_payload["details"]["conversion_trace"][0]["source_format"] == "stm"
@@ -1121,6 +1158,35 @@ def test_sa_asr_script_run_reports_cpwer_and_der_companion(monkeypatch: pytest.M
     assert (output_dir / "conversion" / "sa_asr__cpwer" / "ref.txt").exists()
     assert (output_dir / "conversion" / "sa_asr__cpwer" / "ref.normalized.stm").exists()
     assert calls["dscore"][0][2] == 0.5
+
+
+def test_sa_asr_script_run_accepts_zh_language_pipeline_id(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _install_fake_meeteval(monkeypatch)
+    from sure_eval.evaluation.scripts.sa_asr import run
+
+    ref_file = tmp_path / "ref.stm"
+    hyp_file = tmp_path / "hyp.stm"
+    output_dir = tmp_path / "sa_asr_zh_out"
+    _write_annotation(ref_file, ["rec1 1 spk1 0.00 1.00 你好世界"])
+    _write_annotation(hyp_file, ["rec1 1 hyp1 0.00 1.00 你好世界"])
+
+    report = run(
+        ref_file=str(ref_file),
+        hyp_file=str(hyp_file),
+        output_dir=str(output_dir),
+        language="zh",
+    )
+
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report.pipeline_id == (
+        "sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    )
+    assert report_payload["pipeline_id"] == report.pipeline_id
+    assert report_payload["language"] == "zh"
+    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/gstar_norm"
+    assert report_payload["pipeline_trace"][0]["details"]["language"] == "zh"
 
 
 def test_unified_script_entrypoint_dispatches_describe_and_run(tmp_path: Path) -> None:
@@ -1158,7 +1224,9 @@ def test_unified_script_entrypoint_dispatches_sd_and_sa_asr(monkeypatch: pytest.
     sa_asr_description = describe_pipeline("sa-asr", metric="cpwer")
 
     assert sd_description.pipeline_id == "sd.any.der.meeteval_v1"
-    assert sa_asr_description.pipeline_id == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    assert sa_asr_description.pipeline_id == (
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1"
+    )
 
     ref_file = tmp_path / "ref.stm"
     hyp_file = tmp_path / "hyp.stm"
@@ -1172,7 +1240,9 @@ def test_unified_script_entrypoint_dispatches_sd_and_sa_asr(monkeypatch: pytest.
         output_dir=str(tmp_path / "sa_asr_entrypoint_out"),
     )
 
-    assert report.pipeline_id == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    assert report.pipeline_id == (
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1"
+    )
     assert report.details["scoring_result"]["der"] == pytest.approx(0.2)
 
 

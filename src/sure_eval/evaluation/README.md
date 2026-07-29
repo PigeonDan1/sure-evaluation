@@ -304,12 +304,13 @@ reusable conversions selected by a human or agent. Model-specific or
 experiment-specific converters should stay with model artifacts or run
 artifacts until they are general enough to promote here.
 
-The default SA-ASR route converts STM to key-text before
-`normalization/gstar_norm`, then converts normalized key-text back to STM before
-`scoring/meeteval`. The metric trace remains:
+SA-ASR routes convert STM to key-text before a language-selected normalization
+node, then convert normalized key-text back to STM before `scoring/meeteval`.
+The English route uses `normalization/whisper_norm`; the Mandarin route uses
+`normalization/gstar_norm`. The metric trace remains:
 
 ```text
-normalization/gstar_norm -> scoring/meeteval
+normalization/<selected_norm> -> scoring/meeteval
 ```
 
 The conversion path is recorded separately as `conversion_trace`, and run
@@ -324,9 +325,9 @@ multiple nodes into one pipeline. For example:
 - ASR: normalization -> WER/CER/MER scoring;
 - S2TT: SacreBLEU, XCOMET-XL, or BLEURT scoring;
 - SD: MeetEval annotation loading -> DER scoring;
-- SA-ASR: STM-to-key-text conversion -> G-STAR key-text normalization ->
-  key-text-to-STM conversion -> MeetEval cpWER scoring with DER as the default
-  companion metric;
+- SA-ASR: STM-to-key-text conversion -> language-selected key-text
+  normalization -> key-text-to-STM conversion -> MeetEval cpWER scoring with
+  DER as the default companion metric;
 - TTS/VC: transcription -> ASR scoring for semantic metrics, plus optional
   speaker similarity or MOS scoring;
 - SE: full-reference SI-SDR/STOI/PESQ and optional no-reference MOS scoring;
@@ -344,8 +345,8 @@ SD and SA-ASR use annotation-file inputs rather than key-tab text. SD delegates
 parsing to `meeteval.io.load`, so accepted formats follow MeetEval's own
 support policy, including STM, CTM, SegLST, and RTTM for DER. SA-ASR first
 uses `conversion/sa_asr__cpwer` to expose transcript fields as key-text for
-`normalization/gstar_norm`; after normalization, it converts the text back to
-STM and calls MeetEval for cpWER and DER. Route hyperparameters such as
+the selected normalization node; after normalization, it converts the text back
+to STM and calls MeetEval for cpWER and DER. Route hyperparameters such as
 `collar` are recorded in `report.json` under both the task details and the
 `scoring/meeteval` node trace.
 

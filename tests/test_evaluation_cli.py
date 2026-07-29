@@ -319,14 +319,27 @@ def test_metric_describe_outputs_sa_asr_meeteval_pipeline() -> None:
     runner = CliRunner()
 
     result = runner.invoke(app, ["metric", "describe", "sa-asr", "--metric", "cpwer", "--json"])
+    zh_result = runner.invoke(
+        app,
+        ["metric", "describe", "sa-asr", "--language", "zh", "--metric", "cpwer", "--json"],
+    )
 
     assert result.exit_code == 0, result.stdout
+    assert zh_result.exit_code == 0, zh_result.stdout
     payload = json.loads(result.stdout)
+    zh_payload = json.loads(zh_result.stdout)
     assert payload["task"] == "sa_asr"
-    assert payload["pipeline_id"] == "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    assert payload["pipeline_id"] == (
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1"
+    )
+    assert zh_payload["pipeline_id"] == (
+        "sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    )
+    assert zh_payload["language"] == "zh"
     assert payload["run_args"]["ref_file"] is None
     assert payload["run_args"]["hyp_file"] is None
-    assert payload["pipeline"][0]["default"] == "normalization/gstar_norm"
+    assert payload["pipeline"][0]["default"] == "normalization/whisper_norm"
+    assert zh_payload["pipeline"][0]["default"] == "normalization/gstar_norm"
     assert payload["pipeline"][0]["nullable"] is True
     assert payload["pipeline"][1]["default"] == "scoring/meeteval"
     assert payload["pipeline"][1]["nullable"] is False

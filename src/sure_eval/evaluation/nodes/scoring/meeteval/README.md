@@ -10,8 +10,9 @@ annotation format.
 ## Task Scenarios
 
 - SD DER route: `sd.any.der.meeteval_v1`.
-- SA-ASR cpWER route:
-  `sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1`.
+- SA-ASR cpWER routes:
+  `sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1`
+  and `sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1`.
 
 ## Input
 

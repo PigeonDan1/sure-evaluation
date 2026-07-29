@@ -127,11 +127,20 @@ def test_audio_multi_descriptions_are_bundles_with_atomic_members() -> None:
 
 def test_sa_asr_conversion_is_part_of_computation_identity() -> None:
     desc = describe_pipeline("sa_asr", metric="cpwer")
+    zh_desc = describe_pipeline("sa_asr", language="zh", metric="cpwer")
 
     assert desc.pipeline_id == (
-        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1"
     )
     assert desc.computation_node_ids == (
+        "conversion/sa_asr__cpwer",
+        "normalization/whisper_norm",
+        "scoring/meeteval",
+    )
+    assert zh_desc.pipeline_id == (
+        "sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
+    )
+    assert zh_desc.computation_node_ids == (
         "conversion/sa_asr__cpwer",
         "normalization/gstar_norm",
         "scoring/meeteval",

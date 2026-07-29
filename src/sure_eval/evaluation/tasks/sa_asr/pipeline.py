@@ -10,7 +10,7 @@ from sure_eval.evaluation.conversion.sa_asr__cpwer.txt_to_stm import convert_txt
 from sure_eval.evaluation.core.types import EvaluationFiles, EvaluationReport, MetricInputContract
 from sure_eval.evaluation.core.types import KeyTextFiles, PipelineNodeResult
 from sure_eval.evaluation.nodes.normalization.gstar_norm import normalize_gstar_sa_asr_files
-from sure_eval.evaluation.nodes.normalization.gstar_norm.node import cleanup_gstar_norm_outputs
+from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
 from sure_eval.evaluation.nodes.scoring.meeteval import score_meeteval
 from sure_eval.evaluation.pipeline_identity import (
     build_atomic_pipeline_id,
@@ -39,6 +39,7 @@ def evaluate_sa_asr_files(
     language: str = "en",
     collar: float = 0.5,
     companion_metrics: tuple[str, ...] = ("der",),
+    normalization_node: str | None = None,
     conversion_output_dir: str | None = None,
 ) -> EvaluationReport:
     """Evaluate speaker-attributed ASR annotations with MeetEval cpWER."""
@@ -51,9 +52,13 @@ def evaluate_sa_asr_files(
     trace: tuple[PipelineNodeResult, ...] = ()
     temp_paths: list[str] = []
     conversion_dir = Path(conversion_output_dir) if conversion_output_dir else None
+    resolved_normalization_node = _resolve_normalization_node(
+        language=language,
+        normalization_node=normalization_node,
+    )
     components = (
         conversion_component(CONVERSION_ID),
-        node_component("normalization/gstar_norm"),
+        _normalization_component(resolved_normalization_node),
         node_component("scoring/meeteval"),
     )
     pipeline_id = build_atomic_pipeline_id("sa_asr", language, "cpwer", components)
@@ -80,9 +85,10 @@ def evaluate_sa_asr_files(
                 conversion_id=CONVERSION_ID,
             ),
         ]
-        normalized_files, norm_result = normalize_gstar_sa_asr_files(
+        normalized_files, norm_result = _normalize_sa_asr_files(
             KeyTextFiles(ref_file=ref_txt, hyp_file=hyp_txt),
             language=language,
+            normalization_node=resolved_normalization_node,
         )
         conversion_trace.extend(
             [
@@ -127,15 +133,74 @@ def evaluate_sa_asr_files(
                 "params": {
                     "collar": collar,
                     "companion_metrics": list(companion_metrics),
-                    "normalization_node": "normalization/gstar_norm",
+                    "normalization_node": resolved_normalization_node,
                 },
             },
         )
     finally:
-        cleanup_gstar_norm_outputs(trace)
+        _cleanup_trace_temp_files(trace)
         if conversion_dir is None:
             for path in temp_paths:
                 Path(path).unlink(missing_ok=True)
+
+
+def _resolve_normalization_node(*, language: str, normalization_node: str | None) -> str:
+    normalized_language = language.lower().replace("_", "-")
+    requested = (normalization_node or "").strip().lower()
+    aliases = {
+        "": "",
+        "gstar": "normalization/gstar_norm",
+        "gstar_norm": "normalization/gstar_norm",
+        "normalization/gstar_norm": "normalization/gstar_norm",
+        "whisper": "normalization/whisper_norm",
+        "whisper_norm": "normalization/whisper_norm",
+        "normalization/whisper_norm": "normalization/whisper_norm",
+    }
+    if requested not in aliases:
+        raise ValueError(f"Unsupported SA-ASR normalization node: {normalization_node!r}")
+    resolved = aliases[requested]
+    if not resolved:
+        if normalized_language in {"zh", "zh-cn", "cmn"}:
+            return "normalization/gstar_norm"
+        if normalized_language in {"en", "en-us", "en-gb"}:
+            return "normalization/whisper_norm"
+        raise ValueError(f"Unsupported SA-ASR language: {language!r}; supported: en, zh")
+    if normalized_language in {"zh", "zh-cn", "cmn"} and resolved != "normalization/gstar_norm":
+        raise ValueError("SA-ASR language='zh' requires normalization/gstar_norm")
+    if normalized_language in {"en", "en-us", "en-gb"} and resolved != "normalization/whisper_norm":
+        raise ValueError("SA-ASR language='en' requires normalization/whisper_norm")
+    if normalized_language not in {"zh", "zh-cn", "cmn", "en", "en-us", "en-gb"}:
+        raise ValueError(f"Unsupported SA-ASR language: {language!r}; supported: en, zh")
+    return resolved
+
+
+def _normalization_component(normalization_node: str):
+    if normalization_node == "normalization/gstar_norm":
+        return node_component("normalization/gstar_norm")
+    if normalization_node == "normalization/whisper_norm":
+        return node_component("normalization/whisper_norm", profile="english")
+    raise ValueError(f"Unsupported SA-ASR normalization node: {normalization_node!r}")
+
+
+def _normalize_sa_asr_files(
+    files: KeyTextFiles,
+    *,
+    language: str,
+    normalization_node: str,
+) -> tuple[KeyTextFiles, PipelineNodeResult]:
+    if normalization_node == "normalization/gstar_norm":
+        return normalize_gstar_sa_asr_files(files, language=language)
+    if normalization_node == "normalization/whisper_norm":
+        return normalize_whisper_asr_files(files, language=language, profile="english")
+    raise ValueError(f"Unsupported SA-ASR normalization node: {normalization_node!r}")
+
+
+def _cleanup_trace_temp_files(trace: tuple[PipelineNodeResult, ...]) -> None:
+    for result in trace:
+        for key in ("ref_file", "hyp_file"):
+            value = result.details.get(key)
+            if isinstance(value, str):
+                Path(value).unlink(missing_ok=True)
 
 
 def _new_temp_path(suffix: str, temp_paths: list[str]) -> str:

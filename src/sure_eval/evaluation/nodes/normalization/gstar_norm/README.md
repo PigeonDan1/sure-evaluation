@@ -12,8 +12,8 @@ cpWER or DER.
 
 ## Task Scenarios
 
-- SA-ASR English cpWER route:
-  `sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1`.
+- SA-ASR Mandarin cpWER route:
+  `sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1`.
 - Used after SA-ASR STM/key-text conversion and before `scoring/meeteval`.
 
 ## Input

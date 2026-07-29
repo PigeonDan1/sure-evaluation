@@ -50,11 +50,12 @@ def test_pipeline_catalog_has_new_kws_and_sa_asr_identities() -> None:
     }
     assert {row["execution_metrics"][0] for row in kws_macro_rows} == {"macro-recall"}
 
-    sa_asr = next(row for row in rows if row["task_alias"] == "sa_asr")
-    assert sa_asr["pipeline_id"] == (
-        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1"
-    )
-    assert sa_asr["computation_node_ids"][0] == "conversion/sa_asr__cpwer"
+    sa_asr_rows = [row for row in rows if row["task_alias"] == "sa_asr"]
+    assert {row["pipeline_id"] for row in sa_asr_rows} == {
+        "sa_asr.en.cpwer.conversion_sa_asr_cpwer_v1.whisper_norm_english_v1.meeteval_v1",
+        "sa_asr.zh.cpwer.conversion_sa_asr_cpwer_v1.gstar_norm_v1.meeteval_v1",
+    }
+    assert all(row["computation_node_ids"][0] == "conversion/sa_asr__cpwer" for row in sa_asr_rows)
 
 
 def test_pipeline_catalog_asr_canonical_rows_use_canonical_public_metrics() -> None:
