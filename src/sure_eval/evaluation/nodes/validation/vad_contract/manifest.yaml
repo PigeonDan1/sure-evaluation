@@ -1,0 +1,23 @@
+id: validation/vad_contract
+version: v1
+stage: validation
+language_sensitive: false
+input_schema: vad_jsonl_files
+output_schema: vad_validated_bundle
+implementation: sure_eval.evaluation.nodes.validation.vad_contract.node
+metrics:
+  - f1
+  - p_fa
+  - p_miss
+  - dcf_nist
+  - auc_roc
+internal_stages:
+  - jsonl_parse
+  - key_alignment
+  - field_contract
+  - metric_availability
+notes:
+  - Reference rows require key, duration, and speech_segments.
+  - Prediction rows require key and may include speech_segments, frame_scores, and audio_duration.
+  - Prediction score aliases such as scores, probs, and speech_probabilities are rejected.
+  - Missing prediction fields skip dependent metrics instead of becoming empty predictions.

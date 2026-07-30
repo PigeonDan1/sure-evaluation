@@ -8,7 +8,6 @@ from typing import Any
 
 from sure_eval.evaluation.scripts import describe_pipeline, run_task
 from sure_eval.evaluation.scripts.contracts import (
-    load_task_manifest,
     load_task_routes,
 )
 
@@ -65,7 +64,6 @@ def build_pipeline_spec(
         pipeline_id=pipeline_id,
     )
     description = describe_pipeline(normalized_task, **describe_kwargs)
-    manifest, _ = load_task_manifest(TASK_ALIASES.get(normalized_task, normalized_task))
     routes, _ = load_task_routes(TASK_ALIASES.get(normalized_task, normalized_task))
     route_choices = _route_choices(routes, language=description.language)
     selected_routes = _match_selected_routes(route_choices, description)
@@ -253,6 +251,11 @@ def _describe_kwargs(
         return kwargs
     if task == "kws":
         kwargs = {"metric": metric or "accuracy"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
+    if task == "vad":
+        kwargs = {"metric": metric or "f1"}
         if pipeline_id:
             kwargs["pipeline_id"] = pipeline_id
         return kwargs

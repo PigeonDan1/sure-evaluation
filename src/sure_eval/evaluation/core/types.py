@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -21,11 +22,11 @@ class EvaluationFiles:
     roles: dict[str, str]
 
     @classmethod
-    def from_ref_hyp(cls, ref_file: str, hyp_file: str) -> "EvaluationFiles":
+    def from_ref_hyp(cls, ref_file: str, hyp_file: str) -> EvaluationFiles:
         return cls(roles={"ref": ref_file, "hyp": hyp_file})
 
     @classmethod
-    def from_src_ref_hyp(cls, src_file: str, ref_file: str, hyp_file: str) -> "EvaluationFiles":
+    def from_src_ref_hyp(cls, src_file: str, ref_file: str, hyp_file: str) -> EvaluationFiles:
         return cls(roles={"src": src_file, "ref": ref_file, "hyp": hyp_file})
 
     def require(self, *roles: str) -> None:
@@ -100,7 +101,7 @@ class EvaluationReport:
     task: str
     language: str
     metric: str
-    score: float
+    score: float | None
     pipeline_id: str
     pipeline_trace: tuple[PipelineNodeResult, ...]
     input_contract: MetricInputContract | None = None

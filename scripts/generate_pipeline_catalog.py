@@ -72,6 +72,11 @@ COMBINATIONS = [
     ("kws", {"metric": "macro-recall", "input_mode": "wekws_score_ctc"}),
     ("kws", {"metric": "accuracy", "input_mode": "wekws_frame_score"}),
     ("kws", {"metric": "macro-recall", "input_mode": "wekws_frame_score"}),
+    ("vad", {"metric": "f1"}),
+    ("vad", {"metric": "p_fa"}),
+    ("vad", {"metric": "p_miss"}),
+    ("vad", {"metric": "dcf_nist"}),
+    ("vad", {"metric": "auc_roc"}),
 ]
 
 

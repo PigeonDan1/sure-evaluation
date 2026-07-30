@@ -1,0 +1,9 @@
+id: normalization/vad_timebase
+group: vad-base
+runtime:
+  type: in_process
+  optional: false
+  gpu: false
+verify:
+  imports: []
+  files: []

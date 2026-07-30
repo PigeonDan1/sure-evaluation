@@ -1,0 +1,25 @@
+id: scoring/vad_detection_duration
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: vad_normalized_bundle
+output_schema: vad_detection_duration_report
+implementation: sure_eval.evaluation.nodes.scoring.vad_detection_duration.node
+metrics:
+  - f1
+  - p_fa
+  - p_miss
+  - dcf_nist
+  - precision
+  - recall
+  - false_alarm_sec
+  - miss_sec
+internal_stages:
+  - interval_intersection
+  - duration_confusion
+  - micro_average
+  - cost_summary
+notes:
+  - Speech segment predictions are scored by seconds of reference/hypothesis overlap.
+  - Missing prediction speech_segments skip dependent metrics rather than becoming no-speech hypotheses.
+  - dcf_nist uses 0.25 * p_fa + 0.75 * p_miss.

@@ -71,6 +71,7 @@ Input files are tab-separated: `<key>\t<text>`.
 | **Classification / SER / GR** | Accuracy | Text-only, base install | [docs/tasks/classification.md](./docs/tasks/classification.md) |
 | **SLU** | Accuracy | Text-only, base install | [docs/tasks/slu.md](./docs/tasks/slu.md) |
 | **KWS** | accuracy, macro_recall, precision, recall, F1, FRR, FAR | Base + optional node | [docs/tasks/kws.md](./docs/tasks/kws.md) |
+| **VAD** | F1, p_fa, p_miss, dcf_nist, AUC-ROC | Segment/timebase JSONL, base install | [docs/tasks/vad.md](./docs/tasks/vad.md) |
 
 Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
 

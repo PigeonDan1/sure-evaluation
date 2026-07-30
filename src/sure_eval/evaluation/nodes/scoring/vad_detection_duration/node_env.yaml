@@ -1,0 +1,9 @@
+id: scoring/vad_detection_duration
+group: vad-base
+runtime:
+  type: in_process
+  optional: false
+  gpu: false
+verify:
+  imports: []
+  files: []
