@@ -5,8 +5,8 @@
 `normalization/funasr_itn` wraps the FunASR `fun_text_processing` package as a
 versioned optional node. It provides Inverse Text Normalization (ITN) —
 converting spoken-form text to written form — for 12 languages using pynini
-WFST grammars. The `fun_text_processing` source is vendored under this node
-directory, keeping it self-contained.
+WFST grammars. The `fun_text_processing` source is fetched from GitHub during
+`env setup` and cached under this node directory.
 
 The node normalizes text only. It does not calculate WER, CER, or MER.
 
@@ -64,14 +64,14 @@ Supported languages: zh, en, ja, es, fr, de, ko, ru, pt, vi, id, tl.
 
 - Node id: `normalization/funasr_itn`.
 - Version: `v1`.
-- Package: `fun_text_processing` (vendored, no version pin).
+- Package: `fun_text_processing` (fetched from git@github.com:modelscope/FunASR.git, commit-pinned via `build_funasr_itn.sh`).
 - Important dependency: `pynini>=2.1.6`.
 - Direction: ITN (spoken-form text to written form).
 - Internal stages: tagging (WFST-based) → verbalization.
 
 ## Runtime and Assets
 
-- Runtime: optional node-local `uv` project.
+- Runtime: optional node-local binary project (uv + git fetch via `build_funasr_itn.sh`).
 - Python: `3.11`.
 - No model weights, checkpoints, or API keys.
 - Setup:
@@ -80,12 +80,14 @@ Supported languages: zh, en, ja, es, fr, de, ko, ru, pt, vi, id, tl.
 sure-eval env setup --node normalization/funasr_itn
 ```
 
-The `fun_text_processing` package is vendored under this node directory and
-loaded via `PYTHONPATH`. No external path configuration is required.
+The `fun_text_processing` package is fetched from the FunASR GitHub repository
+during `env setup` (via `build_funasr_itn.sh`) and cached under this node
+directory. It is loaded via `PYTHONPATH`. No external path configuration is
+required.
 
 ## Source and References
 
-- FunASR repository: https://github.com/modelscope/FunASR
+- FunASR repository: git@github.com:modelscope/FunASR.git
   (Apache 2.0 license)
 - Pynini: https://www.opengrm.org/twiki/bin/view/GRM/Pynini
 

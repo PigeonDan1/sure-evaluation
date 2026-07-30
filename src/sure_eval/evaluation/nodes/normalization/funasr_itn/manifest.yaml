@@ -8,7 +8,9 @@ implementation: sure_eval.evaluation.nodes.normalization.funasr_itn.node
 runtime: node_local_optional
 package:
   name: fun_text_processing
-  vendored: true
+  source: github
+  repo: git@github.com:modelscope/FunASR.git
+  subdirectory: fun_text_processing
 profiles:
   zh:
     language: zh

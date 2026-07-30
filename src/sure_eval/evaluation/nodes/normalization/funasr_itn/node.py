@@ -1,6 +1,7 @@
 """FunASR InverseTextNormalization (ITN) node for ASR evaluation.
 
-The fun_text_processing package is vendored under this node directory.
+The fun_text_processing package is fetched from GitHub during env setup
+(via build_funasr_itn.sh) and cached under this node directory.
 This module lazily loads it in a node-local subprocess so the SURE main
 environment can import node metadata without installing pynini.
 """
@@ -60,7 +61,7 @@ def _check_funasr_src() -> None:
     if not pkg_dir.is_dir():
         raise RuntimeError(
             f"fun_text_processing source not found at {pkg_dir}. "
-            f"Ensure fun_text_processing is vendored under the funasr_itn node directory."
+            f"Run: sure-eval env setup --node {NODE_ID}"
         )
 
 
@@ -224,7 +225,7 @@ def funasr_runtime_details(profile: str) -> dict[str, Any]:
         "language": spec.language,
         "direction": "itn",
         "package": "fun_text_processing (FunASR)",
-        "vendored_path": str(_FUNASR_SRC),
+        "source_path": str(_FUNASR_SRC),
         "normalizer_class": f"InverseNormalizer(lang={spec.language})",
     }
 

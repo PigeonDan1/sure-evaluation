@@ -1,19 +1,10 @@
 id: normalization/funasr_itn
 group: normalization-extra
 runtime:
-  type: uv
-  python: "3.11"
-  project: pyproject.toml
+  type: binary
   optional: true
   gpu: false
-packages:
-  - name: pynini
-  - name: joblib
-  - name: tqdm
-  - name: regex
-  - name: inflect
+  build_script: build_funasr_itn.sh
 verify:
-  imports:
-    - pynini
-    - fun_text_processing.inverse_text_normalization.inverse_normalize
-  files: []
+  commands:
+    - .venv/bin/python -c "import pynini; from fun_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer; print('ok')"

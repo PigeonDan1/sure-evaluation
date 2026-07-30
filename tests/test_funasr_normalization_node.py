@@ -6,11 +6,17 @@ import pytest
 
 
 def _require_funasr_node_env() -> None:
-    from sure_eval.evaluation.env_check import NodeEnvChecker
-
-    result = NodeEnvChecker().check_node("normalization/funasr_itn")
-    if result.status != "ok":
-        pytest.skip(f"funasr_itn node-local environment is not prepared: {result.message}")
+    node_dir = (
+        Path(__file__).resolve().parent.parent
+        / "src" / "sure_eval" / "evaluation" / "nodes" / "normalization" / "funasr_itn"
+    )
+    venv_python = node_dir / ".venv" / "bin" / "python"
+    funasr_src = node_dir / "fun_text_processing"
+    if not venv_python.exists() or not funasr_src.is_dir():
+        pytest.skip(
+            "funasr_itn node-local environment is not prepared. "
+            "Run: sure-eval env setup --node normalization/funasr_itn"
+        )
 
 
 def _write_key_text(path: Path, rows: list[tuple[str, str]]) -> None:
@@ -70,8 +76,9 @@ def test_funasr_node_env_checker_recognizes_node() -> None:
 
     result = NodeEnvChecker().check_node("normalization/funasr_itn")
     assert result.node_id == "normalization/funasr_itn"
-    # Status is "ok" if node-local env is prepared, otherwise "failed"
-    assert result.status in {"ok", "failed"}
+    # Status is "ok" if node-local env is prepared, "warning" for binary runtime
+    # without explicit env var, "failed" if env is broken.
+    assert result.status in {"ok", "failed", "warning"}
 
 
 def test_funasr_is_default_normalizer_for_unsupported_languages() -> None:
