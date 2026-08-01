@@ -10,10 +10,15 @@ metrics:
   - p_fa
   - p_miss
   - dcf_nist
+reported_fields:
   - precision
   - recall
+  - true_positive_sec
   - false_alarm_sec
   - miss_sec
+  - speech_scored_sec
+  - nonspeech_scored_sec
+  - num_detection_samples
 internal_stages:
   - interval_intersection
   - duration_confusion
@@ -21,5 +26,5 @@ internal_stages:
   - cost_summary
 notes:
   - Speech segment predictions are scored by seconds of reference/hypothesis overlap.
-  - Missing prediction speech_segments skip dependent metrics rather than becoming no-speech hypotheses.
+  - The selected duration route requires speech_segments before this node runs.
   - dcf_nist uses 0.25 * p_fa + 0.75 * p_miss.

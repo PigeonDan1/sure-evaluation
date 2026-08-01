@@ -14,6 +14,7 @@ from sure_eval.evaluation.nodes.scoring.vad_detection_duration import (
 from sure_eval.evaluation.nodes.validation.vad_contract import (
     AUC_METRICS,
     DETECTION_METRICS,
+    REQUIRED_FIELDS_BY_METRIC,
     validate_vad_contract,
 )
 from sure_eval.evaluation.pipeline_identity import (
@@ -61,7 +62,11 @@ def evaluate_vad_files(
     )
     _VAD_JSONL_CONTRACT.validate(input_files)
 
-    validated_bundle, validation_result = validate_vad_contract(reference_jsonl, sample_output)
+    validated_bundle, validation_result = validate_vad_contract(
+        reference_jsonl,
+        sample_output,
+        required_prediction_fields=REQUIRED_FIELDS_BY_METRIC[normalized_metric],
+    )
     normalized_bundle, normalization_result = normalize_vad_timebase(
         validated_bundle,
         frame_shift_sec=frame_shift_sec,

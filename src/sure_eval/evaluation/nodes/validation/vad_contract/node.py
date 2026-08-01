@@ -24,10 +24,14 @@ AUC_METRICS = ("auc_roc",)
 ALL_PRIMARY_METRICS = DETECTION_METRICS + AUC_METRICS
 
 REFERENCE_FIELDS = {"key", "duration", "speech_segments"}
-PREDICTION_FIELDS = {"key", "speech_segments", "frame_scores", "audio_duration"}
+PREDICTION_FIELDS = {"key", "speech_segments", "frame_scores"}
 SEGMENT_FIELDS = {"start", "end"}
 FRAME_SCORE_FIELDS = {"start", "end", "score"}
 UNSUPPORTED_SCORE_ALIASES = {"scores", "probs", "speech_probabilities"}
+REQUIRED_FIELDS_BY_METRIC = {
+    **{metric: ("speech_segments",) for metric in DETECTION_METRICS},
+    **{metric: ("frame_scores",) for metric in AUC_METRICS},
+}
 
 
 @dataclass(frozen=True)
@@ -62,7 +66,6 @@ class VADValidatedRow:
     reference_segments: list[Segment]
     prediction_segments: list[Segment] | None
     frame_scores: list[FrameScore] | None
-    prediction_audio_duration: float | None
     available_metrics: set[str]
     skipped_metrics: dict[str, str]
 
@@ -81,7 +84,6 @@ class VADValidatedRow:
                 if self.frame_scores is not None
                 else None
             ),
-            "prediction_audio_duration": self.prediction_audio_duration,
             "available_metrics": sorted(self.available_metrics),
             "skipped_metrics": dict(self.skipped_metrics),
         }
@@ -104,11 +106,14 @@ class VADValidatedBundle:
 def validate_vad_contract(
     reference_jsonl: str | Path,
     sample_output: str | Path,
+    *,
+    required_prediction_fields: tuple[str, ...] = (),
 ) -> tuple[VADValidatedBundle, PipelineNodeResult]:
     """Load and validate VAD reference/prediction JSONL files.
 
-    Missing prediction fields are preserved as missing, not coerced to empty
-    lists, so dependent metrics can be skipped without changing semantics.
+    The selected route passes the prediction fields it consumes. Missing fields
+    for the selected route fail fast; missing fields for unrelated metrics are
+    preserved as unavailable in the trace.
     """
 
     reference_path = Path(reference_jsonl)
@@ -124,7 +129,13 @@ def validate_vad_contract(
     for reference in reference_rows:
         reference_key = _required_str(reference, "key", role="reference_jsonl")
         prediction = prediction_by_key[reference_key]
-        rows.append(_validate_pair(reference, prediction))
+        rows.append(
+            _validate_pair(
+                reference,
+                prediction,
+                required_prediction_fields=required_prediction_fields,
+            )
+        )
 
     input_summary = {
         "num_rows": len(rows),
@@ -162,7 +173,12 @@ def validate_vad_contract(
     return bundle, result
 
 
-def _validate_pair(reference: dict[str, Any], prediction: dict[str, Any]) -> VADValidatedRow:
+def _validate_pair(
+    reference: dict[str, Any],
+    prediction: dict[str, Any],
+    *,
+    required_prediction_fields: tuple[str, ...],
+) -> VADValidatedRow:
     _reject_unknown_fields(reference, REFERENCE_FIELDS, role="reference_jsonl")
     _reject_score_aliases(prediction)
     _reject_unknown_fields(prediction, PREDICTION_FIELDS, role="sample_output")
@@ -173,21 +189,27 @@ def _validate_pair(reference: dict[str, Any], prediction: dict[str, Any]) -> VAD
         raise ValueError(f"VAD key mismatch: reference {key!r}, prediction {prediction_key!r}")
 
     duration = _required_finite_float(reference, "duration", role=f"reference_jsonl[{key}]")
-    if duration < 0.0:
-        raise ValueError(f"reference_jsonl[{key}].duration must be non-negative")
+    if duration <= 0.0:
+        raise ValueError(f"reference_jsonl[{key}].duration must be positive")
 
     if "speech_segments" not in reference:
         raise ValueError(f"reference_jsonl[{key}] is missing required field: speech_segments")
     reference_segments = _parse_segments(
         reference["speech_segments"],
         role=f"reference_jsonl[{key}].speech_segments",
+        duration=duration,
     )
+
+    for field in required_prediction_fields:
+        if field not in prediction:
+            raise ValueError(f"sample_output[{key}] is missing required field: {field}")
 
     prediction_segments = None
     if "speech_segments" in prediction:
         prediction_segments = _parse_segments(
             prediction["speech_segments"],
             role=f"sample_output[{key}].speech_segments",
+            duration=duration,
         )
 
     frame_scores = None
@@ -195,18 +217,9 @@ def _validate_pair(reference: dict[str, Any], prediction: dict[str, Any]) -> VAD
         frame_scores = _parse_frame_scores(
             prediction["frame_scores"],
             role=f"sample_output[{key}].frame_scores",
+            duration=duration,
         )
         _reject_overlapping_frame_scores(frame_scores, role=f"sample_output[{key}].frame_scores")
-
-    prediction_audio_duration = None
-    if "audio_duration" in prediction:
-        prediction_audio_duration = _required_finite_float(
-            prediction,
-            "audio_duration",
-            role=f"sample_output[{key}]",
-        )
-        if prediction_audio_duration < 0.0:
-            raise ValueError(f"sample_output[{key}].audio_duration must be non-negative")
 
     available_metrics: set[str] = set()
     skipped_metrics: dict[str, str] = {}
@@ -227,7 +240,6 @@ def _validate_pair(reference: dict[str, Any], prediction: dict[str, Any]) -> VAD
         reference_segments=reference_segments,
         prediction_segments=prediction_segments,
         frame_scores=frame_scores,
-        prediction_audio_duration=prediction_audio_duration,
         available_metrics=available_metrics,
         skipped_metrics=skipped_metrics,
     )
@@ -293,7 +305,7 @@ def _reject_score_aliases(row: dict[str, Any]) -> None:
         )
 
 
-def _parse_segments(value: Any, *, role: str) -> list[Segment]:
+def _parse_segments(value: Any, *, role: str, duration: float) -> list[Segment]:
     if not isinstance(value, list):
         raise TypeError(f"{role} must be a list")
     segments: list[Segment] = []
@@ -301,16 +313,17 @@ def _parse_segments(value: Any, *, role: str) -> list[Segment]:
         if not isinstance(item, dict):
             raise TypeError(f"{role}[{index}] must be an object")
         _reject_unknown_fields(item, SEGMENT_FIELDS, role=f"{role}[{index}]")
-        segments.append(
-            Segment(
-                start=_required_finite_float(item, "start", role=f"{role}[{index}]"),
-                end=_required_finite_float(item, "end", role=f"{role}[{index}]"),
-            )
+        segment = Segment(
+            start=_required_finite_float(item, "start", role=f"{role}[{index}]"),
+            end=_required_finite_float(item, "end", role=f"{role}[{index}]"),
         )
+        _validate_interval(segment.start, segment.end, role=f"{role}[{index}]", duration=duration)
+        segments.append(segment)
+    _reject_overlapping_segments(segments, role=role)
     return segments
 
 
-def _parse_frame_scores(value: Any, *, role: str) -> list[FrameScore]:
+def _parse_frame_scores(value: Any, *, role: str, duration: float) -> list[FrameScore]:
     if not isinstance(value, list):
         raise TypeError(f"{role} must be a list")
     frame_scores: list[FrameScore] = []
@@ -318,23 +331,41 @@ def _parse_frame_scores(value: Any, *, role: str) -> list[FrameScore]:
         if not isinstance(item, dict):
             raise TypeError(f"{role}[{index}] must be an object")
         _reject_unknown_fields(item, FRAME_SCORE_FIELDS, role=f"{role}[{index}]")
-        frame_scores.append(
-            FrameScore(
-                start=_required_finite_float(item, "start", role=f"{role}[{index}]"),
-                end=_required_finite_float(item, "end", role=f"{role}[{index}]"),
-                score=_required_finite_float(item, "score", role=f"{role}[{index}]"),
-            )
+        frame_score = FrameScore(
+            start=_required_finite_float(item, "start", role=f"{role}[{index}]"),
+            end=_required_finite_float(item, "end", role=f"{role}[{index}]"),
+            score=_required_finite_float(item, "score", role=f"{role}[{index}]"),
         )
+        _validate_interval(
+            frame_score.start,
+            frame_score.end,
+            role=f"{role}[{index}]",
+            duration=duration,
+        )
+        frame_scores.append(frame_score)
     return frame_scores
 
 
-def _reject_overlapping_frame_scores(frame_scores: list[FrameScore], *, role: str) -> None:
-    positive_length = sorted(
-        (frame_score for frame_score in frame_scores if frame_score.end > frame_score.start),
-        key=lambda item: (item.start, item.end),
-    )
+def _validate_interval(start: float, end: float, *, role: str, duration: float) -> None:
+    if start < 0.0 or end > duration:
+        raise ValueError(f"{role} must be within [0, duration]")
+    if end <= start:
+        raise ValueError(f"{role}.end must be greater than start")
+
+
+def _reject_overlapping_segments(segments: list[Segment], *, role: str) -> None:
+    ordered = sorted(segments, key=lambda item: (item.start, item.end))
     previous_end: float | None = None
-    for frame_score in positive_length:
+    for segment in ordered:
+        if previous_end is not None and segment.start < previous_end - 1e-12:
+            raise ValueError(f"{role} contains overlapping intervals")
+        previous_end = max(previous_end or segment.end, segment.end)
+
+
+def _reject_overlapping_frame_scores(frame_scores: list[FrameScore], *, role: str) -> None:
+    ordered = sorted(frame_scores, key=lambda item: (item.start, item.end))
+    previous_end: float | None = None
+    for frame_score in ordered:
         if previous_end is not None and frame_score.start < previous_end - 1e-12:
             raise ValueError(f"{role} contains overlapping score intervals")
         previous_end = max(previous_end or frame_score.end, frame_score.end)

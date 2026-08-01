@@ -17,8 +17,13 @@ The reference row contract is:
 The prediction row contract is:
 
 ```json
-{"key": "utt1", "speech_segments": [{"start": 0.3, "end": 0.9}], "frame_scores": [{"start": 0.0, "end": 0.01, "score": 0.03}], "audio_duration": 2.465}
+{"key": "utt1", "speech_segments": [{"start": 0.3, "end": 0.9}], "frame_scores": [{"start": 0.0, "end": 0.01, "score": 0.03}]}
 ```
+
+Duration routes require `speech_segments`; the AUC route requires
+`frame_scores`. Reference `duration` defines the scored time region, and all
+intervals must satisfy `0 <= start < end <= duration`. Prediction-side duration
+metadata such as `audio_duration` is not accepted.
 
 Primary metrics:
 
@@ -34,3 +39,5 @@ Default route:
 
 The evaluator does not run a VAD model, read audio, or resample audio. It only
 scores already generated prediction JSONL on the reference seconds timebase.
+Route settings such as `frame_shift_sec` are written to the report and pipeline
+description rather than encoded in `pipeline_id`.

@@ -18,6 +18,8 @@ internal_stages:
   - metric_availability
 notes:
   - Reference rows require key, duration, and speech_segments.
-  - Prediction rows require key and may include speech_segments, frame_scores, and audio_duration.
+  - Prediction rows require key and may include speech_segments and frame_scores.
+  - Selected routes fail when the prediction field they consume is missing.
+  - Reference duration defines the scored region; prediction-side audio_duration is not accepted.
+  - Intervals must satisfy 0 <= start < end <= duration and must not overlap within a row.
   - Prediction score aliases such as scores, probs, and speech_probabilities are rejected.
-  - Missing prediction fields skip dependent metrics instead of becoming empty predictions.

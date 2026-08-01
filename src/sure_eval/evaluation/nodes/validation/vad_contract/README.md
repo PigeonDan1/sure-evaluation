@@ -3,11 +3,13 @@
 Strictly validates VAD reference and prediction JSONL before scoring.
 
 The node requires reference rows with `key`, `duration`, and `speech_segments`.
-Prediction rows must use `key` plus any of `speech_segments`, `frame_scores`,
-and `audio_duration`. Score aliases such as `scores`, `probs`, and
+Prediction rows must use `key` plus `speech_segments` for duration routes or
+`frame_scores` for AUC routes. Score aliases such as `scores`, `probs`, and
 `speech_probabilities` are rejected so AUC routes only consume the documented
-`frame_scores` contract.
+`frame_scores` contract. Prediction-side duration metadata such as
+`audio_duration` is not accepted; reference `duration` defines the scored region.
 
-Missing prediction fields are preserved as missing. A row without
-`speech_segments` skips duration-detection metrics, and a row without
-`frame_scores` skips `auc_roc`; neither case is coerced into an empty prediction.
+The selected route declares the prediction fields it consumes, and missing
+selected fields fail validation. All intervals must satisfy
+`0 <= start < end <= duration`, and overlapping intervals are rejected within a
+row.

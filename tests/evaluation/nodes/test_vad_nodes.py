@@ -30,7 +30,7 @@ def _pred_row(
     include_speech_segments: bool = True,
     include_frame_scores: bool = True,
 ) -> dict:
-    row = {"key": "utt1", "audio_duration": 1.0}
+    row = {"key": "utt1"}
     if include_speech_segments:
         row["speech_segments"] = (
             speech_segments if speech_segments is not None else [{"start": 0.2, "end": 0.6}]
@@ -91,6 +91,57 @@ def test_vad_contract_rejects_score_aliases(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="unsupported score alias"):
+        validate_vad_contract(reference_jsonl, sample_output)
+
+
+def test_vad_contract_rejects_audio_duration_metadata(tmp_path: Path) -> None:
+    from sure_eval.evaluation.nodes.validation.vad_contract import validate_vad_contract
+
+    reference_jsonl = tmp_path / "ref.jsonl"
+    sample_output = tmp_path / "pred.jsonl"
+    _write_jsonl(reference_jsonl, [_ref_row()])
+    _write_jsonl(sample_output, [{**_pred_row(), "audio_duration": 1.0}])
+
+    with pytest.raises(ValueError, match="audio_duration"):
+        validate_vad_contract(reference_jsonl, sample_output)
+
+
+def test_vad_contract_rejects_invalid_reference_interval(tmp_path: Path) -> None:
+    from sure_eval.evaluation.nodes.validation.vad_contract import validate_vad_contract
+
+    reference_jsonl = tmp_path / "ref.jsonl"
+    sample_output = tmp_path / "pred.jsonl"
+    _write_jsonl(reference_jsonl, [_ref_row(speech_segments=[{"start": 0.8, "end": 0.2}])])
+    _write_jsonl(sample_output, [_pred_row()])
+
+    with pytest.raises(ValueError, match="end must be greater than start"):
+        validate_vad_contract(reference_jsonl, sample_output)
+
+
+def test_vad_contract_rejects_out_of_range_prediction_interval(tmp_path: Path) -> None:
+    from sure_eval.evaluation.nodes.validation.vad_contract import validate_vad_contract
+
+    reference_jsonl = tmp_path / "ref.jsonl"
+    sample_output = tmp_path / "pred.jsonl"
+    _write_jsonl(reference_jsonl, [_ref_row(duration=1.0)])
+    _write_jsonl(sample_output, [_pred_row(speech_segments=[{"start": 0.2, "end": 1.2}])])
+
+    with pytest.raises(ValueError, match=r"within \[0, duration\]"):
+        validate_vad_contract(reference_jsonl, sample_output)
+
+
+def test_vad_contract_rejects_overlapping_speech_segments(tmp_path: Path) -> None:
+    from sure_eval.evaluation.nodes.validation.vad_contract import validate_vad_contract
+
+    reference_jsonl = tmp_path / "ref.jsonl"
+    sample_output = tmp_path / "pred.jsonl"
+    _write_jsonl(
+        reference_jsonl,
+        [_ref_row(speech_segments=[{"start": 0.1, "end": 0.4}, {"start": 0.3, "end": 0.5}])],
+    )
+    _write_jsonl(sample_output, [_pred_row()])
+
+    with pytest.raises(ValueError, match="overlapping intervals"):
         validate_vad_contract(reference_jsonl, sample_output)
 
 
@@ -155,16 +206,28 @@ def test_vad_auc_requires_frame_scores(tmp_path: Path) -> None:
     _write_jsonl(reference_jsonl, [_ref_row()])
     _write_jsonl(sample_output, [_pred_row(include_frame_scores=False)])
 
-    report = evaluate_vad_files(
-        reference_jsonl=reference_jsonl,
-        sample_output=sample_output,
-        metric="auc_roc",
-    )
+    with pytest.raises(ValueError, match="missing required field: frame_scores"):
+        evaluate_vad_files(
+            reference_jsonl=reference_jsonl,
+            sample_output=sample_output,
+            metric="auc_roc",
+        )
 
-    assert report.score is None
-    assert report.details["primary_scores"]["auc_roc"] is None
-    assert report.details["auxiliary"]["num_auc_samples"] == 0
-    assert report.details["skipped_metrics"][0]["reason"] == "missing prediction field: frame_scores"
+
+def test_vad_detection_requires_speech_segments(tmp_path: Path) -> None:
+    from sure_eval.evaluation.tasks.vad.pipeline import evaluate_vad_files
+
+    reference_jsonl = tmp_path / "ref.jsonl"
+    sample_output = tmp_path / "pred.jsonl"
+    _write_jsonl(reference_jsonl, [_ref_row()])
+    _write_jsonl(sample_output, [_pred_row(include_speech_segments=False)])
+
+    with pytest.raises(ValueError, match="missing required field: speech_segments"):
+        evaluate_vad_files(
+            reference_jsonl=reference_jsonl,
+            sample_output=sample_output,
+            metric="f1",
+        )
 
 
 def test_vad_auc_returns_none_for_single_class_labels(tmp_path: Path) -> None:

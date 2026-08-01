@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.write_text(
@@ -35,7 +37,6 @@ def _fixture_files(tmp_path: Path) -> tuple[Path, Path]:
                     {"start": 0.2, "end": 0.6, "score": 0.9},
                     {"start": 0.6, "end": 1.0, "score": 0.2},
                 ],
-                "audio_duration": 1.0,
             }
         ],
     )
@@ -60,6 +61,13 @@ def test_vad_route_describe_contains_expected_nodes() -> None:
     )
     assert desc.required_roles == ("reference_jsonl", "sample_output")
     assert desc.execution_metrics == ("f1",)
+
+
+def test_vad_rejects_auxiliary_metric_as_route() -> None:
+    from sure_eval.evaluation.scripts.vad import describe_pipeline
+
+    with pytest.raises(ValueError, match="Unsupported VAD metric"):
+        describe_pipeline(metric="precision")
 
 
 def test_vad_run_task_report_shape(tmp_path: Path) -> None:
@@ -149,6 +157,30 @@ def test_vad_cli_describe_run_preserves_pipeline_id(tmp_path: Path) -> None:
     assert summary["pipeline_id"] == pipeline_id
     assert report_payload["pipeline_id"] == pipeline_id
     assert report_payload["metric"] == "f1"
+
+
+def test_vad_auc_exact_pipeline_id_preserved(tmp_path: Path) -> None:
+    from sure_eval.evaluation.scripts import describe_pipeline, run_task
+
+    reference_jsonl, sample_output = _fixture_files(tmp_path)
+    output_dir = tmp_path / "vad_auc_out"
+    pipeline_id = "vad.any.auc_roc.vad_contract_v1.vad_timebase_strict_v1.vad_auc_roc_v1"
+
+    desc = describe_pipeline("vad", pipeline_id=pipeline_id)
+    report = run_task(
+        "vad",
+        pipeline_id=pipeline_id,
+        reference_jsonl=str(reference_jsonl),
+        sample_output=str(sample_output),
+        output_dir=str(output_dir),
+    )
+
+    assert desc.pipeline_id == pipeline_id
+    assert report.pipeline_id == pipeline_id
+    assert report.metric == "auc_roc"
+    assert report.score == 1.0
+    report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
+    assert report_payload["details"]["timebase_config"]["frame_shift_sec"] == 0.01
 
 
 def test_pipeline_catalog_contains_vad_routes() -> None:

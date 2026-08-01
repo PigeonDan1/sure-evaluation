@@ -45,8 +45,10 @@ metrics:
   - p_miss
   - dcf_nist
   - auc_roc
+reported_fields:
   - precision
   - recall
+  - true_positive_sec
   - false_alarm_sec
   - miss_sec
   - speech_scored_sec

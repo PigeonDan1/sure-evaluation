@@ -19,5 +19,5 @@ internal_stages:
   - scored_region_summary
 notes:
   - The first VAD task version implements only the strict seconds-timebase profile.
-  - Segments are clipped to reference duration, invalid intervals are dropped, and overlaps are merged.
-  - Frame-score intervals are clipped and sorted but not merged because their scores are score-bearing observations.
+  - Validation rejects invalid, out-of-range, and overlapping intervals before normalization.
+  - Route settings such as frame_shift_sec are recorded in report details and pipeline descriptions.

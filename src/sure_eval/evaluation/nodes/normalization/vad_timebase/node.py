@@ -33,7 +33,6 @@ class VADNormalizedRow:
     reference_segments: list[Segment]
     prediction_segments: list[Segment] | None
     frame_scores: list[FrameScore] | None
-    prediction_audio_duration: float | None
     available_metrics: set[str]
     skipped_metrics: dict[str, str]
 
@@ -52,7 +51,6 @@ class VADNormalizedRow:
                 if self.frame_scores is not None
                 else None
             ),
-            "prediction_audio_duration": self.prediction_audio_duration,
             "available_metrics": sorted(self.available_metrics),
             "skipped_metrics": dict(self.skipped_metrics),
         }
@@ -130,7 +128,6 @@ def normalize_vad_timebase(
                 reference_segments=reference_segments,
                 prediction_segments=prediction_segments,
                 frame_scores=frame_scores,
-                prediction_audio_duration=row.prediction_audio_duration,
                 available_metrics=set(row.available_metrics),
                 skipped_metrics=dict(row.skipped_metrics),
             )

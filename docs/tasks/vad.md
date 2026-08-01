@@ -32,11 +32,12 @@ Reference rows require exactly `key`, `duration`, and `speech_segments`:
 {"key": "utt1", "duration": 2.465, "speech_segments": [{"start": 0.3, "end": 0.838}]}
 ```
 
-Prediction rows require `key` and may include only `speech_segments`,
-`frame_scores`, and `audio_duration`:
+Prediction rows require `key` and may include only `speech_segments` and
+`frame_scores`. Duration-based routes require `speech_segments`; the AUC route
+requires `frame_scores`:
 
 ```json
-{"key": "utt1", "speech_segments": [{"start": 0.3, "end": 0.9}], "frame_scores": [{"start": 0.0, "end": 0.01, "score": 0.03}], "audio_duration": 2.465}
+{"key": "utt1", "speech_segments": [{"start": 0.3, "end": 0.9}], "frame_scores": [{"start": 0.0, "end": 0.01, "score": 0.03}]}
 ```
 
 Strict contract rules:
@@ -44,18 +45,22 @@ Strict contract rules:
 - Reference and prediction keys must align exactly.
 - `speech_segments` intervals use `start` and `end` in seconds.
 - `frame_scores` intervals use `start`, `end`, and `score`.
+- Reference `duration` must be positive and defines the scored time region.
+- All intervals must satisfy `0 <= start < end <= duration`.
+- Speech intervals and frame-score intervals must not overlap within a row.
 - Prediction score aliases such as `scores`, `probs`, and `speech_probabilities` are not accepted.
-- Missing prediction `speech_segments` skips `f1`, `p_fa`, `p_miss`, and `dcf_nist`.
-- Missing prediction `frame_scores` skips `auc_roc`.
+- Prediction-side duration metadata such as `audio_duration` is not accepted.
+- Missing fields required by the selected route fail validation.
 
 ## Scoring
 
 `validation/vad_contract` parses JSONL, rejects malformed fields, aligns keys,
 and records metric availability per row.
 
-`normalization/vad_timebase` applies the strict profile: intervals are clipped
-to reference `duration`, invalid intervals are dropped, and overlapping speech
-segments are merged. The first VAD route version uses zero collar and zero
+`normalization/vad_timebase` applies the strict profile on the reference
+`duration` timebase. Because the contract rejects invalid or out-of-range
+intervals, normalization is only responsible for stable ordering and scored
+duration summaries. The first VAD route version uses zero collar and zero
 boundary exclusion.
 
 `scoring/vad_detection_duration` pools duration counts over rows with
@@ -76,7 +81,8 @@ come from reference speech segments, scores come from prediction `frame_scores`
 covering each frame center, and uncovered frames do not participate. If all
 participating frames have one label class, `auc_roc` is reported as `null` with
 a skip reason. Predicted `speech_segments` are never used as a hard-label AUC
-fallback.
+fallback. `frame_shift_sec` is route configuration recorded in report details
+and `pipeline_description.json`; it is not part of the pipeline ID.
 
 ## CLI Usage
 
