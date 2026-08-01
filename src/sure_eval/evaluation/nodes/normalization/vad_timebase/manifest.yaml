@@ -1,0 +1,23 @@
+id: normalization/vad_timebase
+version: v1
+stage: normalization
+language_sensitive: false
+input_schema: vad_validated_bundle
+output_schema: vad_normalized_bundle
+implementation: sure_eval.evaluation.nodes.normalization.vad_timebase.node
+metrics:
+  - f1
+  - p_fa
+  - p_miss
+  - dcf_nist
+  - auc_roc
+internal_stages:
+  - strict_profile_selection
+  - duration_clip
+  - invalid_interval_drop
+  - overlap_merge
+  - scored_region_summary
+notes:
+  - The first VAD task version implements only the strict seconds-timebase profile.
+  - Segments are clipped to reference duration, invalid intervals are dropped, and overlaps are merged.
+  - Frame-score intervals are clipped and sorted but not merged because their scores are score-bearing observations.

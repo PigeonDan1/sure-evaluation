@@ -71,6 +71,7 @@ cat /tmp/asr_eval/report.json | grep score
 | **分类 / SER / GR** | Accuracy | 纯文本，基础包可用 | [docs/tasks/classification.md](./docs/tasks/classification.md) |
 | **SLU** | Accuracy | 纯文本，基础包可用 | [docs/tasks/slu.md](./docs/tasks/slu.md) |
 | **KWS** | accuracy、macro_recall、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
+| **VAD** | F1、p_fa、p_miss、dcf_nist、AUC-ROC | 段级/时间轴 JSONL，基础包可用 | [docs/tasks/vad.md](./docs/tasks/vad.md) |
 
 每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 

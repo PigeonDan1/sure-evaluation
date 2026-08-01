@@ -21,4 +21,5 @@ For a machine-readable catalog of every metric → pipeline → node mapping, se
 - [TSE — Target Speaker Extraction](./tse.md)
 - [Classification / SER / GR](./classification.md)
 - [KWS — Keyword Spotting](./kws.md)
+- [VAD — Voice Activity Detection](./vad.md)
 - [SLU — Spoken Language Understanding](./slu.md)

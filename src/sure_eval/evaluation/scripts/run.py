@@ -9,6 +9,7 @@ _TASK_MODULES = {
     "asr": "sure_eval.evaluation.scripts.asr",
     "s2tt": "sure_eval.evaluation.scripts.s2tt",
     "kws": "sure_eval.evaluation.scripts.kws",
+    "vad": "sure_eval.evaluation.scripts.vad",
     "classification": "sure_eval.evaluation.scripts.classification",
     "ser": "sure_eval.evaluation.scripts.classification",
     "gr": "sure_eval.evaluation.scripts.classification",

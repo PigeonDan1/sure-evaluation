@@ -106,10 +106,10 @@ def run_metric_pipeline(
         None, "--label-spec", help="Classification label spec path or id"
     ),
     reference_jsonl: Optional[str] = typer.Option(
-        None, "--reference-jsonl", help="KWS reference JSONL"
+        None, "--reference-jsonl", help="KWS/VAD reference JSONL"
     ),
     sample_output: Optional[str] = typer.Option(
-        None, "--sample-output", help="KWS model output JSONL"
+        None, "--sample-output", help="KWS/VAD model output JSONL"
     ),
     wekws_label_file: Optional[str] = typer.Option(
         None, "--wekws-label-file", help="WeKWS label file"
@@ -183,7 +183,7 @@ def run_metric_pipeline(
     table.add_row("status", summary["status"])
     table.add_row("task", summary["task"])
     table.add_row("metric", summary["metric"])
-    table.add_row("score", f"{summary['score']:.6f}")
+    table.add_row("score", _format_score(summary["score"]))
     table.add_row("pipeline_id", summary["pipeline_id"])
     table.add_row("report", summary["report_path"])
     table.add_row("pipeline_description", summary["pipeline_description_path"])
@@ -197,6 +197,12 @@ def _print_error(exc: Exception, *, json_output: bool) -> None:
         )
     else:
         console.print(f"[bold red]Error:[/bold red] {exc}")
+
+
+def _format_score(score: object) -> str:
+    if score is None:
+        return "n/a"
+    return f"{float(score):.6f}"
 
 
 def _print_env_error(exc: EnvironmentCheckError, *, json_output: bool) -> None:
