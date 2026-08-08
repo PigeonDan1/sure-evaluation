@@ -7,9 +7,32 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  test:
-    name: Python ${{ matrix.python-version }}
+  lint:
+    name: Lint and whitespace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Ruff
+        run: uv run --extra dev ruff check .
+      - name: Git whitespace
+        run: git diff --check
+
+  tests:
+    name: Portable tests / Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -17,29 +40,85 @@ jobs:
         python-version:
           - "3.10"
           - "3.11"
+          - "3.12"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Tests without local checkpoint assumptions
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
-      - name: CLI smoke
+          uv run \
+            --python ${{ matrix.python-version }} \
+            --extra dev \
+            --extra audio \
+            --extra canonical \
+            pytest -q --ignore=tests/test_evaluation_env_check.py
+      - name: Environment metadata tests
         run: |
-          sure-eval --help
-          sure-eval doctor --json
-          sure-eval metric describe asr --language zh --metric cer --json
-          sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run --json
-          sure-eval env download --node scoring/dnsmos --dry-run --json
-      - name: Tests
+          uv run \
+            --python ${{ matrix.python-version }} \
+            --extra dev \
+            --extra audio \
+            --extra canonical \
+            pytest tests/test_evaluation_env_check.py -q \
+              -k "in_process or pip_runtime or dry_run or doctor or cache_dir or se_pip_runtime_nodes_are_declared"
+
+  catalog:
+    name: Pipeline catalog freshness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Regenerate catalog
         run: |
-          pytest tests/test_evaluation_cli.py \
-                 tests/test_evaluation_env_check.py \
-                 tests/test_rps_manager.py \
-                 tests/test_whisper_normalization_node.py \
-                 tests/test_sctk_sclite_scoring_node.py -q
+          uv run \
+            --python 3.11 \
+            --extra dev \
+            --extra canonical \
+            python scripts/generate_pipeline_catalog.py
+      - name: Catalog must be committed
+        run: git diff --exit-code docs/pipeline_catalog.jsonl
+
+  cli-smoke:
+    name: CLI smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Describe, plan, dry-run, and run tiny fixtures
+        run: |
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval --help
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval doctor --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval agent plan asr --language en --metric wer --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe vad --metric f1 --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe kws --metric accuracy --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env download --node scoring/dnsmos --dry-run --json
+
+          tmpdir="$(mktemp -d)"
+          printf "utt1\thello world\nutt2\tthis is a test\n" > "$tmpdir/asr_ref.txt"
+          printf "utt1\thello world\nutt2\tthis is test\n" > "$tmpdir/asr_hyp.txt"
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe asr --language en --metric wer --output "$tmpdir/asr.json"
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric run --pipeline "$tmpdir/asr.json" --ref-file "$tmpdir/asr_ref.txt" --hyp-file "$tmpdir/asr_hyp.txt" --output-dir "$tmpdir/asr_out" --json
+
+          printf '%s\n' '{"key":"utt1","duration":1.0,"speech_segments":[{"start":0.2,"end":0.6}]}' > "$tmpdir/vad_ref.jsonl"
+          printf '%s\n' '{"key":"utt1","speech_segments":[{"start":0.2,"end":0.6}],"frame_scores":[{"start":0.0,"end":0.2,"score":0.1},{"start":0.2,"end":0.6,"score":0.9},{"start":0.6,"end":1.0,"score":0.2}]}' > "$tmpdir/vad_pred.jsonl"
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe vad --metric f1 --output "$tmpdir/vad.json"
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric run --pipeline "$tmpdir/vad.json" --reference-jsonl "$tmpdir/vad_ref.jsonl" --sample-output "$tmpdir/vad_pred.jsonl" --output-dir "$tmpdir/vad_out" --json
 
   build:
     name: Package build
@@ -49,12 +128,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
       - name: Build wheel and sdist
-        run: |
-          python -m pip install --upgrade pip build
-          python -m build --wheel --sdist
+        run: uv run --python 3.11 --with build python -m build --wheel --sdist
       - name: Install wheel smoke
         run: |
           python -m venv /tmp/sure-eval-wheel
+          /tmp/sure-eval-wheel/bin/python -m pip install --upgrade pip
           /tmp/sure-eval-wheel/bin/python -m pip install dist/*.whl
           /tmp/sure-eval-wheel/bin/sure-eval metric describe asr --language zh --metric cer --json
+          /tmp/sure-eval-wheel/bin/sure-eval metric describe vad --metric f1 --json
