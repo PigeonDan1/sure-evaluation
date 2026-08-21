@@ -24,6 +24,7 @@ specific non-default pipeline.
 | `asr.en.wer.whisper_norm_english_v1.wenet_wer_v1` | `en` | `normalization/whisper_norm` -> `scoring/wenet_wer` | Default English WER |
 | `asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1` | `en` | `normalization/aispeech_norm` -> `scoring/wenet_wer` | Legacy AISpeech-normalized WER |
 | `asr.en.wer.canonical_itn_en_v1.token_mer_v1` | `en` | `normalization/canonical_itn` -> `scoring/token_mer` | Canonical ITN WER; requires `[canonical]` |
+| `asr.ar.wer.nemo_norm_ar_itn_v1.wenet_wer_v1` | `ar` | `normalization/nemo_norm` (`ar_itn`) -> `scoring/wenet_wer` | Default Arabic WER; NeMo Arabic ITN |
 
 ### `mer`
 
@@ -52,6 +53,9 @@ Both `--ref-file` and `--hyp-file` use the same format, aligned by key.
 ```bash
 # Default Mandarin CER pipeline
 sure-eval metric describe asr --language zh --metric cer --output /tmp/asr.json
+
+# Default Arabic WER pipeline (raw spoken-form ASR output is ITN-normalized)
+sure-eval metric describe asr --language ar --metric wer --output /tmp/asr_ar.json
 
 # Specific canonical Mandarin CER pipeline
 sure-eval metric describe asr \

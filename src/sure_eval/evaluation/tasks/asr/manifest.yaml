@@ -5,7 +5,13 @@ default_metrics:
   zh: cer
   en: wer
   cs: mer
+  ar: wer
 default_pipelines:
+  ar:
+    wer:
+      default: asr.ar.wer.nemo_norm_ar_itn_v1.wenet_wer_v1
+      variants:
+        nemo_norm_ar_itn: asr.ar.wer.nemo_norm_ar_itn_v1.wenet_wer_v1
   zh:
     cer:
       default: asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1

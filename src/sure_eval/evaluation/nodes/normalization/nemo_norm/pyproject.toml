@@ -1,0 +1,16 @@
+[project]
+name = "sure-eval-normalization-nemo"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "pynini>=2.1.6,<2.2",
+    "regex>=2024.0.0",
+    "sacremoses>=0.1.1",
+    "joblib>=1.3.0",
+    "tqdm>=4.66.0",
+    "inflect>=7.0.0",
+    "pytest>=8.0.0",
+]
+
+[tool.uv]
+package = false

@@ -20,7 +20,7 @@ from sure_eval.evaluation.scripts.contracts import (
 def describe_pipeline(
     *, language: str | None = None, metric: str | None = None, pipeline_id: str | None = None
 ):
-    manifest, manifest_path, routes_path, route, executor_metric = _select_route(
+    manifest, manifest_path, routes_path, route, _executor_metric = _select_route(
         language=language, metric=metric, pipeline_id=pipeline_id
     )
     route_language = route.get("language") or language or "n/a"
@@ -118,6 +118,8 @@ def _executor_selectors_from_route(route: dict) -> dict[str, str]:
             selectors["normalizer"] = "canonical"
         elif node_id == "normalization/punctuation_strip_norm":
             selectors["normalizer"] = "punctuation_strip"
+        elif node_id == "normalization/nemo_norm":
+            selectors["normalizer"] = "nemo:ar_itn"
         elif node_id in {"scoring/wenet_cer", "scoring/wenet_wer", "scoring/wenet_mer"}:
             selectors["scorer"] = "wenet"
         elif node_id == "scoring/token_cer":

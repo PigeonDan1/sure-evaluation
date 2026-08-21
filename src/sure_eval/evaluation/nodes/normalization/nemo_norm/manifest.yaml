@@ -1,0 +1,21 @@
+id: normalization/nemo_norm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.nemo_norm.node
+runtime: node_local_optional
+package:
+  name: nemo_text_processing
+  version: "1.2.0"
+  dependencies:
+    - pynini
+profiles:
+  ar_itn:
+    language: ar
+    direction: itn
+    normalizer_class: nemo_text_processing.inverse_text_normalization.inverse_normalize.InverseNormalizer
+notes:
+  - Arabic spoken-form transcripts are inverse-normalized to written form before WER scoring.
+  - NeMo's pinned grammar and package version are recorded in every node trace.

@@ -80,6 +80,8 @@ sure_eval = [
     "evaluation/nodes/*/*/manifest.yaml",
     "evaluation/nodes/*/*/node_env.yaml",
     "evaluation/nodes/*/*/README.md",
+    "evaluation/nodes/normalization/nemo_norm/vendor/**/*.tsv",
+    "evaluation/nodes/normalization/nemo_norm/vendor/**/*.json",
     "evaluation/nodes/scoring/sctk_sclite/*.sh",
     "evaluation/conversion/*/manifest.yaml",
     "evaluation/conversion/*/*.md",
