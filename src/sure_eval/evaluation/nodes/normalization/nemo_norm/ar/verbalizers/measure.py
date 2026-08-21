@@ -15,49 +15,42 @@
 import pynini
 from pynini.lib import pynutil
 
-from nemo_text_processing.text_normalization.ar.graph_utils import NEMO_CHAR, GraphFst, delete_space
+from nemo_text_processing.text_normalization.ar.graph_utils import (
+    NEMO_NOT_QUOTE,
+    GraphFst,
+    delete_extra_space,
+    delete_preserve_order,
+)
 
 
 class MeasureFst(GraphFst):
     """
     Finite state transducer for verbalizing measure, e.g.
-        measure { cardinal { integer: "20" } units: "%" } -> 20%
+        measure { cardinal { integer: "20" } units: "%" } -> "عشرون  في المائة"
 
     Args:
-        decimal: ITN Decimal verbalizer
-        cardinal: ITN Cardinal verbalizer
+        decimal: decimal GraphFst
+        cardinal: cardinal GraphFst
+        fraction: fraction GraphFst
+        deterministic: if True will provide a single transduction option,
+            for False multiple transduction are generated (used for audio-based normalization)
     """
 
-    def __init__(self, decimal: GraphFst, cardinal: GraphFst, deterministic: bool = True):
+    def __init__(self, decimal: GraphFst, cardinal: GraphFst, fraction: GraphFst, deterministic: bool):
         super().__init__(name="measure", kind="verbalize", deterministic=deterministic)
-        optional_sign = pynini.closure(pynini.cross("negative: \"true\"", "-"), 0, 1)
-        unit = (
-            pynutil.delete("units:")
-            + delete_space
-            + pynutil.delete("\"")
-            + pynini.closure(NEMO_CHAR - " ", 1)
-            + pynutil.delete("\"")
-            + delete_space
-        )
-        graph_decimal = (
-            pynutil.delete("decimal {")
-            + delete_space
-            + optional_sign
-            + delete_space
-            + decimal.numbers
-            + delete_space
-            + pynutil.delete("}")
-        )
-        graph_cardinal = (
-            pynutil.delete("cardinal {")
-            + delete_space
-            + optional_sign
-            + delete_space
-            + cardinal.numbers
-            + delete_space
-            + pynutil.delete("}")
-        )
+        unit = pynutil.delete("units: \"") + pynini.closure(NEMO_NOT_QUOTE) + pynutil.delete("\"")
 
-        graph = (graph_cardinal | graph_decimal) + delete_space + pynutil.insert("") + unit
+        graph_decimal = decimal.fst
+        graph_cardinal = cardinal.fst
+        graph_fraction = fraction.fst
+
+        graph = (graph_cardinal | graph_decimal | graph_fraction) + pynini.accep(" ") + unit
+
+        graph |= (graph_cardinal | graph_decimal | graph_fraction) + delete_extra_space + unit
+
+        # graph |= unit + delete_extra_space + (graph_cardinal | graph_decimal)
+
+        graph += delete_preserve_order
+
         delete_tokens = self.delete_tokens(graph)
         self.fst = delete_tokens.optimize()

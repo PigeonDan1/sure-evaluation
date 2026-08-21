@@ -17,21 +17,21 @@ import os
 import pynini
 from pynini.lib import pynutil
 
-from nemo_text_processing.inverse_text_normalization.ar.taggers.cardinal import CardinalFst
-from nemo_text_processing.inverse_text_normalization.ar.taggers.decimal import DecimalFst
-from nemo_text_processing.inverse_text_normalization.ar.taggers.fraction import FractionFst
-from nemo_text_processing.inverse_text_normalization.ar.taggers.measure import MeasureFst
-from nemo_text_processing.inverse_text_normalization.ar.taggers.money import MoneyFst
-from nemo_text_processing.inverse_text_normalization.ar.taggers.punctuation import PunctuationFst
-from nemo_text_processing.inverse_text_normalization.ar.taggers.word import WordFst
 from nemo_text_processing.text_normalization.ar.graph_utils import (
+    NEMO_CHAR,
+    NEMO_DIGIT,
     GraphFst,
     delete_extra_space,
     delete_space,
     generator_main,
 )
-from nemo_text_processing.text_normalization.ar.taggers.tokenize_and_classify import ClassifyFst as TNClassifyFst
-from nemo_text_processing.text_normalization.en.graph_utils import INPUT_LOWER_CASED
+from nemo_text_processing.text_normalization.ar.taggers.cardinal import CardinalFst
+from nemo_text_processing.text_normalization.ar.taggers.decimal import DecimalFst
+from nemo_text_processing.text_normalization.ar.taggers.fraction import FractionFst
+from nemo_text_processing.text_normalization.ar.taggers.measure import MeasureFst
+from nemo_text_processing.text_normalization.ar.taggers.money import MoneyFst
+from nemo_text_processing.text_normalization.ar.taggers.word import WordFst
+from nemo_text_processing.text_normalization.en.taggers.punctuation import PunctuationFst
 from nemo_text_processing.utils.logging import logger
 
 
@@ -42,60 +42,62 @@ class ClassifyFst(GraphFst):
     More details to deployment at NeMo/tools/text_processing_deployment.
 
     Args:
+        input_case: accepting either "lower_cased" or "cased" input.
+        deterministic: if True will provide a single transduction option,
+            for False multiple options (used for audio-based normalization)
         cache_dir: path to a dir with .far grammar file. Set to None to avoid using cache.
         overwrite_cache: set to True to overwrite .far files
         whitelist: path to a file with whitelist replacements
-        input_case: accepting either "lower_cased" or "cased" input.
     """
 
     def __init__(
         self,
+        input_case: str,
+        deterministic: bool = False,
         cache_dir: str = None,
         overwrite_cache: bool = False,
         whitelist: str = None,
-        input_case: str = INPUT_LOWER_CASED,
     ):
         super().__init__(name="tokenize_and_classify", kind="classify")
-
         far_file = None
         if cache_dir is not None and cache_dir != "None":
             os.makedirs(cache_dir, exist_ok=True)
-            far_file = os.path.join(cache_dir, f"ar_itn_{input_case}.far")
+            whitelist_file = os.path.basename(whitelist) if whitelist else ""
+            far_file = os.path.join(
+                cache_dir, f"_{input_case}_ar_tn_{deterministic}_deterministic{whitelist_file}.far"
+            )
         if not overwrite_cache and far_file and os.path.exists(far_file):
             self.fst = pynini.Far(far_file, mode="r")["tokenize_and_classify"]
+            no_digits = pynini.closure(pynini.difference(NEMO_CHAR, NEMO_DIGIT))
+            self.fst_no_digits = pynini.compose(self.fst, no_digits).optimize()
             logger.info(f"ClassifyFst.fst was restored from {far_file}.")
         else:
-            logger.info(f"Creating ClassifyFst grammars.")
-            tn_classify = TNClassifyFst(
-                input_case='cased', deterministic=True, cache_dir=cache_dir, overwrite_cache=True
-            )
+            logger.info(f"Creating ClassifyFst grammars. This might take some time...")
 
-            cardinal = CardinalFst(tn_cardinal=tn_classify.cardinal)
-            cardinal_graph = cardinal.fst
-            decimal = DecimalFst(tn_decimal=tn_classify.decimal)
-            decimal_graph = decimal.fst
-            fraction = FractionFst(tn_cardinal=tn_classify.cardinal)
-            fraction_graph = fraction.fst
-            money = MoneyFst(itn_cardinal_tagger=cardinal)
-            money_graph = money.fst
-            measure = MeasureFst(
-                itn_cardinal_tagger=cardinal,
-                itn_decimal_tagger=decimal,
-                itn_fraction_tagger=fraction,
-                deterministic=True,
+            self.cardinal = CardinalFst()
+            cardinal_graph = self.cardinal.fst
+            self.decimal = DecimalFst(cardinal=self.cardinal, deterministic=deterministic)
+            decimal_graph = self.decimal.fst
+            self.fraction = FractionFst(cardinal=self.cardinal)
+            fraction_graph = self.fraction.fst
+            self.money = MoneyFst(cardinal=self.cardinal)
+            money_graph = self.money.fst
+            self.measure = MeasureFst(
+                cardinal=self.cardinal, decimal=self.decimal, fraction=self.fraction, deterministic=deterministic
             )
-            measure_graph = measure.fst
-            word_graph = WordFst().fst
-            punct_graph = PunctuationFst().fst
+            measure_graph = self.measure.fst
+            word_graph = WordFst(deterministic=deterministic).fst
+            punct_graph = PunctuationFst(deterministic=deterministic).fst
 
             classify = (
                 pynutil.add_weight(cardinal_graph, 1.1)
                 | pynutil.add_weight(decimal_graph, 1.1)
-                | pynutil.add_weight(fraction_graph, 1.1)
-                | pynutil.add_weight(money_graph, 1.1)
-                | pynutil.add_weight(measure_graph, 1.1)
-                | pynutil.add_weight(word_graph, 100)
+                | pynutil.add_weight(fraction_graph, 1.0)
+                | pynutil.add_weight(money_graph, 1.0)
+                | pynutil.add_weight(measure_graph, 1.0)
             )
+
+            classify |= pynutil.add_weight(word_graph, 100)
 
             punct = pynutil.insert("tokens { ") + pynutil.add_weight(punct_graph, weight=1.1) + pynutil.insert(" }")
             token = pynutil.insert("tokens { ") + classify + pynutil.insert(" }")
@@ -103,10 +105,12 @@ class ClassifyFst(GraphFst):
                 pynini.closure(punct + pynutil.insert(" ")) + token + pynini.closure(pynutil.insert(" ") + punct)
             )
 
-            graph = token_plus_punct + pynini.closure(delete_extra_space + token_plus_punct)
+            graph = token_plus_punct + pynini.closure(pynutil.add_weight(delete_extra_space, 1.1) + token_plus_punct)
             graph = delete_space + graph + delete_space
 
             self.fst = graph.optimize()
+            no_digits = pynini.closure(pynini.difference(NEMO_CHAR, NEMO_DIGIT))
+            self.fst_no_digits = pynini.compose(self.fst, no_digits).optimize()
 
             if far_file:
                 generator_main(far_file, {"tokenize_and_classify": self.fst})

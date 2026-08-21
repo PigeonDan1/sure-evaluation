@@ -12,10 +12,10 @@ package:
   dependencies:
     - pynini
 profiles:
-  ar_itn:
+  ar_tn:
     language: ar
-    direction: itn
-    normalizer_class: nemo_text_processing.inverse_text_normalization.inverse_normalize.InverseNormalizer
+    direction: tn
+    normalizer_class: nemo_text_processing.text_normalization.normalize.Normalizer
 notes:
-  - Arabic spoken-form transcripts are inverse-normalized to written form before WER scoring.
+  - Arabic written-form tokens are normalized to spoken form before CER scoring.
   - NeMo's pinned grammar and package version are recorded in every node trace.

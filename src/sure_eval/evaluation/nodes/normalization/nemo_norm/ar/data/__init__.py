@@ -11,24 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pynini
-from pynini.lib import pynutil
-
-from nemo_text_processing.text_normalization.ar.graph_utils import GraphFst
-
-
-class PunctuationFst(GraphFst):
-    """
-    Finite state transducer for classifying punctuation
-        e.g. a, -> tokens { name: "a" } tokens { name: "," }
-    """
-
-    def __init__(self):
-        super().__init__(name="punctuation", kind="classify")
-
-        s = "!#$%&\'()*+,-./:;<=>?@^_`{|}~"
-        punct = pynini.union(*s)
-
-        graph = pynutil.insert("name: \"") + punct + pynutil.insert("\"")
-
-        self.fst = graph.optimize()

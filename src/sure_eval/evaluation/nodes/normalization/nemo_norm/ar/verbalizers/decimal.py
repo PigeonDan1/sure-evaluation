@@ -21,39 +21,31 @@ from nemo_text_processing.text_normalization.ar.graph_utils import NEMO_NOT_QUOT
 class DecimalFst(GraphFst):
     """
     Finite state transducer for verbalizing decimal, e.g.
-        decimal { negative: "true" integer_part: "12"  fractional_part: "5006" quantity: "billion" } -> -12.5006 billion
+        tokens { decimal { integer_part: "одно целая" fractional_part: "восемь сотых} } ->
+            "одно целая восемь сотых"
+    Args:
+        deterministic: if True will provide a single transduction option,
+            for False multiple transduction are generated (used for audio-based normalization)
     """
 
-    def __init__(self):
-        super().__init__(name="decimal", kind="verbalize")
-        optionl_sign = pynini.closure(pynini.cross("negative: \"true\"", "-") + delete_space, 0, 1)
-        integer = (
-            pynutil.delete("integer_part:")
-            + delete_space
-            + pynutil.delete("\"")
+    def __init__(self, deterministic: bool = True):
+        super().__init__(name="decimal", kind="verbalize", deterministic=deterministic)
+
+        optional_sign = pynini.closure(pynini.cross("negative: \"true\" ", "سالب"), 0, 1)
+        integer = pynutil.delete(" \"") + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete("\"")
+        integer_part = pynutil.delete("integer_part:") + integer
+        fractional_part = pynutil.delete("fractional_part:") + integer
+        optional_quantity_part = pynini.closure(
+            pynini.accep(" ")
+            + pynutil.delete("quantity: \"")
             + pynini.closure(NEMO_NOT_QUOTE, 1)
-            + pynutil.delete("\"")
+            + pynutil.delete("\""),
+            0,
+            1,
         )
-        optional_integer = pynini.closure(integer + delete_space, 0, 1)
-        fractional = (
-            pynutil.insert(".")
-            + pynutil.delete("fractional_part:")
-            + delete_space
-            + pynutil.delete("\"")
-            + pynini.closure(NEMO_NOT_QUOTE, 1)
-            + pynutil.delete("\"")
+
+        self.graph = (
+            optional_sign + integer_part + pynini.accep(" ") + fractional_part + optional_quantity_part + delete_space
         )
-        optional_fractional = pynini.closure(fractional + delete_space, 0, 1)
-        quantity = (
-            pynutil.delete("quantity:")
-            + delete_space
-            + pynutil.delete("\"")
-            + pynini.closure(NEMO_NOT_QUOTE, 1)
-            + pynutil.delete("\"")
-        )
-        optional_quantity = pynini.closure(pynutil.insert(" ") + quantity + delete_space, 0, 1)
-        graph = optional_integer + optional_fractional + optional_quantity
-        graph = optionl_sign + graph
-        self.numbers = graph
-        delete_tokens = self.delete_tokens(graph)
+        delete_tokens = self.delete_tokens(self.graph)
         self.fst = delete_tokens.optimize()

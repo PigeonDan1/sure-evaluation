@@ -11,20 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import pynini
 from pynini.lib import pynutil
 
-from nemo_text_processing.text_normalization.en.graph_utils import NEMO_CHAR, NEMO_SIGMA, GraphFst, delete_space
+from nemo_text_processing.text_normalization.ar.graph_utils import NEMO_CHAR, NEMO_SIGMA, GraphFst, delete_space
 
 
 class WordFst(GraphFst):
     """
-    Finite state transducer for verbalizing plain tokens
+    Finite state transducer for verbalizing word
         e.g. tokens { name: "sleep" } -> sleep
+
+    Args:
+        deterministic: if True will provide a single transduction option,
+            for False multiple transduction are generated (used for audio-based normalization)
     """
 
-    def __init__(self):
-        super().__init__(name="word", kind="verbalize")
+    def __init__(self, deterministic: bool = True):
+        super().__init__(name="word", kind="verbalize", deterministic=deterministic)
         chars = pynini.closure(NEMO_CHAR - " ", 1)
         char = pynutil.delete("name:") + delete_space + pynutil.delete("\"") + chars + pynutil.delete("\"")
         graph = char @ pynini.cdrewrite(pynini.cross(u"\u00a0", " "), "", "", NEMO_SIGMA)

@@ -1,4 +1,4 @@
-"""NeMo Arabic inverse text normalization node."""
+"""NeMo Arabic text normalization node."""
 
 __all__ = ["normalize_nemo_key_text_files", "normalize_nemo_text"]
 

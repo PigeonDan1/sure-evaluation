@@ -1,4 +1,4 @@
-# Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,38 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import pynini
 from pynini.lib import pynutil
 
-from nemo_text_processing.text_normalization.en.graph_utils import NEMO_NOT_QUOTE, GraphFst, delete_space
+from nemo_text_processing.text_normalization.en.graph_utils import NEMO_NOT_QUOTE, GraphFst
 
 
 class CardinalFst(GraphFst):
     """
-    Finite state transducer for verbalizing cardinal
-        e.g. cardinal { integer: "23" negative: "-" } -> -23
+    Finite state transducer for verbalizing cardinals
+        e.g. cardinal { integer: "ستون" } -> "ستون"
+
+    Args:
+        deterministic: if True will provide a single transduction option,
+            for False multiple transduction are generated (used for audio-based normalization)
     """
 
-    def __init__(self):
-        super().__init__(name="cardinal", kind="verbalize")
-        optional_sign = pynini.closure(
-            pynutil.delete("negative:")
-            + delete_space
-            + pynutil.delete("\"")
-            + NEMO_NOT_QUOTE
-            + pynutil.delete("\"")
-            + delete_space,
-            0,
-            1,
-        )
-        graph = (
-            pynutil.delete("integer:")
-            + delete_space
-            + pynutil.delete("\"")
-            + pynini.closure(NEMO_NOT_QUOTE, 1)
-            + pynutil.delete("\"")
-        )
-        self.numbers = graph
-        graph = optional_sign + graph
+    def __init__(self, deterministic: bool = True):
+        super().__init__(name="cardinal", kind="verbalize", deterministic=deterministic)
+        optional_sign = pynini.closure(pynini.cross("negative: \"true\" ", "minus "), 0, 1)
+        self.optional_sign = optional_sign
+        integer = pynini.closure(NEMO_NOT_QUOTE, 1)
+
+        self.integer = pynutil.delete(" \"") + integer + pynutil.delete("\"")
+
+        integer = pynutil.delete("integer:") + self.integer
+        self.numbers = integer
+        graph = optional_sign + self.numbers
         delete_tokens = self.delete_tokens(graph)
         self.fst = delete_tokens.optimize()

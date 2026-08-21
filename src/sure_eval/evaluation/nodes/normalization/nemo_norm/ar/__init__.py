@@ -12,10 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pynini
-from pynini.lib import pynutil
-
-from nemo_text_processing.inverse_text_normalization.en.taggers.tokenize_and_classify import ClassifyFst
-from nemo_text_processing.inverse_text_normalization.en.verbalizers.verbalize import VerbalizeFst
-from nemo_text_processing.inverse_text_normalization.en.verbalizers.verbalize_final import VerbalizeFinalFst
+from nemo_text_processing.text_normalization.en.taggers.tokenize_and_classify import ClassifyFst
+from nemo_text_processing.text_normalization.en.verbalizers.verbalize import VerbalizeFst
+from nemo_text_processing.text_normalization.en.verbalizers.verbalize_final import VerbalizeFinalFst
 from nemo_text_processing.utils.logging import logger
+
+try:
+    import pynini
+
+    PYNINI_AVAILABLE = True
+except (ModuleNotFoundError, ImportError):
+    logger.warning(
+        "`pynini` is not installed ! \n"
+        "Please run the `nemo_text_processing/setup.sh` script"
+        "prior to usage of this toolkit."
+    )
+
+    PYNINI_AVAILABLE = False

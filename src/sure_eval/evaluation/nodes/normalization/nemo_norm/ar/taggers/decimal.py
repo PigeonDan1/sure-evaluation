@@ -15,48 +15,66 @@
 import pynini
 from pynini.lib import pynutil
 
-from nemo_text_processing.text_normalization.ar.graph_utils import (
-    NEMO_SPACE,
-    GraphFst,
-    delete_extra_space,
-    insert_space,
-)
+from nemo_text_processing.text_normalization.ar.graph_utils import NEMO_DIGIT, NEMO_SPACE, GraphFst, insert_space
+from nemo_text_processing.text_normalization.ar.utils import get_abs_path
 
 
 class DecimalFst(GraphFst):
     """
-    Finite state transducer for classifying decimal
-        e.g. "سبعة وتسعة وتسعون من مئة" -> decimal { negative: "false" integer_part: "7," fractional_part: "99" }
-
-    Args:
-        tn_decimal: Text normalization Decimal graph
+    Finite state transducer for classifying decimal, e.g.
+    321.7 --> ثلاث مئة وواحد وعشرون وسبعة من عشرة
+    -321.7  -> decimal { negative: "true" integer_part: "321"  fractional_part: ".7" }
+    cardinal: CardinalFst
     """
 
-    def __init__(self, tn_decimal):
-        super().__init__(name="decimal", kind="classify")
+    def __init__(self, cardinal: GraphFst, deterministic: bool):
+        super().__init__(name="decimal", kind="classify", deterministic=deterministic)
 
-        optional_graph_negative = pynini.closure(
-            pynutil.insert("negative: ") + pynini.cross("سالب", '"true"') + delete_extra_space,
+        integer_part = cardinal.cardinal_numbers
+        cardinal_numbers_with_leading_zeros = cardinal.cardinal_numbers_with_leading_zeros
+        self.integer_part = pynini.closure(integer_part, 0, 1)
+        self.seperator = pynini.string_map([(".", "و"), (",", "و")])
+
+        add_preposition = pynutil.insert(" من ")
+        graph_fractional = NEMO_DIGIT @ cardinal_numbers_with_leading_zeros + add_preposition + pynutil.insert("عشرة")
+        graph_fractional |= (
+            (NEMO_DIGIT + NEMO_DIGIT) @ cardinal_numbers_with_leading_zeros + add_preposition + pynutil.insert("مئة")
+        )
+        graph_fractional |= (
+            (NEMO_DIGIT + NEMO_DIGIT + NEMO_DIGIT) @ cardinal_numbers_with_leading_zeros
+            + add_preposition
+            + pynutil.insert("ألف")
+        )
+        graph_fractional |= (
+            (NEMO_DIGIT + NEMO_DIGIT + NEMO_DIGIT + NEMO_DIGIT) @ cardinal_numbers_with_leading_zeros
+            + add_preposition
+            + pynutil.insert("عشرة آلاف")
+        )
+
+        graph_integer = pynutil.insert('integer_part: "') + self.integer_part + pynutil.insert('" ')
+        # to parse something like ,50 alone as well
+        graph_integer_or_none = graph_integer | pynutil.insert('integer_part: "0" ', weight=0.001)
+
+        self.optional_quantity = pynini.string_file(get_abs_path("data/number/quantities.tsv")).optimize()
+        self.graph_fractional = graph_fractional
+
+        graph_fractional = (
+            pynutil.insert('fractional_part: "') + self.seperator + graph_fractional + pynutil.insert('"')
+        )
+        optional_quantity = pynini.closure(
+            (pynutil.add_weight(pynini.accep(NEMO_SPACE), -0.1) | insert_space)
+            + pynutil.insert('quantity: "')
+            + self.optional_quantity
+            + pynutil.insert('"'),
             0,
             1,
         )
 
-        graph_fractional_part = pynini.invert(tn_decimal.graph_fractional).optimize()
-        graph_integer_part = pynini.invert(tn_decimal.integer_part).optimize()
-        optional_graph_quantity = pynini.invert(tn_decimal.optional_quantity).optimize()
-        delete_seperator = pynini.string_map([("و", "")])
+        self.graph_decimal = self.integer_part + insert_space + self.seperator + graph_fractional
 
-        graph_fractional = (
-            pynutil.insert('fractional_part: "') + delete_seperator + graph_fractional_part + pynutil.insert('"')
+        self.final_graph_decimal = (
+            cardinal.optional_minus_graph + graph_integer_or_none + insert_space + graph_fractional + optional_quantity
         )
-        graph_integer = pynutil.insert('integer_part: "') + graph_integer_part + pynutil.insert('"')
-        optional_graph_quantity = pynutil.insert('quantity: "') + optional_graph_quantity + pynutil.insert('"')
-        optional_graph_quantity = pynini.closure(pynini.accep(NEMO_SPACE) + optional_graph_quantity, 0, 1)
 
-        self.final_graph_wo_sign = (
-            graph_integer + pynini.accep(NEMO_SPACE) + graph_fractional + optional_graph_quantity
-        )
-        self.final_graph_wo_negative = optional_graph_negative + self.final_graph_wo_sign
-
-        final_graph = self.add_tokens(self.final_graph_wo_negative)
-        self.fst = final_graph.optimize()
+        self.final_graph = self.add_tokens(self.final_graph_decimal)
+        self.fst = self.final_graph.optimize()

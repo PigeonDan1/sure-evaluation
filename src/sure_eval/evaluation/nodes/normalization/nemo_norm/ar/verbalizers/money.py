@@ -15,58 +15,62 @@
 import pynini
 from pynini.lib import pynutil
 
-from nemo_text_processing.text_normalization.ar.graph_utils import NEMO_CHAR, GraphFst, delete_space
+from nemo_text_processing.text_normalization.ar.graph_utils import (
+    NEMO_NOT_QUOTE,
+    GraphFst,
+    delete_preserve_order,
+    delete_space,
+)
 
 
 class MoneyFst(GraphFst):
     """
     Finite state transducer for verbalizing money, e.g.
-        money { integer_part: "12" fractional_part: "05" currency: "$" } -> $12.05
+        money { integer_part: "تسعة" currency_maj: "يورو" preserve_order: true} -> "تسعة يورو"
+        money { integer_part: "تسعة" currency_maj: "دولار" preserve_order: true} -> "تسعة دولار"
+        money { integer_part: "خمسة" currency_maj: "دينار كويتي"} -> "خمسة دينار كويتي"
 
     Args:
-        decimal: ITN Decimal verbalizer
+        deterministic: if True will provide a single transduction option,
+            for False multiple transduction are generated (used for audio-based normalization)
     """
 
-    def __init__(self, decimal: GraphFst, deterministic: bool = True):
+    def __init__(self, deterministic: bool = True):
         super().__init__(name="money", kind="verbalize", deterministic=deterministic)
-        unit = (
-            pynutil.delete("currency:")
-            + delete_space
-            + pynutil.delete("\"")
-            + pynini.closure(NEMO_CHAR - " ", 1)
-            + pynutil.delete("\"")
+
+        keep_space = pynini.accep(" ")
+
+        maj = pynutil.delete("currency_maj: \"") + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete("\"")
+        min = pynutil.delete("currency_min: \"") + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete("\"")
+
+        fractional_part = (
+            pynutil.delete("fractional_part: \"") + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete("\"")
         )
-        # optionl_sign = pynini.closure(pynini.cross("negative: \"true\"", "-") + delete_space, 0, 1)
-        # integer = (
-        #     pynutil.delete("integer_part:")
-        #     + delete_space
-        #     + pynutil.delete("\"")
-        #     + pynini.closure(NEMO_NOT_QUOTE, 1)
-        #     + pynutil.delete("\"")
-        # )
-        # optional_integer = pynini.closure(integer + delete_space, 0, 1)
-        # fractional = (
-        #     pynutil.insert(".")
-        #     + pynutil.delete("fractional_part:")
-        #     + delete_space
-        #     + pynutil.delete("\"")
-        #     + pynini.closure(NEMO_NOT_QUOTE, 1)
-        #     + pynutil.delete("\"")
-        # )
-        # optional_fractional = pynini.closure(fractional + delete_space, 0, 1)
-        # quantity = (
-        #     pynutil.delete("quantity:")
-        #     + delete_space
-        #     + pynutil.delete("\"")
-        #     + pynini.closure(NEMO_NOT_QUOTE, 1)
-        #     + pynutil.delete("\"")
-        # )
-        # optional_quantity = pynini.closure(pynutil.insert(" ") + quantity + delete_space, 0, 1)
-        # graph = optional_integer + optional_fractional + optional_quantity
-        # graph = optionl_sign + graph
-        # graph= unit + delete_space + optional_integer + optional_fractional
-        # #graph= optional_integer + optional_fractional + unit
-        graph = unit + delete_space + decimal.numbers
+
+        integer_part = pynutil.delete("integer_part: \"") + pynini.closure(NEMO_NOT_QUOTE, 1) + pynutil.delete("\"")
+        add_and = pynutil.insert(" و")
+
+        #  *** currency_maj
+        graph_integer = maj + keep_space + integer_part
+
+        #  *** currency_maj + (***) (و) *** current_min
+        graph_integer_with_minor = (
+            integer_part
+            + keep_space
+            + maj
+            + delete_space
+            + add_and
+            + fractional_part
+            + delete_space
+            + pynini.closure(keep_space + min, 0, 1)
+            + delete_preserve_order
+        )
+        # this graph fix word order from dollar three (دولار تسعة)--> three dollar (تسعة دولار)
+        graph_integer_no_minor = integer_part + keep_space + maj + delete_space + delete_preserve_order
+        # *** current_min
+        graph_minor = fractional_part + keep_space + delete_space + min + delete_preserve_order
+
+        graph = graph_integer | graph_integer_with_minor | graph_minor | graph_integer_no_minor
+
         delete_tokens = self.delete_tokens(graph)
         self.fst = delete_tokens.optimize()
-        self.unit = unit

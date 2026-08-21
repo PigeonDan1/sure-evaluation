@@ -254,8 +254,8 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
             return "whisper"
         if language == "zh" and metric == "cer":
             return "wetext:zh_itn"
-        if language == "ar" and metric == "wer":
-            return "nemo:ar_itn"
+        if language == "ar" and metric == "cer":
+            return "nemo:ar_tn"
         return "aispeech"
     if normalized.startswith("wetext:"):
         profile = normalized.split(":", 1)[1]
@@ -277,12 +277,12 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
     if normalized in {
         "nemo",
         "nemo_norm",
-        "nemo:ar_itn",
+        "nemo:ar_tn",
         "normalization/nemo_norm",
     }:
         if language != "ar":
             raise ValueError("nemo_norm currently supports only Arabic ASR")
-        return "nemo:ar_itn"
+        return "nemo:ar_tn"
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -342,7 +342,7 @@ def _normalization_node(*, language: str, normalizer: str):
             lambda files: normalize_punctuation_strip_key_text_files(files, language=language),
             "punctuation_strip_norm",
         )
-    if normalizer == "nemo:ar_itn":
+    if normalizer == "nemo:ar_tn":
         return (
             lambda files: normalize_nemo_key_text_files(files),
             "nemo_norm",
@@ -386,7 +386,7 @@ def _normalizer_component(*, language: str, normalizer_label: str):
     if normalizer_label == "punctuation_strip_norm":
         return node_component("normalization/punctuation_strip_norm")
     if normalizer_label == "nemo_norm":
-        return node_component("normalization/nemo_norm", profile="ar_itn")
+        return node_component("normalization/nemo_norm", profile="ar_tn")
     raise ValueError(f"Unsupported ASR normalizer label: {normalizer_label}")
 
 

@@ -3,30 +3,31 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def test_asr_ar_route_describes_nemo_itn_and_wenet_wer() -> None:
+def test_asr_ar_route_describes_nemo_tn_and_wenet_cer() -> None:
     from sure_eval.evaluation.scripts.asr import describe_pipeline
 
-    description = describe_pipeline(language="ar", metric="wer")
+    description = describe_pipeline(language="ar")
 
-    assert description.pipeline_id == "asr.ar.wer.nemo_norm_ar_itn_v1.wenet_wer_v1"
+    assert description.pipeline_id == "asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1"
     assert description.language == "ar"
+    assert description.metric == "cer"
     assert description.node_ids == (
         "normalization/nemo_norm",
-        "scoring/wenet_wer",
+        "scoring/wenet_cer",
     )
 
 
-def test_asr_ar_nemo_normalizer_converts_spoken_number_to_written_form() -> None:
+def test_asr_ar_nemo_normalizer_converts_written_number_to_spoken_form() -> None:
     from sure_eval.evaluation.nodes.normalization.nemo_norm import normalize_nemo_text
 
     try:
-        normalized = normalize_nemo_text("واحد وعشرون", cache_dir=None)
+        normalized = normalize_nemo_text("21", cache_dir=None)
     except RuntimeError as exc:
         if "node-local environment" in str(exc):
             return
         raise
 
-    assert normalized == "21"
+    assert normalized == "واحد وعشرون"
 
 
 def test_asr_ar_route_scores_raw_key_text_with_nemo_normalization(tmp_path: Path) -> None:
@@ -42,7 +43,7 @@ def test_asr_ar_route_scores_raw_key_text_with_nemo_normalization(tmp_path: Path
             str(ref_file),
             str(hyp_file),
             language="ar",
-            metric="wer",
+            metric="cer",
         )
     except RuntimeError as exc:
         if "node-local environment" in str(exc):
@@ -50,5 +51,5 @@ def test_asr_ar_route_scores_raw_key_text_with_nemo_normalization(tmp_path: Path
         raise
 
     assert report.score == 0.0
-    assert report.pipeline_id == "asr.ar.wer.nemo_norm_ar_itn_v1.wenet_wer_v1"
+    assert report.pipeline_id == "asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1"
     assert report.pipeline_trace[0].node_id == "normalization/nemo_norm"

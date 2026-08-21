@@ -1,4 +1,4 @@
-"""Node-local NeMo Arabic inverse text normalization for ASR evaluation."""
+"""Node-local NeMo Arabic text normalization for ASR evaluation."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from sure_eval.evaluation.nodes.common.node_local_python import (
 
 NODE_ID = "normalization/nemo_norm"
 NODE_VERSION = "v1"
-PROFILE = "ar_itn"
+PROFILE = "ar_tn"
 NEMO_PACKAGE = "nemo_text_processing"
 NEMO_VERSION = "1.2.0"
 NODE_DIR = Path(__file__).resolve().parent
@@ -31,7 +31,7 @@ def normalize_nemo_text(
     cache_dir: str | None = None,
     overwrite_cache: bool = False,
 ) -> str:
-    """Inverse-normalize one Arabic ASR transcript with NeMo."""
+    """Normalize one Arabic ASR transcript to spoken form with NeMo."""
 
     payload = _run_node_local_json(
         [
@@ -51,7 +51,7 @@ def normalize_nemo_key_text_files(
     cache_dir: str | None = None,
     overwrite_cache: bool = False,
 ) -> tuple[KeyTextFiles, PipelineNodeResult]:
-    """Inverse-normalize Arabic reference and hypothesis key-text files."""
+    """Normalize Arabic reference and hypothesis key-text files to spoken form."""
 
     payload = _run_node_local_json(
         [
@@ -86,15 +86,15 @@ def _normalize_text_in_process(
     cache_dir: str | None,
     overwrite_cache: bool,
 ) -> str:
-    from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer
+    from nemo_text_processing.text_normalization.normalize import Normalizer
 
-    normalizer = InverseNormalizer(
+    normalizer = Normalizer(
         input_case="cased",
         lang="ar",
         cache_dir=cache_dir or None,
         overwrite_cache=overwrite_cache,
     )
-    return normalizer.inverse_normalize(text, verbose=False).strip()
+    return normalizer.normalize(text, verbose=False).strip()
 
 
 def _normalize_file_in_process(input_file: str, output_file: str, *, cache_dir: str | None, overwrite_cache: bool) -> dict[str, int]:
@@ -115,7 +115,7 @@ def _normalize_file_in_process(input_file: str, output_file: str, *, cache_dir: 
             if not key:
                 malformed += 1
                 continue
-            normalized = normalizer.inverse_normalize(text.strip(), verbose=False).strip() if text.strip() else ""
+            normalized = normalizer.normalize(text.strip(), verbose=False).strip() if text.strip() else ""
             rows += 1
             empty += int(not normalized)
             target.write(f"{key}\t{normalized}\n")
@@ -125,9 +125,9 @@ def _normalize_file_in_process(input_file: str, output_file: str, *, cache_dir: 
 
 
 def _build_normalizer(*, cache_dir: str | None, overwrite_cache: bool):
-    from nemo_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer
+    from nemo_text_processing.text_normalization.normalize import Normalizer
 
-    return InverseNormalizer(
+    return Normalizer(
         input_case="cased", lang="ar", cache_dir=cache_dir or None, overwrite_cache=overwrite_cache
     )
 
@@ -145,7 +145,7 @@ def _normalize_files_in_process(ref_file: str, hyp_file: str, *, cache_dir: str 
     details = {
         "language": "ar",
         "profile": PROFILE,
-        "backend": "NeMo InverseNormalizer",
+        "backend": "NeMo Normalizer",
         "package": NEMO_PACKAGE,
         "package_version": _nemo_version(),
         "pinned_package_version": NEMO_VERSION,
@@ -157,7 +157,7 @@ def _normalize_files_in_process(ref_file: str, hyp_file: str, *, cache_dir: str 
     }
     return {
         "normalized_files": {"ref_file": ref_out, "hyp_file": hyp_out},
-        "trace": {"details": details, "internal_stages": ["key_text_parse", "ar_itn", "key_text_write"]},
+        "trace": {"details": details, "internal_stages": ["key_text_parse", "ar_tn", "key_text_write"]},
     }
 
 
