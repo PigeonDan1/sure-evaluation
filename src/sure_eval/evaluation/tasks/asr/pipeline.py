@@ -22,6 +22,10 @@ from sure_eval.evaluation.nodes.normalization.punctuation_strip_norm import (
     normalize_punctuation_strip_key_text_files,
 )
 from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
+from sure_eval.evaluation.nodes.normalization.funasr_itn import (
+    SUPPORTED_PROFILES as FUNASR_PROFILES,
+    normalize_funasr_files,
+)
 from sure_eval.evaluation.nodes.normalization.wetext_norm import (
     SUPPORTED_PROFILES as WETEXT_SUPPORTED_PROFILES,
     normalize_wetext_key_text_files,
@@ -251,6 +255,8 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
             return "whisper"
         if language == "zh" and metric == "cer":
             return "wetext:zh_itn"
+        if language in FUNASR_PROFILES:
+            return f"funasr:{language}"
         return "aispeech"
     if normalized.startswith("wetext:"):
         profile = normalized.split(":", 1)[1]
@@ -262,6 +268,10 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         return "whisper"
     if normalized in {"aispeech", "aispeech_norm", "normalization/aispeech_norm"}:
         return "aispeech"
+    if normalized.startswith("funasr:"):
+        profile = normalized.split(":", 1)[1]
+        _validate_funasr_profile(profile)
+        return f"funasr:{profile}"
     if normalized in {
         "punctuation_strip",
         "punctuation_strip_norm",
@@ -323,6 +333,12 @@ def _normalization_node(*, language: str, normalizer: str):
             lambda files: normalize_asr_files(files, language=language),
             "aispeech_norm",
         )
+    if normalizer.startswith("funasr:"):
+        profile = normalizer.split(":", 1)[1]
+        return (
+            lambda files: normalize_funasr_files(files, profile=profile),
+            f"funasr_{profile}",
+        )
     if normalizer == "punctuation_strip":
         return (
             lambda files: normalize_punctuation_strip_key_text_files(files, language=language),
@@ -362,6 +378,11 @@ def _normalizer_component(*, language: str, normalizer_label: str):
         return node_component("normalization/whisper_norm", profile="english")
     if normalizer_label == "aispeech_norm":
         return node_component("normalization/aispeech_norm", profile=language)
+    if normalizer_label.startswith("funasr_"):
+        return node_component(
+            "normalization/funasr_itn",
+            profile=normalizer_label.removeprefix("funasr_"),
+        )
     if normalizer_label == "canonical_itn":
         return node_component("normalization/canonical_itn", profile=language)
     if normalizer_label == "punctuation_strip_norm":
@@ -399,6 +420,14 @@ def _wetext_language_family(language: str) -> str | None:
     if normalized in {"ja", "jp", "jpn"}:
         return "ja"
     return None
+
+
+def _validate_funasr_profile(profile: str) -> None:
+    from sure_eval.evaluation.nodes.normalization.funasr_itn.node import SUPPORTED_PROFILES as FUNASR_PROFILES
+
+    if profile not in FUNASR_PROFILES:
+        supported = ", ".join(sorted(FUNASR_PROFILES))
+        raise ValueError(f"Unsupported funasr_itn profile {profile!r}; supported: {supported}")
 
 
 def _cleanup_trace_temp_files(trace: tuple[PipelineNodeResult, ...]) -> None:

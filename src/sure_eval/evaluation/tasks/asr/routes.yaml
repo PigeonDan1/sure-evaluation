@@ -78,3 +78,93 @@ routes:
       - scoring/token_mer
     input_contract: scoring/token_mer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ja
+    metric: cer
+    pipeline_id: asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_cer
+    input_contract: scoring/wenet_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: es
+    metric: wer
+    pipeline_id: asr.es.wer.funasr_itn_es_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: fr
+    metric: wer
+    pipeline_id: asr.fr.wer.funasr_itn_fr_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: de
+    metric: wer
+    pipeline_id: asr.de.wer.funasr_itn_de_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ko
+    metric: cer
+    pipeline_id: asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_cer
+    input_contract: scoring/wenet_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ru
+    metric: wer
+    pipeline_id: asr.ru.wer.funasr_itn_ru_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: pt
+    metric: wer
+    pipeline_id: asr.pt.wer.funasr_itn_pt_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: vi
+    metric: wer
+    pipeline_id: asr.vi.wer.funasr_itn_vi_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: id
+    metric: wer
+    pipeline_id: asr.id.wer.funasr_itn_id_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: tl
+    metric: wer
+    pipeline_id: asr.tl.wer.funasr_itn_tl_v1.wenet_wer_v1
+    nodes:
+      - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files

@@ -1,0 +1,10 @@
+id: normalization/funasr_itn
+group: normalization-extra
+runtime:
+  type: binary
+  optional: true
+  gpu: false
+  build_script: build_funasr_itn.sh
+verify:
+  commands:
+    - .venv/bin/python -c "import pynini; from fun_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer; print('ok')"
