@@ -3,11 +3,11 @@ name = "sure-eval-normalization-funasr"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "pynini>=2.1.6,<2.2",
-    "joblib>=1.0.0",
-    "tqdm>=4.0.0",
-    "regex>=2020.0.0",
-    "inflect>=7.0.0",
+    "pynini==2.1.7",
+    "joblib==1.5.3",
+    "tqdm==4.70.0",
+    "regex==2026.7.19",
+    "inflect==7.5.0",
 ]
 
 [tool.uv]

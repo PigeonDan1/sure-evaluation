@@ -133,10 +133,14 @@ jobs:
           enable-cache: true
       - name: Build wheel and sdist
         run: uv run --python 3.11 --with build python -m build --wheel --sdist
+      - name: Verify node runtime assets
+        run: uv run --python 3.11 python scripts/check_wheel_node_assets.py dist/*.whl
       - name: Install wheel smoke
         run: |
           python -m venv /tmp/sure-eval-wheel
           /tmp/sure-eval-wheel/bin/python -m pip install --upgrade pip
           /tmp/sure-eval-wheel/bin/python -m pip install dist/*.whl
           /tmp/sure-eval-wheel/bin/sure-eval metric describe asr --language zh --metric cer --json
+          /tmp/sure-eval-wheel/bin/sure-eval agent plan asr --language es --metric wer --json
+          /tmp/sure-eval-wheel/bin/sure-eval env setup --node normalization/funasr_itn --dry-run --json
           /tmp/sure-eval-wheel/bin/sure-eval metric describe vad --metric f1 --json

@@ -67,6 +67,8 @@ where = ["src"]
 exclude = [
     "sure_eval.evaluation.nodes.*.*.checkpoints*",
     "sure_eval.evaluation.nodes.*.*.checkpoints.*",
+    "sure_eval.evaluation.nodes.*.*.runtime",
+    "sure_eval.evaluation.nodes.*.*.runtime.*",
 ]
 
 [tool.setuptools]
@@ -79,6 +81,10 @@ sure_eval = [
     "evaluation/tasks/*/*.md",
     "evaluation/nodes/*/*/manifest.yaml",
     "evaluation/nodes/*/*/node_env.yaml",
+    "evaluation/nodes/*/*/pyproject.toml",
+    "evaluation/nodes/*/*/uv.lock",
+    "evaluation/nodes/*/*/prepare_*.py",
+    "evaluation/nodes/*/*/source_lock.json",
     "evaluation/nodes/*/*/README.md",
     "evaluation/nodes/scoring/sctk_sclite/*.sh",
     "evaluation/conversion/*/manifest.yaml",
@@ -90,6 +96,7 @@ sure_eval = [
 sure_eval = [
     "evaluation/nodes/**/checkpoints/**",
     "evaluation/nodes/**/.venv/**",
+    "evaluation/nodes/**/runtime/**",
     "evaluation/nodes/**/*.ckpt",
     "evaluation/nodes/**/*.pt",
     "evaluation/nodes/**/*.pth",

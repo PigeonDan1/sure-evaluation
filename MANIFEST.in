@@ -3,12 +3,17 @@ recursive-include src/sure_eval/evaluation/tasks *.yaml *.yml *.md
 recursive-include src/sure_eval/evaluation/conversion *.yaml *.md
 include src/sure_eval/evaluation/nodes/*/*/manifest.yaml
 include src/sure_eval/evaluation/nodes/*/*/node_env.yaml
+include src/sure_eval/evaluation/nodes/*/*/pyproject.toml
+include src/sure_eval/evaluation/nodes/*/*/uv.lock
+include src/sure_eval/evaluation/nodes/*/*/prepare_*.py
+include src/sure_eval/evaluation/nodes/*/*/source_lock.json
 include src/sure_eval/evaluation/nodes/*/*/README.md
 include src/sure_eval/evaluation/nodes/scoring/sctk_sclite/*.sh
 include src/sure_eval/reports/sota/*.yaml
 prune src/sure_eval/evaluation/nodes/*/*/checkpoints
 prune src/sure_eval/evaluation/nodes/*/*/.venv
 prune src/sure_eval/evaluation/nodes/*/*/.cache
+prune src/sure_eval/evaluation/nodes/*/*/runtime
 prune build
 prune dist
 prune runtime

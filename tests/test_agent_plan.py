@@ -119,4 +119,23 @@ def test_agent_plan_reports_blocking_setup_hints(monkeypatch) -> None:
     setup = payload["selected_routes"][0]["env_checks"][0]["setup"]
     assert setup["runtime"] == "uv"
     assert setup["packages"] == ["WeTextProcessing==1.2.0"]
-    assert setup["command"].endswith("wetext_norm && uv sync")
+    assert setup["command"].endswith("wetext_norm && uv venv --python 3.11 && uv sync")
+
+
+def test_agent_plan_funasr_setup_hint_matches_declared_runtime() -> None:
+    from sure_eval.evaluation import agent_plan
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    checker = NodeEnvChecker()
+    node_env = checker.load_node_env("normalization/funasr_itn") or {}
+    setup = agent_plan._setup_hint(
+        checker,
+        "normalization/funasr_itn",
+        node_env,
+        fallback="setup required",
+    )
+
+    assert setup["command"].endswith(
+        "funasr_itn && uv venv --python 3.11 && uv sync --frozen "
+        "&& .venv/bin/python prepare_funasr_itn.py"
+    )

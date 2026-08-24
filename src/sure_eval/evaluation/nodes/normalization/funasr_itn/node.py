@@ -1,7 +1,7 @@
 """FunASR InverseTextNormalization (ITN) node for ASR evaluation.
 
-The fun_text_processing package is fetched from GitHub during env setup
-(via build_funasr_itn.sh) and cached under this node directory.
+The fun_text_processing package is fetched at an immutable Git revision during
+env setup and cached under this node directory.
 This module lazily loads it in a node-local subprocess so the SURE main
 environment can import node metadata without installing pynini.
 """
@@ -9,7 +9,10 @@ environment can import node metadata without installing pynini.
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
+import io
 import json
+import platform
 import subprocess
 import sys
 import tempfile
@@ -19,6 +22,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import sure_eval
+
+from sure_eval.evaluation.cache import get_cache_dir
 from sure_eval.evaluation.core.types import KeyTextFiles, PipelineNodeResult
 from sure_eval.evaluation.nodes.common.node_local_python import (
     build_node_local_env,
@@ -29,9 +35,10 @@ NODE_ID = "normalization/funasr_itn"
 NODE_VERSION = "v1"
 NODE_DIR = Path(__file__).resolve().parent
 MODULE_NAME = "sure_eval.evaluation.nodes.normalization.funasr_itn.node"
-
-# fun_text_processing is vendored under this node directory
-_FUNASR_SRC = NODE_DIR
+SOURCE_LOCK_FILE = NODE_DIR / "source_lock.json"
+RUNTIME_DIR = NODE_DIR / "runtime"
+MARKER_FILE = RUNTIME_DIR / "funasr_revision.json"
+_FUNASR_SRC = RUNTIME_DIR
 
 
 @dataclass(frozen=True)
@@ -56,13 +63,48 @@ SUPPORTED_PROFILES: dict[str, FunasrItnProfile] = {
 }
 
 
-def _check_funasr_src() -> None:
-    pkg_dir = _FUNASR_SRC / "fun_text_processing"
-    if not pkg_dir.is_dir():
+def _load_source_lock() -> dict[str, str]:
+    payload = json.loads(SOURCE_LOCK_FILE.read_text(encoding="utf-8"))
+    required = ("repository", "revision", "subdirectory", "source_tree", "license_file")
+    missing = [key for key in required if not str(payload.get(key) or "").strip()]
+    if missing:
+        raise RuntimeError(f"Invalid {SOURCE_LOCK_FILE.name}; missing: {', '.join(missing)}")
+    return {key: str(payload[key]) for key in required}
+
+
+def _source_metadata() -> dict[str, str]:
+    lock = _load_source_lock()
+    try:
+        marker = json.loads(MARKER_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError(
-            f"fun_text_processing source not found at {pkg_dir}. "
-            f"Run: sure-eval env setup --node {NODE_ID}"
+            f"{NODE_ID} source is not prepared. Run: sure-eval env setup --node {NODE_ID}"
+        ) from exc
+    if not isinstance(marker, dict):
+        raise RuntimeError(f"{NODE_ID} source marker must contain a JSON object")
+    for key in ("repository", "revision", "subdirectory", "source_tree"):
+        if marker.get(key) != lock[key]:
+            raise RuntimeError(
+                f"{NODE_ID} source marker mismatch for {key}: "
+                f"expected {lock[key]!r}, got {marker.get(key)!r}. Re-run env setup with --force."
+            )
+    package_init = RUNTIME_DIR / lock["subdirectory"] / "__init__.py"
+    license_file = RUNTIME_DIR / lock["license_file"]
+    if not package_init.is_file() or not license_file.is_file():
+        raise RuntimeError(
+            f"{NODE_ID} runtime source is incomplete. Re-run env setup with --force."
         )
+    return {
+        "repository": lock["repository"],
+        "revision": lock["revision"],
+        "subdirectory": lock["subdirectory"],
+        "source_tree": lock["source_tree"],
+        "license": "Apache-2.0",
+    }
+
+
+def _check_funasr_src() -> None:
+    _source_metadata()
 
 
 def normalize_funasr_text(text: str, *, profile: str) -> str:
@@ -84,7 +126,7 @@ def normalize_funasr_files(
 def _normalize_funasr_text_in_process(text: str, *, profile: str) -> str:
     spec = _profile(profile)
     normalizer = _normalizer(spec.name)
-    return normalizer.inverse_normalize(text, verbose=False)
+    return _normalize_text(normalizer, text)
 
 
 def _normalize_funasr_files_in_process(
@@ -98,30 +140,28 @@ def _normalize_funasr_files_in_process(
     ref_file = _new_temp_file()
     hyp_file = _new_temp_file()
     try:
-        ref_rows = _normalize_key_text_file(files.ref_file, ref_file, normalizer)
-        hyp_rows = _normalize_key_text_file(files.hyp_file, hyp_file, normalizer)
+        ref_stats = _normalize_key_text_file(files.ref_file, ref_file, normalizer)
+        hyp_stats = _normalize_key_text_file(files.hyp_file, hyp_file, normalizer)
     except Exception:
         Path(ref_file).unlink(missing_ok=True)
         Path(hyp_file).unlink(missing_ok=True)
         raise
 
-    details = {
-        "node_id": NODE_ID,
-        "version": NODE_VERSION,
-        "profile": spec.name,
-        "language": spec.language,
-        "input_schema": "key_text_files",
-        "output_schema": "key_text_files",
-        "ref_file": ref_file,
-        "hyp_file": hyp_file,
-        "num_rows": {"ref": len(ref_rows), "hyp": len(hyp_rows)},
-        "num_empty_after_normalization": {
-            "ref": sum(1 for row in ref_rows if not row["normalized_text"]),
-            "hyp": sum(1 for row in hyp_rows if not row["normalized_text"]),
-        },
-        "ref_rows": ref_rows,
-        "hyp_rows": hyp_rows,
-    }
+    details = funasr_runtime_details(spec.name)
+    details.update(
+        {
+            "input_schema": "key_text_files",
+            "output_schema": "key_text_files",
+            "ref_file": ref_file,
+            "hyp_file": hyp_file,
+            "row_stats": {"ref": ref_stats, "hyp": hyp_stats},
+            "num_rows": {"ref": ref_stats["num_rows"], "hyp": hyp_stats["num_rows"]},
+            "num_empty_after_normalization": {
+                "ref": ref_stats["num_empty_after_normalization"],
+                "hyp": hyp_stats["num_empty_after_normalization"],
+            },
+        }
+    )
     return (
         KeyTextFiles(ref_file=ref_file, hyp_file=hyp_file),
         PipelineNodeResult(
@@ -178,7 +218,6 @@ def _normalize_funasr_text_node_local(text: str, *, profile: str) -> str:
 
 
 def _run_node_local_json(args: list[str]) -> dict[str, Any]:
-    repo_root = NODE_DIR.parents[5]
     try:
         python_runtime = resolve_node_local_python(NODE_DIR, NODE_ID)
     except RuntimeError as exc:
@@ -188,15 +227,16 @@ def _run_node_local_json(args: list[str]) -> dict[str, Any]:
         ) from exc
 
     extra_pythonpath = (*python_runtime.extra_pythonpath, str(_FUNASR_SRC))
+    package_parent = Path(sure_eval.__file__).resolve().parent.parent
     env = build_node_local_env(
-        repo_src=repo_root / "src",
+        repo_src=package_parent,
         extra_pythonpath=extra_pythonpath,
         inherit_pythonpath=python_runtime.inherit_pythonpath,
     )
 
     completed = subprocess.run(
         [*python_runtime.command_prefix, "-m", MODULE_NAME, *args, "--json"],
-        cwd=repo_root,
+        cwd=NODE_DIR,
         env=env,
         text=True,
         capture_output=True,
@@ -218,6 +258,7 @@ def _run_node_local_json(args: list[str]) -> dict[str, Any]:
 
 def funasr_runtime_details(profile: str) -> dict[str, Any]:
     spec = _profile(profile)
+    source = _source_metadata()
     return {
         "node_id": NODE_ID,
         "version": NODE_VERSION,
@@ -225,7 +266,15 @@ def funasr_runtime_details(profile: str) -> dict[str, Any]:
         "language": spec.language,
         "direction": "itn",
         "package": "fun_text_processing (FunASR)",
-        "source_path": str(_FUNASR_SRC),
+        "source": source,
+        "runtime_versions": {
+            "python": platform.python_version(),
+            **{
+                package: _distribution_version(package)
+                for package in ("pynini", "joblib", "tqdm", "regex", "inflect")
+            },
+        },
+        "fst_cache_managed": True,
         "normalizer_class": f"InverseNormalizer(lang={spec.language})",
     }
 
@@ -236,7 +285,22 @@ def _normalizer(profile: str):
         InverseNormalizer,
     )
 
-    return InverseNormalizer(lang=profile, cache_dir=None)
+    source = _source_metadata()
+    cache_dir = get_cache_dir(
+        "nodes",
+        "normalization__funasr_itn",
+        source["revision"],
+        f"pynini-{_distribution_version('pynini')}",
+        profile,
+    )
+    return InverseNormalizer(lang=profile, cache_dir=str(cache_dir))
+
+
+def _distribution_version(package: str) -> str:
+    try:
+        return importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return "unknown"
 
 
 def _profile(profile: str) -> FunasrItnProfile:
@@ -245,26 +309,61 @@ def _profile(profile: str) -> FunasrItnProfile:
         return SUPPORTED_PROFILES[normalized]
     except KeyError as exc:
         supported = ", ".join(sorted(SUPPORTED_PROFILES))
-        raise ValueError(f"Unsupported funasr_itn profile {profile!r}; supported: {supported}") from exc
+        raise ValueError(
+            f"Unsupported funasr_itn profile {profile!r}; supported: {supported}"
+        ) from exc
 
 
-def _normalize_key_text_file(input_file: str, output_file: str, normalizer) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
-    with open(input_file, encoding="utf-8") as fin, open(output_file, "w", encoding="utf-8") as fout:
-        for line in fin:
-            if "\t" not in line:
+def _normalize_text(normalizer: Any, text: str) -> str:
+    if not text:
+        return ""
+    with redirect_stdout(io.StringIO()):
+        return str(normalizer.inverse_normalize(text, verbose=False))
+
+
+def _normalize_key_text_file(input_file: str, output_file: str, normalizer: Any) -> dict[str, int]:
+    seen_keys: set[str] = set()
+    num_rows = 0
+    num_blank_lines = 0
+    num_empty_text_rows = 0
+    num_empty_after_normalization = 0
+    with (
+        open(input_file, encoding="utf-8") as fin,
+        open(output_file, "w", encoding="utf-8") as fout,
+    ):
+        for line_number, line in enumerate(fin, start=1):
+            raw = line.rstrip("\r\n")
+            if not raw.strip():
+                num_blank_lines += 1
                 continue
-            key, original_text = line.rstrip("\n").split("\t", 1)
-            normalized_text = normalizer.inverse_normalize(original_text, verbose=False)
+            if "\t" not in raw:
+                raise ValueError(
+                    f"Malformed key-text row in {input_file!r} at line {line_number}: "
+                    "expected <key><TAB><text>"
+                )
+            key, original_text = raw.split("\t", 1)
+            key = key.strip()
+            if not key:
+                raise ValueError(f"Empty key in {input_file!r} at line {line_number}")
+            if key in seen_keys:
+                raise ValueError(f"Duplicate key {key!r} in {input_file!r} at line {line_number}")
+            seen_keys.add(key)
+            if not original_text:
+                num_empty_text_rows += 1
+            normalized_text = _normalize_text(normalizer, original_text)
+            if not normalized_text:
+                num_empty_after_normalization += 1
             fout.write(f"{key}\t{normalized_text}\n")
-            rows.append(
-                {
-                    "key": key,
-                    "original_text": original_text,
-                    "normalized_text": normalized_text,
-                }
-            )
-    return rows
+            num_rows += 1
+    if num_rows == 0:
+        raise ValueError(f"No <key><TAB><text> rows found in {input_file!r}")
+    return {
+        "num_rows": num_rows,
+        "num_blank_lines": num_blank_lines,
+        "num_empty_text_rows": num_empty_text_rows,
+        "num_empty_after_normalization": num_empty_after_normalization,
+        "num_dropped_malformed_rows": 0,
+    }
 
 
 def _new_temp_file() -> str:
@@ -291,9 +390,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.text is not None:
         if args.json_output:
             with redirect_stdout(sys.stderr):
-                normalized_text = _normalize_funasr_text_in_process(text=args.text, profile=args.profile)
+                normalized_text = _normalize_funasr_text_in_process(
+                    text=args.text, profile=args.profile
+                )
         else:
-            normalized_text = _normalize_funasr_text_in_process(text=args.text, profile=args.profile)
+            normalized_text = _normalize_funasr_text_in_process(
+                text=args.text, profile=args.profile
+            )
         payload = {
             "node_id": NODE_ID,
             "version": NODE_VERSION,
@@ -305,9 +408,13 @@ def main(argv: list[str] | None = None) -> int:
         files = KeyTextFiles(ref_file=str(args.ref_file), hyp_file=str(args.hyp_file))
         if args.json_output:
             with redirect_stdout(sys.stderr):
-                normalized_files, trace = _normalize_funasr_files_in_process(files, profile=args.profile)
+                normalized_files, trace = _normalize_funasr_files_in_process(
+                    files, profile=args.profile
+                )
         else:
-            normalized_files, trace = _normalize_funasr_files_in_process(files, profile=args.profile)
+            normalized_files, trace = _normalize_funasr_files_in_process(
+                files, profile=args.profile
+            )
         payload = {
             "node_id": NODE_ID,
             "version": NODE_VERSION,

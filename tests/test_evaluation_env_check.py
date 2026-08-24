@@ -88,7 +88,9 @@ def test_node_env_checker_reports_missing_later_model_target(tmp_path: Path) -> 
         "verify": {"files": ["checkpoints/first.bin"]},
     }
 
-    path, env_name = NodeEnvChecker()._checkpoint_path("scoring/wavlm_large_sim", node_path, node_env)
+    path, env_name = NodeEnvChecker()._checkpoint_path(
+        "scoring/wavlm_large_sim", node_path, node_env
+    )
 
     assert path == checkpoint_dir / "second.bin"
     assert env_name == "SECOND_MODEL"
@@ -165,7 +167,10 @@ def test_audio_runtime_uses_node_local_transcription_subprocesses() -> None:
 
 def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     from sure_eval.evaluation.audio_runtime import build_tts_runtime
-    from sure_eval.evaluation.nodes.scoring.common.node_local import NodeLocalMOSProvider, NodeLocalSpeakerProvider
+    from sure_eval.evaluation.nodes.scoring.common.node_local import (
+        NodeLocalMOSProvider,
+        NodeLocalSpeakerProvider,
+    )
 
     runtime = build_tts_runtime(
         metrics=("sim/wavlm-large", "sim/ecapa-tdnn", "sim/eres2net", "dnsmos", "wv-mos", "utmos"),
@@ -189,7 +194,11 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
 
 def test_se_runtime_uses_in_process_full_reference_and_node_local_mos() -> None:
     from sure_eval.evaluation.audio_runtime import build_se_runtime
-    from sure_eval.evaluation.nodes.scoring._full_reference_audio import PESQProvider, SISDRProvider, STOIProvider
+    from sure_eval.evaluation.nodes.scoring._full_reference_audio import (
+        PESQProvider,
+        SISDRProvider,
+        STOIProvider,
+    )
     from sure_eval.evaluation.nodes.scoring.common.node_local import NodeLocalMOSProvider
 
     runtime = build_se_runtime(
@@ -287,7 +296,9 @@ def test_env_setup_dry_run_reads_node_env_metadata() -> None:
 def test_env_setup_dry_run_builds_pip_runtime_command() -> None:
     runner = CliRunner()
 
-    result = runner.invoke(app, ["env", "setup", "--node", "normalization/canonical_itn", "--dry-run", "--json"])
+    result = runner.invoke(
+        app, ["env", "setup", "--node", "normalization/canonical_itn", "--dry-run", "--json"]
+    )
 
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
@@ -297,6 +308,80 @@ def test_env_setup_dry_run_builds_pip_runtime_command() -> None:
     assert action["packages"] == ["cn2an>=0.5.24,<0.6"]
     assert "python -m pip install" in action["command"]
     assert "cn2an" in action["command"]
+
+
+def test_funasr_env_setup_dry_run_uses_frozen_uv_and_post_setup() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        ["env", "setup", "--node", "normalization/funasr_itn", "--dry-run", "--json"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    action = json.loads(result.stdout)["actions"][0]
+    assert action["runtime"] == "uv"
+    assert action["frozen"] is True
+    assert action["post_setup_script"] == "prepare_funasr_itn.py"
+    assert "uv sync --frozen" in action["command"]
+    assert ".venv/bin/python prepare_funasr_itn.py" in action["command"]
+
+
+def test_uv_env_check_distinguishes_verify_files_from_checkpoints(tmp_path: Path) -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    nodes_root = tmp_path / "nodes"
+    node_path = nodes_root / "normalization" / "funasr_itn"
+    (node_path / ".venv" / "bin").mkdir(parents=True)
+    (node_path / ".venv" / "bin" / "python3.11").write_text("", encoding="utf-8")
+    (node_path / "node_env.yaml").write_text(
+        "runtime:\n  type: uv\n  python: '3.11'\nverify:\n  files:\n    - runtime/ready.json\n",
+        encoding="utf-8",
+    )
+
+    result = NodeEnvChecker(nodes_root=nodes_root).check_node("normalization/funasr_itn")
+
+    assert result.status == "failed"
+    assert result.message.startswith("verify file is missing:")
+    assert "checkpoint" not in result.message
+    assert result.fix == "sure-eval env setup --node normalization/funasr_itn"
+
+
+def test_uv_setup_executes_declared_project_lock_and_post_setup(
+    monkeypatch, tmp_path: Path
+) -> None:
+    from sure_eval.evaluation import cli
+
+    node_path = tmp_path / "node"
+    node_path.mkdir()
+    script = node_path / "prepare.py"
+    script.write_text("", encoding="utf-8")
+    commands: list[tuple[list[str], Path, Path]] = []
+
+    def fake_run_logged(command: list[str], *, cwd: Path, log_file: Path) -> None:
+        commands.append((command, cwd, log_file))
+
+    monkeypatch.setattr(cli, "_run_logged", fake_run_logged)
+    log_file = tmp_path / "setup.log"
+    cli._execute_uv_setup(
+        {
+            "python": "3.11",
+            "project": "config/pyproject.toml",
+            "frozen": True,
+            "post_setup_script": "prepare.py",
+        },
+        node_path=node_path,
+        log_file=log_file,
+        force=True,
+    )
+
+    assert [item[0] for item in commands] == [
+        ["uv", "venv", "--python", "3.11"],
+        ["uv", "sync", "--project", "config/pyproject.toml", "--frozen"],
+        [str(node_path / ".venv" / "bin" / "python"), str(script), "--force"],
+    ]
+    assert all(cwd == node_path for _, cwd, _ in commands)
+    assert all(path == log_file for _, _, path in commands)
 
 
 def test_env_setup_dry_run_resolves_task_metrics_and_group() -> None:
@@ -341,7 +426,9 @@ def test_env_setup_dry_run_resolves_task_metrics_and_group() -> None:
 def test_env_download_dry_run_reports_declared_assets() -> None:
     runner = CliRunner()
 
-    result = runner.invoke(app, ["env", "download", "--node", "scoring/dnsmos", "--dry-run", "--json"])
+    result = runner.invoke(
+        app, ["env", "download", "--node", "scoring/dnsmos", "--dry-run", "--json"]
+    )
 
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
@@ -358,7 +445,9 @@ def test_node_local_transcriber_uses_repo_src_pythonpath(monkeypatch, tmp_path: 
     from sure_eval.evaluation.nodes.transcription.common.providers import NodeLocalTranscriber
 
     repo_root = tmp_path / "repo"
-    node_dir = repo_root / "src" / "sure_eval" / "evaluation" / "nodes" / "transcription" / "paraformer_zh"
+    node_dir = (
+        repo_root / "src" / "sure_eval" / "evaluation" / "nodes" / "transcription" / "paraformer_zh"
+    )
     python_bin = node_dir / ".venv" / "bin" / "python"
     python_bin.parent.mkdir(parents=True)
     python_bin.write_text("#!/bin/sh\n", encoding="utf-8")
@@ -398,11 +487,25 @@ def test_node_local_transcriber_falls_back_when_venv_python_symlink_is_broken(
     from sure_eval.evaluation.nodes.transcription.common.providers import NodeLocalTranscriber
 
     repo_root = tmp_path / "repo"
-    node_dir = repo_root / "src" / "sure_eval" / "evaluation" / "nodes" / "transcription" / "whisper_large_v3"
+    node_dir = (
+        repo_root
+        / "src"
+        / "sure_eval"
+        / "evaluation"
+        / "nodes"
+        / "transcription"
+        / "whisper_large_v3"
+    )
     python_bin = node_dir / ".venv" / "bin" / "python"
     python_bin.parent.mkdir(parents=True)
     python_bin.symlink_to("/missing/container/python3.11")
-    site_packages = node_dir / ".venv" / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
+    site_packages = (
+        node_dir
+        / ".venv"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
     site_packages.mkdir(parents=True)
     captured = {}
 
@@ -480,7 +583,13 @@ def test_node_local_scoring_provider_falls_back_when_venv_python_symlink_is_brok
     python_bin = node_dir / ".venv" / "bin" / "python"
     python_bin.parent.mkdir(parents=True)
     python_bin.symlink_to("/missing/container/python3.11")
-    site_packages = node_dir / ".venv" / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"
+    site_packages = (
+        node_dir
+        / ".venv"
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )
     site_packages.mkdir(parents=True)
     captured = {}
 
@@ -509,7 +618,9 @@ def test_node_local_scoring_provider_falls_back_when_venv_python_symlink_is_brok
     assert "/external/should-not-leak" not in captured["pythonpath"].split(":")
 
 
-def test_metric_run_validate_env_passes_for_provider_injected_audio_node(monkeypatch, tmp_path: Path) -> None:
+def test_metric_run_validate_env_passes_for_provider_injected_audio_node(
+    monkeypatch, tmp_path: Path
+) -> None:
     import sure_eval.evaluation.cli as metric_cli
 
     runner = CliRunner()

@@ -9,8 +9,11 @@ runtime: node_local_optional
 package:
   name: fun_text_processing
   source: github
-  repo: git@github.com:modelscope/FunASR.git
+  repo: https://github.com/modelscope/FunASR.git
+  revision: 3c58cb56a56598232c3efffa15d313d7e82a4307
   subdirectory: fun_text_processing
+  source_tree: 8dea23a54787d1cdd145425c212774a16e825f87
+  license: Apache-2.0
 profiles:
   zh:
     language: zh
@@ -61,5 +64,5 @@ default_for:
   - ASR/tl/wer
 notes:
   - FunASR InverseTextNormalization (ITN) using pynini WFST grammars.
-  - fun_text_processing is vendored under this node directory.
+  - fun_text_processing is fetched at the pinned revision during env setup.
   - Supports: zh, en, ja, es, fr, de, ko, ru, pt, vi, id, tl.

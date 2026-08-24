@@ -1,10 +1,17 @@
 id: normalization/funasr_itn
 group: normalization-extra
 runtime:
-  type: binary
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  frozen: true
+  post_setup_script: prepare_funasr_itn.py
   optional: true
   gpu: false
-  build_script: build_funasr_itn.sh
 verify:
-  commands:
-    - .venv/bin/python -c "import pynini; from fun_text_processing.inverse_text_normalization.inverse_normalize import InverseNormalizer; print('ok')"
+  imports:
+    - pynini
+  files:
+    - runtime/funasr_revision.json
+    - runtime/fun_text_processing/__init__.py
+    - runtime/LICENSE

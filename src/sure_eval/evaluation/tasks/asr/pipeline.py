@@ -102,7 +102,9 @@ def evaluate_asr_files(
     """Evaluate ASR key-text files through the configured task pipeline."""
 
     normalized_metric = _normalize_metric(language=language, metric=metric)
-    normalized_scorer = _normalize_scorer(language=language, metric=normalized_metric, scorer=scorer)
+    normalized_scorer = _normalize_scorer(
+        language=language, metric=normalized_metric, scorer=scorer
+    )
     input_files = EvaluationFiles.from_ref_hyp(ref_file=ref_file, hyp_file=hyp_file)
     _ASR_CONTRACTS[normalized_metric].validate(input_files)
     if language == "cs" and normalized_metric not in _CANONICAL_METRICS:
@@ -112,7 +114,9 @@ def evaluate_asr_files(
             raise ValueError("ASR code-switch MER does not support explicit scorer selection")
         if normalizer:
             raise ValueError("ASR code-switch MER does not support explicit normalizer selection")
-        return _evaluate_codeswitch(ref_file, hyp_file, metric=normalized_metric, input_files=input_files)
+        return _evaluate_codeswitch(
+            ref_file, hyp_file, metric=normalized_metric, input_files=input_files
+        )
     normalized_normalizer = _normalize_normalizer(
         language=language,
         metric=normalized_metric,
@@ -142,7 +146,9 @@ def _evaluate_regular(
     input_files: EvaluationFiles,
 ) -> EvaluationReport:
     input_contract = _ASR_CONTRACTS[metric]
-    normalizer_node, normalizer_label = _normalization_node(language=language, normalizer=normalizer)
+    normalizer_node, normalizer_label = _normalization_node(
+        language=language, normalizer=normalizer
+    )
     scoring_node, score_label = _scoring_node(metric=metric, scorer=scorer)
     components = (
         _normalizer_component(language=language, normalizer_label=normalizer_label),
@@ -245,9 +251,7 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
     if metric in _CANONICAL_METRICS:
         if normalized in {"", "canonical", "canonical_itn", "normalization/canonical_itn"}:
             return "canonical"
-        raise ValueError(
-            f"ASR {metric} requires the canonical_itn normalizer, got {normalizer!r}"
-        )
+        raise ValueError(f"ASR {metric} requires the canonical_itn normalizer, got {normalizer!r}")
     if normalized in {"canonical", "canonical_itn", "normalization/canonical_itn"}:
         raise ValueError("normalization/canonical_itn requires a canonical execution selector")
     if not normalized:
@@ -270,7 +274,7 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         return "aispeech"
     if normalized.startswith("funasr:"):
         profile = normalized.split(":", 1)[1]
-        _validate_funasr_profile(profile)
+        _validate_funasr_profile_for_language(language=language, profile=profile)
         return f"funasr:{profile}"
     if normalized in {
         "punctuation_strip",
@@ -408,7 +412,9 @@ def _validate_wetext_profile_for_language(*, language: str, profile: str) -> Non
     if language_family is None:
         raise ValueError(f"wetext_norm is not mapped for ASR language={language!r}")
     if not profile.startswith(f"{language_family}_"):
-        raise ValueError(f"wetext_norm profile {profile!r} does not match ASR language={language!r}")
+        raise ValueError(
+            f"wetext_norm profile {profile!r} does not match ASR language={language!r}"
+        )
 
 
 def _wetext_language_family(language: str) -> str | None:
@@ -422,12 +428,12 @@ def _wetext_language_family(language: str) -> str | None:
     return None
 
 
-def _validate_funasr_profile(profile: str) -> None:
-    from sure_eval.evaluation.nodes.normalization.funasr_itn.node import SUPPORTED_PROFILES as FUNASR_PROFILES
-
+def _validate_funasr_profile_for_language(*, language: str, profile: str) -> None:
     if profile not in FUNASR_PROFILES:
         supported = ", ".join(sorted(FUNASR_PROFILES))
         raise ValueError(f"Unsupported funasr_itn profile {profile!r}; supported: {supported}")
+    if FUNASR_PROFILES[profile].language != language:
+        raise ValueError(f"funasr_itn profile {profile!r} does not match ASR language {language!r}")
 
 
 def _cleanup_trace_temp_files(trace: tuple[PipelineNodeResult, ...]) -> None:

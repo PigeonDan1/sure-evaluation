@@ -196,7 +196,24 @@ class NodeEnvChecker:
                 required=True,
                 status="failed",
                 message=message,
-                fix=f"cd {node_path} && uv sync",
+                fix=f"sure-eval env setup --node {node_id}",
+                details=details,
+            )
+        missing_verify_files = []
+        for file_name in (node_env.get("verify") or {}).get("files") or ():
+            file_path = node_path / str(file_name)
+            if not file_path.exists():
+                missing_verify_files.append(str(file_path))
+        if missing_verify_files:
+            details["missing_files"] = missing_verify_files
+            return EnvCheckResult(
+                name=node_id,
+                node_id=node_id,
+                runtime=runtime,
+                required=True,
+                status="failed",
+                message=f"verify file is missing: {missing_verify_files[0]}",
+                fix=f"sure-eval env setup --node {node_id}",
                 details=details,
             )
         return EnvCheckResult(
@@ -256,10 +273,6 @@ class NodeEnvChecker:
                     first_declared_env = env_name
                 if not model_path.exists():
                     return model_path, env_name
-            for file_name in (node_env.get("verify") or {}).get("files") or ():
-                file_path = node_path / str(file_name)
-                if not file_path.exists():
-                    return file_path, ""
             if first_declared_path is not None:
                 return first_declared_path, first_declared_env
         checkpoint_env, default_checkpoint = DEFAULT_CHECKPOINTS_BY_NODE.get(node_id, ("", ""))
