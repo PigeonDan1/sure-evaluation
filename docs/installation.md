@@ -70,12 +70,17 @@ sure-eval agent plan tts \
   --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
   --json
 sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
+sure-eval agent plan asr --language es --metric wer --json
+sure-eval env setup --node normalization/funasr_itn --dry-run
 ```
 
 Node environments are declared by `node_env.yaml` files under
 `src/sure_eval/evaluation/nodes/**`.
 Heavy transcription alternatives such as `transcription/qwen3_asr_1_7b`
 declare their own node-local uv project and checkpoint target.
+Multilingual ASR routes for `ja`, `ko`, `es`, `fr`, `de`, `ru`, `pt`, `vi`,
+`id`, and `tl` use the optional `normalization/funasr_itn` node. Its setup uses
+the committed dependency lock and fetches an immutable FunASR source revision.
 `sure-eval doctor` checks the base installation by default; use
 `sure-eval doctor --optional-nodes`, `sure-eval env check --all`, or a
 task/pipeline-specific `sure-eval env check ...` command when you want optional

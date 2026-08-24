@@ -17,7 +17,8 @@ workflow.
 1. Plan and validate.
 
    ```bash
-   sure-eval agent plan asr --language zh --metric cer --json
+    sure-eval agent plan asr --language zh --metric cer --json
+    sure-eval agent plan asr --language es --metric wer --json
    sure-eval agent plan tts --language zh --metrics cer,spk_sim --json
    sure-eval agent plan tts \
      --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
@@ -86,6 +87,11 @@ sure-eval env setup --task tts --language zh --metrics cer,dnsmos
 
 Node-local virtual environments, heavy models, and checkpoints remain local
 assets. They must not be committed.
+
+An agent must execute the returned setup command as-is. A node may use a
+committed lock file and a packaged post-setup script to prepare immutable
+upstream source; agents must not replace its revision with a branch head or a
+machine-local source path.
 
 ## Route Configuration
 

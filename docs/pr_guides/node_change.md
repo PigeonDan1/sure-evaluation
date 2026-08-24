@@ -16,12 +16,19 @@ runtime setup, model provider, toolkit wrapper, or version.
   source/reference links, and known limitations.
 - Add a new node version, node id, or route when scores are expected to change.
 - Keep runtime assets local; do not commit model files or generated outputs.
+- For fetched source code, commit an immutable revision lock and package the
+  setup script. Do not fetch a moving branch or depend on a contributor's
+  checkout path.
+- For a frozen uv runtime, commit `uv.lock`, declare `frozen: true`, and verify
+  that the wheel contains the project, lock, and any setup scripts.
 
 ## Required Tests
 
 - Node-level tests for the changed behavior.
 - Route-level regression tests when the node is used by a route.
 - Env check tests for node-local setup.
+- Source-install and built-wheel checks when node setup depends on packaged
+  files.
 - Heavyweight smoke test when practical.
 - Skip policy or local smoke evidence when CI cannot run real inference.
 
