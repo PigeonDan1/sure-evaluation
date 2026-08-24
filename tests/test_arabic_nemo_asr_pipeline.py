@@ -3,6 +3,16 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def test_nemo_norm_uses_pinned_package_without_vendored_source() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    node_dir = repo_root / "src/sure_eval/evaluation/nodes/normalization/nemo_norm"
+    node_pyproject = (node_dir / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert '"nemo-text-processing==1.2.0"' in node_pyproject
+    assert not (node_dir / "vendor").exists()
+    assert not (node_dir / "ar").exists()
+
+
 def test_asr_ar_route_describes_nemo_tn_and_wenet_cer() -> None:
     from sure_eval.evaluation.scripts.asr import describe_pipeline
 

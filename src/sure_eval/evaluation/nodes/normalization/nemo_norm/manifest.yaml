@@ -19,3 +19,4 @@ profiles:
 notes:
   - Arabic written-form tokens are normalized to spoken form before CER scoring.
   - NeMo's pinned grammar and package version are recorded in every node trace.
+  - The node supplies a stdlib SequenceMatcher import shim for NeMo's unused audio-only cdifflib dependency.

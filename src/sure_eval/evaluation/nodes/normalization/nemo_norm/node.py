@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import subprocess
+import sys
 import tempfile
+import types
 from importlib import metadata
 from pathlib import Path
 from typing import Any
@@ -86,14 +89,7 @@ def _normalize_text_in_process(
     cache_dir: str | None,
     overwrite_cache: bool,
 ) -> str:
-    from nemo_text_processing.text_normalization.normalize import Normalizer
-
-    normalizer = Normalizer(
-        input_case="cased",
-        lang="ar",
-        cache_dir=cache_dir or None,
-        overwrite_cache=overwrite_cache,
-    )
+    normalizer = _build_normalizer(cache_dir=cache_dir, overwrite_cache=overwrite_cache)
     return normalizer.normalize(text, verbose=False).strip()
 
 
@@ -125,11 +121,22 @@ def _normalize_file_in_process(input_file: str, output_file: str, *, cache_dir: 
 
 
 def _build_normalizer(*, cache_dir: str | None, overwrite_cache: bool):
+    _install_cdifflib_compat()
     from nemo_text_processing.text_normalization.normalize import Normalizer
 
     return Normalizer(
         input_case="cased", lang="ar", cache_dir=cache_dir or None, overwrite_cache=overwrite_cache
     )
+
+
+def _install_cdifflib_compat() -> None:
+    """Satisfy NeMo's eager audio-helper import without its optional C extension."""
+
+    if "cdifflib" in sys.modules:
+        return
+    module = types.ModuleType("cdifflib")
+    module.CSequenceMatcher = difflib.SequenceMatcher
+    sys.modules["cdifflib"] = module
 
 
 def _normalize_files_in_process(ref_file: str, hyp_file: str, *, cache_dir: str | None, overwrite_cache: bool):
@@ -169,7 +176,7 @@ def _run_node_local_json(args: list[str]) -> dict[str, Any]:
         raise RuntimeError(f"{NODE_ID} requires its node-local environment. Run: sure-eval env setup --node {NODE_ID}") from exc
     env = build_node_local_env(
         repo_src=repo_root / "src",
-        extra_pythonpath=(*python_runtime.extra_pythonpath, str(NODE_DIR / "vendor")),
+        extra_pythonpath=python_runtime.extra_pythonpath,
         inherit_pythonpath=python_runtime.inherit_pythonpath,
     )
     completed = subprocess.run(
