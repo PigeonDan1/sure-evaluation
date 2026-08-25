@@ -1406,7 +1406,7 @@ def test_mos_providers_fallback_to_shared_cache(tmp_path, monkeypatch) -> None:
     assert UTMOSProvider(cache_dir=tmp_path / "empty")._resolve_repo_dir() == shared / "utmos22" / "UTMOS-demo"
 
 
-def test_tts_pipeline_docker_wrapper_plans_required_segments() -> None:
+def test_tts_pipeline_docker_wrapper_plans_required_segments(monkeypatch) -> None:
     import importlib.util
     from pathlib import Path
 
@@ -1418,6 +1418,11 @@ def test_tts_pipeline_docker_wrapper_plans_required_segments() -> None:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
+    sox_mounts = [
+        "/opt/test/libsox.so:/opt/test/libsox.so:ro",
+        "/opt/test/libltdl.so.7:/opt/test/libltdl.so.7:ro",
+    ]
+    monkeypatch.setattr(module, "_eres2net_sox_mounts", lambda: sox_mounts)
 
     args = module.parse_args(
         [
@@ -1443,8 +1448,7 @@ def test_tts_pipeline_docker_wrapper_plans_required_segments() -> None:
         "mos_utmos",
     ]
     eres2net = next(segment for segment in segments if segment.name == "speaker_eres2net")
-    assert any("libsox.so" in mount for mount in eres2net.extra_mounts)
-    assert any("libltdl.so" in mount for mount in eres2net.extra_mounts)
+    assert eres2net.extra_mounts == sox_mounts
     assert segments[0].image == module.ASR_FUNASR_IMAGE
 
 
