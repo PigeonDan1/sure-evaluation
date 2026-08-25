@@ -18,6 +18,7 @@ specific non-default pipeline.
 | `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1` | `zh` | `normalization/canonical_itn` -> `scoring/token_cer` | Canonical ITN CER; requires `[canonical]` |
 | `asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1` | `ja` | `normalization/funasr_itn` (`ja`) -> `scoring/wenet_cer` | Default Japanese CER; optional node setup required |
 | `asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1` | `ko` | `normalization/funasr_itn` (`ko`) -> `scoring/wenet_cer` | Default Korean CER; optional node setup required |
+| `asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1` | `ar` | `normalization/nemo_norm` (`ar_tn`) -> `scoring/wenet_cer` | Default Arabic CER; optional node setup required |
 
 ### `wer`
 
@@ -62,6 +63,9 @@ Both `--ref-file` and `--hyp-file` use the same format, aligned by key.
 ```bash
 # Default Mandarin CER pipeline
 sure-eval metric describe asr --language zh --metric cer --output /tmp/asr.json
+
+# Default Arabic CER pipeline (written-form tokens are TN-normalized)
+sure-eval metric describe asr --language ar --metric cer --output /tmp/asr_ar.json
 
 # Specific canonical Mandarin CER pipeline
 sure-eval metric describe asr \

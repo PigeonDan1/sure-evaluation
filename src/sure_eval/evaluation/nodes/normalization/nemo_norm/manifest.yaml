@@ -1,0 +1,22 @@
+id: normalization/nemo_norm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.nemo_norm.node
+runtime: node_local_optional
+package:
+  name: nemo_text_processing
+  version: "1.2.0"
+  dependencies:
+    - pynini
+profiles:
+  ar_tn:
+    language: ar
+    direction: tn
+    normalizer_class: nemo_text_processing.text_normalization.normalize.Normalizer
+notes:
+  - Arabic written-form tokens are normalized to spoken form before CER scoring.
+  - NeMo's pinned grammar and package version are recorded in every node trace.
+  - The node supplies a stdlib SequenceMatcher import shim for NeMo's unused audio-only cdifflib dependency.
