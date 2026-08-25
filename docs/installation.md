@@ -72,6 +72,8 @@ sure-eval agent plan tts \
 sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval agent plan asr --language es --metric wer --json
 sure-eval env setup --node normalization/funasr_itn --dry-run
+sure-eval agent plan asr --language ar --metric cer --json
+sure-eval env setup --node normalization/nemo_norm --dry-run
 ```
 
 Node environments are declared by `node_env.yaml` files under
@@ -81,6 +83,9 @@ declare their own node-local uv project and checkpoint target.
 Multilingual ASR routes for `ja`, `ko`, `es`, `fr`, `de`, `ru`, `pt`, `vi`,
 `id`, and `tl` use the optional `normalization/funasr_itn` node. Its setup uses
 the committed dependency lock and fetches an immutable FunASR source revision.
+Arabic CER uses the optional `normalization/nemo_norm` node with profile
+`ar_tn`. Its Python 3.11 environment installs `nemo-text-processing==1.2.0`
+from a committed uv lock; no checkpoint, GPU, or API key is required.
 `sure-eval doctor` checks the base installation by default; use
 `sure-eval doctor --optional-nodes`, `sure-eval env check --all`, or a
 task/pipeline-specific `sure-eval env check ...` command when you want optional

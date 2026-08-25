@@ -18,6 +18,7 @@ COMBINATIONS = [
     ("asr", {"pipeline_id": "asr.en.wer.canonical_itn_en_v1.token_mer_v1"}),
     ("asr", {"language": "cs", "metric": "mer"}),
     ("asr", {"pipeline_id": "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"}),
+    ("asr", {"language": "ar", "metric": "cer"}),
     ("asr", {"language": "ja", "metric": "cer"}),
     ("asr", {"language": "ko", "metric": "cer"}),
     ("asr", {"language": "es", "metric": "wer"}),

@@ -60,7 +60,7 @@ cat /tmp/asr_eval/report.json | grep score
 
 | 任务 | 指标 | 说明 | 指南 |
 |:-----|:-----|:-----|:-----|
-| **ASR** | WER、CER、MER | 纯文本；canonical 路由需 `[canonical]`；多语种 FunASR ITN 路由需准备节点环境 | [docs/tasks/asr.md](./docs/tasks/asr.md) |
+| **ASR** | WER、CER、MER | 纯文本；canonical、多语种 FunASR ITN 和阿拉伯语 NeMo TN 路由需可选节点环境 | [docs/tasks/asr.md](./docs/tasks/asr.md) |
 | **S2TT** | BLEU、chrF2、XCOMET-XL、BLEURT-20 | 基础 + 可选重指标 | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
 | **SD** | DER | 需 `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
 | **SA-ASR** | cpWER、DER | 需 `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
@@ -117,6 +117,8 @@ export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
 sure-eval env list
 sure-eval agent plan asr --language es --metric wer --json
 sure-eval env setup --node normalization/funasr_itn --dry-run
+sure-eval agent plan asr --language ar --metric cer --json
+sure-eval env setup --node normalization/nemo_norm --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
 sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos

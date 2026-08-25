@@ -14,6 +14,7 @@ sure-eval env check --node scoring/dnsmos --json
 sure-eval env check --task tts --language zh --metrics cer,dnsmos --json
 sure-eval env check --node transcription/qwen3_asr_1_7b --json
 sure-eval env check --node normalization/funasr_itn --json
+sure-eval env check --node normalization/nemo_norm --json
 ```
 
 Use `agent plan` first when an agent or harness needs a single readiness
@@ -28,6 +29,7 @@ sure-eval env setup --task asr --language zh --metric cer --dry-run
 sure-eval env setup --node scoring/dnsmos --dry-run
 sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --node normalization/funasr_itn --dry-run
+sure-eval env setup --node normalization/nemo_norm --dry-run
 sure-eval env setup --group tts-vc-mos --dry-run
 ```
 
@@ -53,3 +55,5 @@ A uv node may declare `frozen: true` and a `post_setup_script` in
 runs the packaged script with the node-local Python. For example,
 `normalization/funasr_itn` uses this mechanism to fetch a commit-pinned source
 subdirectory and records its Git tree in local runtime metadata.
+`normalization/nemo_norm` also uses a committed lock, but installs the pinned
+NeMo package directly and requires no post-setup source fetch or checkpoint.

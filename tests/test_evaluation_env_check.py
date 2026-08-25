@@ -327,6 +327,24 @@ def test_funasr_env_setup_dry_run_uses_frozen_uv_and_post_setup() -> None:
     assert ".venv/bin/python prepare_funasr_itn.py" in action["command"]
 
 
+def test_nemo_env_setup_dry_run_uses_frozen_uv() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        app,
+        ["env", "setup", "--node", "normalization/nemo_norm", "--dry-run", "--json"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    action = json.loads(result.stdout)["actions"][0]
+    assert action["runtime"] == "uv"
+    assert action["python"] == "3.11"
+    assert action["frozen"] is True
+    assert action["post_setup_script"] is None
+    assert action["packages"] == ["nemo-text-processing==1.2.0"]
+    assert action["command"].endswith("nemo_norm && uv venv --python 3.11 && uv sync --frozen")
+
+
 def test_uv_env_check_distinguishes_verify_files_from_checkpoints(tmp_path: Path) -> None:
     from sure_eval.evaluation.env_check import NodeEnvChecker
 

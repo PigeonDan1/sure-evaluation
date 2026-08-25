@@ -9,6 +9,8 @@ runtime: node_local_optional
 package:
   name: nemo_text_processing
   version: "1.2.0"
+  repo: https://github.com/NVIDIA/NeMo-text-processing
+  license: Apache-2.0
   dependencies:
     - pynini
 profiles:
@@ -19,4 +21,5 @@ profiles:
 notes:
   - Arabic written-form tokens are normalized to spoken form before CER scoring.
   - NeMo's pinned grammar and package version are recorded in every node trace.
+  - Input rows require a unique nonempty key followed by a tab; malformed rows fail.
   - The node supplies a stdlib SequenceMatcher import shim for NeMo's unused audio-only cdifflib dependency.

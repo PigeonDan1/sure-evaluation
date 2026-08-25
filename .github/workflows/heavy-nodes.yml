@@ -39,6 +39,8 @@ jobs:
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval agent plan tse --language zh --metrics si_sdr,sim/wavlm-large,dnsmos --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval agent plan asr --language es --metric wer --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --node normalization/funasr_itn --dry-run --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval agent plan asr --language ar --metric cer --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --node normalization/nemo_norm --dry-run --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --task tse --language zh --metrics si_sdr,sim/wavlm-large,dnsmos --dry-run --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env download --node transcription/qwen3_asr_1_7b --dry-run --json
@@ -67,6 +69,7 @@ jobs:
           uv run --python 3.11 --extra dev --extra audio --extra canonical --extra diarization sure-eval env check --node transcription/whisper_large_v3 --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical --extra diarization sure-eval env check --node transcription/paraformer_zh --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical --extra diarization sure-eval env check --node normalization/funasr_itn --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical --extra diarization sure-eval env check --node normalization/nemo_norm --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical --extra diarization sure-eval env check --node scoring/dnsmos --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical --extra diarization sure-eval env check --node scoring/wv_mos --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical --extra diarization sure-eval env check --node scoring/utmos --json
@@ -87,3 +90,10 @@ jobs:
             --extra canonical \
             --extra diarization \
             pytest tests/test_funasr_normalization_node.py -q
+          uv run \
+            --python 3.11 \
+            --extra dev \
+            --extra audio \
+            --extra canonical \
+            --extra diarization \
+            pytest tests/test_arabic_nemo_asr_pipeline.py -q
