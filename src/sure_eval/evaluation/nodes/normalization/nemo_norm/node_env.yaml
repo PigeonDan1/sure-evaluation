@@ -4,6 +4,7 @@ runtime:
   type: uv
   python: "3.11"
   project: pyproject.toml
+  frozen: true
   optional: true
   gpu: false
 packages:
