@@ -4,7 +4,7 @@ Evaluate text transcripts against references.
 
 ## Metrics And Pipelines
 
-ASR reports only canonical metrics: `cer`, `wer`, and `mer`. Each metric can
+ASR reports only the public metrics `cer`, `wer`, and `mer`. Each metric can
 have multiple concrete pipeline IDs when the normalization or scoring nodes
 differ. Use `--metric` for the default pipeline and `--pipeline-id` for a
 specific non-default pipeline.
@@ -16,6 +16,8 @@ specific non-default pipeline.
 | `asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1` | `zh` | `normalization/wetext_norm` (`zh_itn`) -> `scoring/wenet_cer` | Default Mandarin CER |
 | `asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1` | `zh` | `normalization/aispeech_norm` -> `scoring/wenet_cer` | Legacy AISpeech-normalized CER |
 | `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1` | `zh` | `normalization/canonical_itn` -> `scoring/token_cer` | Canonical ITN CER; requires `[canonical]` |
+| `asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1` | `ja` | `normalization/funasr_itn` (`ja`) -> `scoring/wenet_cer` | Default Japanese CER; optional node setup required |
+| `asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1` | `ko` | `normalization/funasr_itn` (`ko`) -> `scoring/wenet_cer` | Default Korean CER; optional node setup required |
 
 ### `wer`
 
@@ -24,6 +26,14 @@ specific non-default pipeline.
 | `asr.en.wer.whisper_norm_english_v1.wenet_wer_v1` | `en` | `normalization/whisper_norm` -> `scoring/wenet_wer` | Default English WER |
 | `asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1` | `en` | `normalization/aispeech_norm` -> `scoring/wenet_wer` | Legacy AISpeech-normalized WER |
 | `asr.en.wer.canonical_itn_en_v1.token_mer_v1` | `en` | `normalization/canonical_itn` -> `scoring/token_mer` | Canonical ITN WER; requires `[canonical]` |
+| `asr.es.wer.funasr_itn_es_v1.wenet_wer_v1` | `es` | `normalization/funasr_itn` (`es`) -> `scoring/wenet_wer` | Default Spanish WER; optional node setup required |
+| `asr.fr.wer.funasr_itn_fr_v1.wenet_wer_v1` | `fr` | `normalization/funasr_itn` (`fr`) -> `scoring/wenet_wer` | Default French WER; optional node setup required |
+| `asr.de.wer.funasr_itn_de_v1.wenet_wer_v1` | `de` | `normalization/funasr_itn` (`de`) -> `scoring/wenet_wer` | Default German WER; optional node setup required |
+| `asr.ru.wer.funasr_itn_ru_v1.wenet_wer_v1` | `ru` | `normalization/funasr_itn` (`ru`) -> `scoring/wenet_wer` | Default Russian WER; optional node setup required |
+| `asr.pt.wer.funasr_itn_pt_v1.wenet_wer_v1` | `pt` | `normalization/funasr_itn` (`pt`) -> `scoring/wenet_wer` | Default Portuguese WER; optional node setup required |
+| `asr.vi.wer.funasr_itn_vi_v1.wenet_wer_v1` | `vi` | `normalization/funasr_itn` (`vi`) -> `scoring/wenet_wer` | Default Vietnamese WER; optional node setup required |
+| `asr.id.wer.funasr_itn_id_v1.wenet_wer_v1` | `id` | `normalization/funasr_itn` (`id`) -> `scoring/wenet_wer` | Default Indonesian WER; optional node setup required |
+| `asr.tl.wer.funasr_itn_tl_v1.wenet_wer_v1` | `tl` | `normalization/funasr_itn` (`tl`) -> `scoring/wenet_wer` | Default Tagalog WER; optional node setup required |
 
 ### `mer`
 
@@ -60,6 +70,13 @@ sure-eval metric describe asr \
 
 sure-eval metric run --pipeline /tmp/asr_canonical.json \
   --ref-file ref.txt --hyp-file hyp.txt --output-dir /tmp/asr_eval
+
+# Prepare and run the default Spanish FunASR ITN route
+sure-eval agent plan asr --language es --metric wer --json
+sure-eval env setup --node normalization/funasr_itn
+sure-eval metric describe asr --language es --metric wer --output /tmp/asr_es.json
+sure-eval metric run --pipeline /tmp/asr_es.json \
+  --ref-file ref.txt --hyp-file hyp.txt --output-dir /tmp/asr_es_eval
 ```
 
 ## Python API
@@ -96,6 +113,9 @@ The route config is
 - `normalization/wetext_norm` - Mandarin CER defaults to `wetext:zh_itn`;
   other profiles can be selected with `normalizer="wetext:zh_tn"` or
   `normalizer="wetext:en_itn"` in the lower-level task API.
+- `normalization/funasr_itn` - default ITN for `ja`, `ko`, `es`, `fr`, `de`,
+  `ru`, `pt`, `vi`, `id`, and `tl`. Its node-local runtime must be prepared
+  once before scoring; see the [node README](../../src/sure_eval/evaluation/nodes/normalization/funasr_itn/README.md).
 - `scoring/sctk_sclite` - optional binary-backed scorer wrapping NIST SCTK
   `sclite`; default ASR pipelines continue to use WeNet-compatible scorers.
 

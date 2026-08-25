@@ -17,6 +17,7 @@ htmlcov/
 **/.venv/
 **/checkpoints/
 **/uv.lock
+!src/sure_eval/evaluation/nodes/normalization/funasr_itn/uv.lock
 runtime/
 
 # Large model artifacts

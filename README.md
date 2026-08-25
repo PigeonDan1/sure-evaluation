@@ -60,7 +60,7 @@ Input files are tab-separated: `<key>\t<text>`.
 
 | Task | Metrics | Notes | Guide |
 |:-----|:--------|:------|:------|
-| **ASR** | WER, CER, MER | Text-only; canonical normalization routes require `[canonical]` | [docs/tasks/asr.md](./docs/tasks/asr.md) |
+| **ASR** | WER, CER, MER | Text-only; canonical routes require `[canonical]`; multilingual FunASR ITN routes require node setup | [docs/tasks/asr.md](./docs/tasks/asr.md) |
 | **S2TT** | BLEU, chrF2, XCOMET-XL, BLEURT-20 | Base + optional heavy metrics | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
 | **SD** | DER | Requires `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
 | **SA-ASR** | cpWER, DER | Requires `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
@@ -116,6 +116,8 @@ Prepare a heavy metric environment:
 ```bash
 sure-eval env list
 sure-eval env setup --task asr --language zh --metric cer --dry-run
+sure-eval agent plan asr --language es --metric wer --json
+sure-eval env setup --node normalization/funasr_itn --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
 sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos

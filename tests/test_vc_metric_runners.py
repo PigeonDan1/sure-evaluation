@@ -259,7 +259,7 @@ def test_vc_pipeline_cli_runner_forwards_semantic_normalizer(monkeypatch) -> Non
     )
 
 
-def test_vc_pipeline_docker_wrapper_plans_required_segments() -> None:
+def test_vc_pipeline_docker_wrapper_plans_required_segments(monkeypatch) -> None:
     import importlib.util
     from pathlib import Path
 
@@ -271,6 +271,11 @@ def test_vc_pipeline_docker_wrapper_plans_required_segments() -> None:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
+    sox_mounts = [
+        "/opt/test/libsox.so:/opt/test/libsox.so:ro",
+        "/opt/test/libltdl.so.7:/opt/test/libltdl.so.7:ro",
+    ]
+    monkeypatch.setattr(module, "_eres2net_sox_mounts", lambda: sox_mounts)
 
     args = module.parse_args(
         [
@@ -299,7 +304,7 @@ def test_vc_pipeline_docker_wrapper_plans_required_segments() -> None:
     assert semantic.speaker_backends == ""
     assert semantic.mos_backends == ""
     eres2net = next(segment for segment in segments if segment.name == "speaker_eres2net")
-    assert any("libsox.so" in mount for mount in eres2net.extra_mounts)
+    assert eres2net.extra_mounts == sox_mounts
 
 
 def test_vc_pipeline_docker_wrapper_passes_semantic_normalizer_only_to_semantic_segment() -> None:

@@ -1,6 +1,6 @@
 # ASR Evaluation Task
 
-ASR reports canonical `cer`, `wer`, and `mer` metrics. Concrete pipelines are
+ASR reports public `cer`, `wer`, and `mer` metrics. Concrete pipelines are
 selected by `pipeline_id` when a metric has multiple normalization or scorer
 chains.
 
@@ -14,6 +14,9 @@ chains.
   `normalization/aispeech_norm` -> `scoring/wenet_cer`
 - `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1`:
   `normalization/canonical_itn` -> `scoring/token_cer`
+- `asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1` and
+  `asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1`:
+  `normalization/funasr_itn` -> `scoring/wenet_cer`
 
 ### `wer`
 
@@ -23,6 +26,9 @@ chains.
   `normalization/aispeech_norm` -> `scoring/wenet_wer`
 - `asr.en.wer.canonical_itn_en_v1.token_mer_v1`:
   `normalization/canonical_itn` -> `scoring/token_mer`
+- `asr.<lang>.wer.funasr_itn_<lang>_v1.wenet_wer_v1` for `es`, `fr`, `de`,
+  `ru`, `pt`, `vi`, `id`, and `tl`:
+  `normalization/funasr_itn` -> `scoring/wenet_wer`
 
 ### `mer`
 
@@ -41,6 +47,11 @@ legacy references for regression checks while non-ASR tasks are migrated.
 Mandarin CER defaults to `normalization/wetext_norm` with profile `zh_itn`.
 Other WeTextProcessing profiles remain available through lower-level task API
 arguments such as `normalizer="wetext:zh_tn"` or `normalizer="wetext:en_itn"`.
+
+Japanese/Korean CER and Spanish/French/German/Russian/Portuguese/Vietnamese/
+Indonesian/Tagalog WER default to `normalization/funasr_itn`. Prepare its
+optional node-local environment with
+`sure-eval env setup --node normalization/funasr_itn` before scoring.
 
 `scoring/sctk_sclite` is an optional binary-backed scorer wrapping NIST SCTK
 `sclite`; default ASR pipelines continue to use WeNet-compatible scorers.

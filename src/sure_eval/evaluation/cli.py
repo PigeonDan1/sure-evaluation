@@ -521,14 +521,19 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
     runtime_type = str(runtime.get("type", "uv"))
     project = str(runtime.get("project", "pyproject.toml"))
     python = runtime.get("python")
+    frozen = bool(runtime.get("frozen", False))
+    post_setup_script = runtime.get("post_setup_script")
     group = str(node_env.get("group") or "")
     command_parts = [f"cd {node_path}"]
     if runtime_type == "uv":
         if python:
             command_parts.append(f"uv venv --python {python}")
-        command_parts.append(
-            "uv sync" if project == "pyproject.toml" else f"uv sync --project {project}"
-        )
+        sync_command = "uv sync" if project == "pyproject.toml" else f"uv sync --project {project}"
+        if frozen:
+            sync_command += " --frozen"
+        command_parts.append(sync_command)
+        if post_setup_script:
+            command_parts.append(f".venv/bin/python {shlex.quote(str(post_setup_script))}")
     elif runtime_type == "pip":
         specs = package_install_specs(node_env)
         if specs:
@@ -560,6 +565,8 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
         "runtime": runtime_type,
         "python": python,
         "project": project,
+        "frozen": frozen,
+        "post_setup_script": post_setup_script,
         "build_script": runtime.get("build_script"),
         "command": " && ".join(command_parts),
         "packages": package_install_specs(node_env),
@@ -749,9 +756,25 @@ def _execute_uv_setup(
         if python:
             command.extend(["--python", str(python)])
         commands.append(command)
-    commands.append(["uv", "sync"])
+    sync_command = ["uv", "sync"]
+    project = str(action.get("project") or "pyproject.toml")
+    if project != "pyproject.toml":
+        sync_command.extend(["--project", project])
+    if action.get("frozen"):
+        sync_command.append("--frozen")
+    commands.append(sync_command)
     for command in commands:
         _run_logged(command, cwd=node_path, log_file=log_file)
+
+    post_setup_script = action.get("post_setup_script")
+    if post_setup_script:
+        script_path = node_path / str(post_setup_script)
+        if not script_path.is_file():
+            raise RuntimeError(f"post-setup script is missing: {script_path}")
+        post_command = [str(venv_dir / "bin" / "python"), str(script_path)]
+        if force:
+            post_command.append("--force")
+        _run_logged(post_command, cwd=node_path, log_file=log_file)
 
 
 def _execute_binary_setup(action: dict[str, object], *, node_path: Path, log_file: Path) -> None:

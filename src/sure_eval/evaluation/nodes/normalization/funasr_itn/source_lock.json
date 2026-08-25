@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/modelscope/FunASR.git",
+  "revision": "3c58cb56a56598232c3efffa15d313d7e82a4307",
+  "subdirectory": "fun_text_processing",
+  "source_tree": "8dea23a54787d1cdd145425c212774a16e825f87",
+  "license_file": "LICENSE"
+}

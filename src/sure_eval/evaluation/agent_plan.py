@@ -48,7 +48,10 @@ def build_agent_plan(
             metric=metric,
             metrics=metrics,
         )
-        routes = [_route_plan(task, language=language, metric=item, checker=checker) for item in selected_metrics]
+        routes = [
+            _route_plan(task, language=language, metric=item, checker=checker)
+            for item in selected_metrics
+        ]
     root_env = _root_env_payload() if include_root_env else {"status": "skipped", "checks": []}
     blocking_issues = _blocking_issues(root_env=root_env, routes=routes)
 
@@ -201,7 +204,18 @@ def _setup_hint(
         else:
             command = "# no pip packages declared"
     elif runtime_type == "uv":
-        command = f"cd {node_path} && uv sync"
+        commands = []
+        python = runtime.get("python")
+        if python:
+            commands.append(f"uv venv --python {shlex.quote(str(python))}")
+        sync_command = "uv sync"
+        if runtime.get("frozen"):
+            sync_command += " --frozen"
+        commands.append(sync_command)
+        post_setup_script = runtime.get("post_setup_script")
+        if post_setup_script:
+            commands.append(f".venv/bin/python {shlex.quote(str(post_setup_script))}")
+        command = f"cd {node_path} && " + " && ".join(commands)
     elif runtime_type == "binary":
         build_script = runtime.get("build_script")
         if build_script:
@@ -310,7 +324,9 @@ def _blocking_issues(*, root_env: dict[str, Any], routes: list[dict[str, Any]]) 
 
 def _next_steps(blocking_issues: list[str], routes: list[dict[str, Any]]) -> list[str]:
     if not blocking_issues:
-        return ["Run `sure-eval metric describe`, then `sure-eval metric run` with the declared inputs."]
+        return [
+            "Run `sure-eval metric describe`, then `sure-eval metric run` with the declared inputs."
+        ]
     commands = []
     for route in routes:
         for check in route.get("env_checks") or []:
