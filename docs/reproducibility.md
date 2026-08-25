@@ -33,6 +33,7 @@ Use dry-run commands before preparing large assets:
 sure-eval env setup --node scoring/dnsmos --dry-run --json
 sure-eval env download --node scoring/dnsmos --dry-run --json
 sure-eval env setup --node normalization/funasr_itn --dry-run --json
+sure-eval env setup --node normalization/nemo_norm --dry-run --json
 ```
 
 Fetched runtime code must not track a moving branch. Store its repository,

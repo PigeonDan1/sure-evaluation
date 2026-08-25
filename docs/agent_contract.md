@@ -19,6 +19,7 @@ workflow.
    ```bash
    sure-eval agent plan asr --language zh --metric cer --json
    sure-eval agent plan asr --language es --metric wer --json
+   sure-eval agent plan asr --language ar --metric cer --json
    sure-eval agent plan tts --language zh --metrics cer,spk_sim --json
    sure-eval agent plan tts \
      --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
@@ -80,6 +81,8 @@ Prepare optional node environments only after route selection:
 ```bash
 sure-eval agent plan asr --language zh --metric cer --json
 sure-eval env setup --task asr --language zh --metric cer --dry-run
+sure-eval agent plan asr --language ar --metric cer --json
+sure-eval env setup --node normalization/nemo_norm --dry-run
 sure-eval agent plan tts --language zh --metrics cer,dnsmos --json
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos
@@ -119,6 +122,8 @@ For example, TTS `cer` defaults to the Paraformer-ZH route, while
 selects the Qwen3-ASR-1.7B transcription route for the same reported metric.
 Likewise, `spk_sim` variants such as WavLM, ECAPA-TDNN, and ERes2Net are
 distinguished by exact `pipeline_id`, not by changing the canonical `metric`.
+Arabic ASR uses the canonical metric `cer`; its exact default identity is
+`asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1`.
 After `metric describe` writes a pipeline JSON, `metric run --pipeline` must
 execute that selected identity and reject reports whose `pipeline_id`,
 `pipeline_kind`, member IDs, or computation nodes diverge from the description.

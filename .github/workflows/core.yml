@@ -143,4 +143,20 @@ jobs:
           /tmp/sure-eval-wheel/bin/sure-eval metric describe asr --language zh --metric cer --json
           /tmp/sure-eval-wheel/bin/sure-eval agent plan asr --language es --metric wer --json
           /tmp/sure-eval-wheel/bin/sure-eval env setup --node normalization/funasr_itn --dry-run --json
+          /tmp/sure-eval-wheel/bin/sure-eval agent plan asr --language ar --metric cer --json
+          /tmp/sure-eval-wheel/bin/sure-eval env setup --node normalization/nemo_norm --json
+
+          tmpdir="$(mktemp -d)"
+          printf "utt1\t21\n" > "$tmpdir/ar_ref.txt"
+          printf "utt1\tواحد وعشرون\n" > "$tmpdir/ar_hyp.txt"
+          /tmp/sure-eval-wheel/bin/sure-eval metric describe asr \
+            --pipeline-id asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1 \
+            --output "$tmpdir/asr_ar.json"
+          /tmp/sure-eval-wheel/bin/sure-eval metric run \
+            --pipeline "$tmpdir/asr_ar.json" \
+            --ref-file "$tmpdir/ar_ref.txt" \
+            --hyp-file "$tmpdir/ar_hyp.txt" \
+            --output-dir "$tmpdir/asr_ar_out" \
+            --json
+          /tmp/sure-eval-wheel/bin/python -c 'import json,sys; r=json.load(open(sys.argv[1], encoding="utf-8")); assert r["score"] == 0.0; assert r["pipeline_id"] == "asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1"; assert r["computation_node_ids"] == ["normalization/nemo_norm", "scoring/wenet_cer"]' "$tmpdir/asr_ar_out/report.json"
           /tmp/sure-eval-wheel/bin/sure-eval metric describe vad --metric f1 --json

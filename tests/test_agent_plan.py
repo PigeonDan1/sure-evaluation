@@ -139,3 +139,22 @@ def test_agent_plan_funasr_setup_hint_matches_declared_runtime() -> None:
         "funasr_itn && uv venv --python 3.11 && uv sync --frozen "
         "&& .venv/bin/python prepare_funasr_itn.py"
     )
+
+
+def test_agent_plan_nemo_setup_hint_matches_declared_runtime() -> None:
+    from sure_eval.evaluation import agent_plan
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    checker = NodeEnvChecker()
+    node_env = checker.load_node_env("normalization/nemo_norm") or {}
+    setup = agent_plan._setup_hint(
+        checker,
+        "normalization/nemo_norm",
+        node_env,
+        fallback="setup required",
+    )
+
+    assert setup["packages"] == ["nemo-text-processing==1.2.0"]
+    assert setup["command"].endswith(
+        "nemo_norm && uv venv --python 3.11 && uv sync --frozen"
+    )

@@ -18,6 +18,7 @@ specific non-default pipeline.
 | `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1` | `zh` | `normalization/canonical_itn` -> `scoring/token_cer` | Canonical ITN CER; requires `[canonical]` |
 | `asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1` | `ja` | `normalization/funasr_itn` (`ja`) -> `scoring/wenet_cer` | Default Japanese CER; optional node setup required |
 | `asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1` | `ko` | `normalization/funasr_itn` (`ko`) -> `scoring/wenet_cer` | Default Korean CER; optional node setup required |
+| `asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1` | `ar` | `normalization/nemo_norm` (`ar_tn`) -> `scoring/wenet_cer` | Default Arabic CER; optional node setup required |
 
 ### `wer`
 
@@ -56,12 +57,22 @@ utt_002<TAB>今天天气不错
 ```
 
 Both `--ref-file` and `--hyp-file` use the same format, aligned by key.
+Keys must be nonempty and unique within each file. Nonblank rows without a tab
+are rejected with their input path and line number; malformed rows are not
+silently dropped.
 
 ## CLI Usage
 
 ```bash
 # Default Mandarin CER pipeline
 sure-eval metric describe asr --language zh --metric cer --output /tmp/asr.json
+
+# Default Arabic CER pipeline (written-form tokens are TN-normalized)
+sure-eval agent plan asr --language ar --metric cer --json
+sure-eval env setup --node normalization/nemo_norm
+sure-eval metric describe asr --language ar --metric cer --output /tmp/asr_ar.json
+sure-eval metric run --pipeline /tmp/asr_ar.json \
+  --ref-file ref.txt --hyp-file hyp.txt --output-dir /tmp/asr_ar_eval
 
 # Specific canonical Mandarin CER pipeline
 sure-eval metric describe asr \
@@ -116,6 +127,9 @@ The route config is
 - `normalization/funasr_itn` - default ITN for `ja`, `ko`, `es`, `fr`, `de`,
   `ru`, `pt`, `vi`, `id`, and `tl`. Its node-local runtime must be prepared
   once before scoring; see the [node README](../../src/sure_eval/evaluation/nodes/normalization/funasr_itn/README.md).
+- `normalization/nemo_norm` - default Arabic TN (`ar_tn`) before CER. Its
+  frozen node-local runtime must be prepared once before scoring; see the
+  [node README](../../src/sure_eval/evaluation/nodes/normalization/nemo_norm/README.md).
 - `scoring/sctk_sclite` - optional binary-backed scorer wrapping NIST SCTK
   `sclite`; default ASR pipelines continue to use WeNet-compatible scorers.
 

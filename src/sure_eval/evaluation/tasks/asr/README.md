@@ -17,6 +17,8 @@ chains.
 - `asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1` and
   `asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1`:
   `normalization/funasr_itn` -> `scoring/wenet_cer`
+- `asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1`:
+  `normalization/nemo_norm` (`ar_tn`) -> `scoring/wenet_cer`
 
 ### `wer`
 
@@ -52,6 +54,11 @@ Japanese/Korean CER and Spanish/French/German/Russian/Portuguese/Vietnamese/
 Indonesian/Tagalog WER default to `normalization/funasr_itn`. Prepare its
 optional node-local environment with
 `sure-eval env setup --node normalization/funasr_itn` before scoring.
+
+Arabic CER defaults to `normalization/nemo_norm` with profile `ar_tn`. It
+converts written tokens to spoken Arabic on both sides before CER scoring.
+Prepare its frozen node-local environment with
+`sure-eval env setup --node normalization/nemo_norm` before scoring.
 
 `scoring/sctk_sclite` is an optional binary-backed scorer wrapping NIST SCTK
 `sclite`; default ASR pipelines continue to use WeNet-compatible scorers.

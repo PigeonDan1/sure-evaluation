@@ -5,6 +5,7 @@ default_metrics:
   zh: cer
   en: wer
   cs: mer
+  ar: cer
   ja: cer
   es: wer
   fr: wer
@@ -16,6 +17,11 @@ default_metrics:
   id: wer
   tl: wer
 default_pipelines:
+  ar:
+    cer:
+      default: asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1
+      variants:
+        nemo_norm_ar_tn: asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1
   zh:
     cer:
       default: asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1
@@ -134,6 +140,7 @@ notes:
   - Mandarin CER defaults to WeTextProcessing inverse text normalization (normalization/wetext_norm profile zh_itn) before WeNet CER.
   - The legacy AISpeech Mandarin CER route remains available explicitly as asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1.
   - Japanese and Korean CER plus Spanish, French, German, Russian, Portuguese, Vietnamese, Indonesian, and Tagalog WER default to normalization/funasr_itn and require its optional node-local environment.
+  - Arabic CER defaults to normalization/nemo_norm profile ar_tn and requires its optional frozen node-local environment.
   - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.
   - Canonical ITN routes are selected by pipeline_id and keep the reported metric as cer, wer, or mer. They require the [canonical] extra (cn2an + rapidfuzz), and identical scores require an identical cn2an version (recorded in each run's node trace).
   - Canonical MER/WER routes share the token_mer scorer. Text without latin letters degenerates to the zh canonical CER tokenization, and text without CJK degenerates to the en canonical WER tokenization. For en/cs the normalization stage additionally whisper-normalizes latin spans (contraction expansion, spoken numbers to digits, spoken-filler removal, British-to-American spelling) using the vendored Whisper English normalizer; spans without latin letters pass through unchanged.

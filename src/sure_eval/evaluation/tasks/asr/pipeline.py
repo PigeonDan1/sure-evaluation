@@ -18,29 +18,32 @@ from sure_eval.evaluation.nodes.normalization.aispeech_norm import (
     normalize_codeswitch_asr_files,
 )
 from sure_eval.evaluation.nodes.normalization.canonical_itn import normalize_canonical_asr_files
+from sure_eval.evaluation.nodes.normalization.nemo_norm import normalize_nemo_key_text_files
 from sure_eval.evaluation.nodes.normalization.punctuation_strip_norm import (
     normalize_punctuation_strip_key_text_files,
 )
-from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
 from sure_eval.evaluation.nodes.normalization.funasr_itn import (
     SUPPORTED_PROFILES as FUNASR_PROFILES,
     normalize_funasr_files,
 )
 from sure_eval.evaluation.nodes.normalization.wetext_norm import (
     SUPPORTED_PROFILES as WETEXT_SUPPORTED_PROFILES,
+)
+from sure_eval.evaluation.nodes.normalization.wetext_norm import (
     normalize_wetext_key_text_files,
 )
-from sure_eval.evaluation.nodes.scoring.wenet_wer import (
-    score_codeswitch_mer,
-    score_wenet_cer,
-    score_wenet_wer,
-)
+from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
 from sure_eval.evaluation.nodes.scoring.sctk_sclite import (
     score_sctk_sclite_cer,
     score_sctk_sclite_wer,
 )
 from sure_eval.evaluation.nodes.scoring.token_cer import score_token_cer
 from sure_eval.evaluation.nodes.scoring.token_mer import score_token_mer
+from sure_eval.evaluation.nodes.scoring.wenet_wer import (
+    score_codeswitch_mer,
+    score_wenet_cer,
+    score_wenet_wer,
+)
 from sure_eval.evaluation.pipeline_identity import (
     build_atomic_pipeline_id,
     canonical_metric,
@@ -259,6 +262,8 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
             return "whisper"
         if language == "zh" and metric == "cer":
             return "wetext:zh_itn"
+        if language == "ar" and metric == "cer":
+            return "nemo:ar_tn"
         if language in FUNASR_PROFILES:
             return f"funasr:{language}"
         return "aispeech"
@@ -283,6 +288,15 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         "normalization/punctuation_strip_norm",
     }:
         return "punctuation_strip"
+    if normalized in {
+        "nemo",
+        "nemo_norm",
+        "nemo:ar_tn",
+        "normalization/nemo_norm",
+    }:
+        if language != "ar":
+            raise ValueError("nemo_norm currently supports only Arabic ASR")
+        return "nemo:ar_tn"
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -348,6 +362,11 @@ def _normalization_node(*, language: str, normalizer: str):
             lambda files: normalize_punctuation_strip_key_text_files(files, language=language),
             "punctuation_strip_norm",
         )
+    if normalizer == "nemo:ar_tn":
+        return (
+            lambda files: normalize_nemo_key_text_files(files),
+            "nemo_norm",
+        )
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -391,6 +410,8 @@ def _normalizer_component(*, language: str, normalizer_label: str):
         return node_component("normalization/canonical_itn", profile=language)
     if normalizer_label == "punctuation_strip_norm":
         return node_component("normalization/punctuation_strip_norm")
+    if normalizer_label == "nemo_norm":
+        return node_component("normalization/nemo_norm", profile="ar_tn")
     raise ValueError(f"Unsupported ASR normalizer label: {normalizer_label}")
 
 
