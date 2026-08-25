@@ -60,7 +60,7 @@ cat /tmp/asr_eval/report.json | grep score
 
 | 任务 | 指标 | 说明 | 指南 |
 |:-----|:-----|:-----|:-----|
-| **ASR** | WER、CER、MER | 纯文本；canonical 归一化路由需 `[canonical]` | [docs/tasks/asr.md](./docs/tasks/asr.md) |
+| **ASR** | WER、CER、MER | 纯文本；canonical 路由需 `[canonical]`；多语种 FunASR ITN 路由需准备节点环境 | [docs/tasks/asr.md](./docs/tasks/asr.md) |
 | **S2TT** | BLEU、chrF2、XCOMET-XL、BLEURT-20 | 基础 + 可选重指标 | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
 | **SD** | DER | 需 `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
 | **SA-ASR** | cpWER、DER | 需 `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
@@ -76,6 +76,7 @@ cat /tmp/asr_eval/report.json | grep score
 每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
 
 如需 metrics → pipelines → nodes 的机器可读对照表，查看 [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) 和 [docs/pipeline_catalog.md](./docs/pipeline_catalog.md)。
+Agent 路由选择和环境就绪约定见 [docs/agent_contract.md](./docs/agent_contract.md)。
 同一报告指标下的不同路由变体，例如 ASR 归一化变体、TTS Qwen3-ASR
 CER/WER，或 `spk_sim` 的不同说话人相似度 provider，都需要用精确
 `pipeline_id` 选择。
@@ -114,6 +115,8 @@ export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
 
 ```bash
 sure-eval env list
+sure-eval agent plan asr --language es --metric wer --json
+sure-eval env setup --node normalization/funasr_itn --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
 sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos

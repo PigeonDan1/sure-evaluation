@@ -116,6 +116,8 @@ Prepare a heavy metric environment:
 ```bash
 sure-eval env list
 sure-eval env setup --task asr --language zh --metric cer --dry-run
+sure-eval agent plan asr --language es --metric wer --json
+sure-eval env setup --node normalization/funasr_itn --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
 sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
 sure-eval env setup --task tts --language zh --metrics cer,dnsmos

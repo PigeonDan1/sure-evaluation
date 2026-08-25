@@ -130,9 +130,10 @@ legacy_reference:
 notes:
   - ASR compatibility metric classes should route through the canonical task pipeline.
   - Legacy SUREEvaluator remains the regression oracle while other tasks are migrated.
-  - English WER defaults to OpenAI Whisper English normalization; the legacy AISpeech route remains available as asr.en.wer.aispeech_norm.wenet_wer.
+  - English WER defaults to OpenAI Whisper English normalization; the legacy AISpeech route remains available as asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1.
   - Mandarin CER defaults to WeTextProcessing inverse text normalization (normalization/wetext_norm profile zh_itn) before WeNet CER.
-  - The legacy AISpeech Mandarin CER route remains available explicitly as asr.zh.cer.aispeech_norm.wenet_cer.
+  - The legacy AISpeech Mandarin CER route remains available explicitly as asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1.
+  - Japanese and Korean CER plus Spanish, French, German, Russian, Portuguese, Vietnamese, Indonesian, and Tagalog WER default to normalization/funasr_itn and require its optional node-local environment.
   - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.
   - Canonical ITN routes are selected by pipeline_id and keep the reported metric as cer, wer, or mer. They require the [canonical] extra (cn2an + rapidfuzz), and identical scores require an identical cn2an version (recorded in each run's node trace).
   - Canonical MER/WER routes share the token_mer scorer. Text without latin letters degenerates to the zh canonical CER tokenization, and text without CJK degenerates to the en canonical WER tokenization. For en/cs the normalization stage additionally whisper-normalizes latin spans (contraction expansion, spoken numbers to digits, spoken-filler removal, British-to-American spelling) using the vendored Whisper English normalizer; spans without latin letters pass through unchanged.
