@@ -9,9 +9,12 @@ implemented_metrics:
   - wv_mos
   - utmos
 default_metrics:
+  ar: tts_cer
   zh: tts_cer
   en: tts_wer
 default_pipelines:
+  ar:
+    tts_cer: tts.ar.cer.cohere_transcribe_arabic_07_2026_v1.nemo_norm_ar_tn_v1.wenet_cer_v1
   zh:
     tts_cer: tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1
   en:
@@ -81,6 +84,11 @@ input_contracts:
     aggregation: mean
     main_report: true
 pipeline_nodes:
+  ar:
+    transcription: transcription/cohere_transcribe_arabic_07_2026
+    normalization: normalization/nemo_norm
+    downstream_task: ASR
+    downstream_metric: cer
   zh:
     frontend: frontend/funasr_loader_16k_mono
     transcription: transcription/paraformer_zh
@@ -111,6 +119,7 @@ legacy_reference:
   pipeline: sure_eval.evaluation.tasks.tts.compat.TTSMetricPipeline
 notes:
   - Semantic WER/CER must transcribe audio first, then call the canonical ASR scoring path.
+  - Arabic semantic CER uses Cohere Transcribe Arabic followed by NeMo Arabic TN and WeNet CER.
   - Mandarin semantic CER uses punctuation-only normalization before WeNet CER and does not use AISpeech number text normalization by default.
   - English semantic WER uses OpenAI Whisper English normalization before WeNet WER.
   - Qwen3-ASR-1.7B TTS semantic routes are alternatives selected by exact pipeline_id; they do not replace the default Paraformer-ZH or Whisper-large-v3 routes.

@@ -1,0 +1,27 @@
+id: transcription/cohere_transcribe_arabic_07_2026
+group: asr-transcription
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: CohereLabs/cohere-transcribe-arabic-07-2026
+    revision: c3e911b42149bf7a1e53d5cef9878aee87515a23
+    provider: huggingface
+    target: checkpoints/cohere-transcribe-arabic-07-2026/model.safetensors
+    env: COHERE_TRANSCRIBE_ARABIC_07_2026_CHECKPOINT
+    license: apache-2.0
+verify:
+  imports:
+    - accelerate
+    - librosa
+    - sentencepiece
+    - soundfile
+    - torch
+    - transformers
+  files:
+    - checkpoints/cohere-transcribe-arabic-07-2026/config.json
+    - checkpoints/cohere-transcribe-arabic-07-2026/model.safetensors
+    - checkpoints/cohere-transcribe-arabic-07-2026/preprocessor_config.json

@@ -1,0 +1,38 @@
+id: transcription/cohere_transcribe_arabic_07_2026
+version: v1
+stage: transcription
+language_sensitive: true
+languages: [ar]
+input_schema: audio_path
+output_schema: transcript_text
+implementation: sure_eval.evaluation.nodes.transcription.cohere_transcribe_arabic_07_2026.node
+runtime:
+  package: transformers
+  package_version: "5.4.0"
+  model_id: CohereLabs/cohere-transcribe-arabic-07-2026
+  model_revision: c3e911b42149bf7a1e53d5cef9878aee87515a23
+  backend: transformers
+audio_frontend:
+  audio_input_mode: path
+  audio_frontend_policy: runtime_managed
+  resample_policy: cohere_asr_runtime_managed
+  runtime_normalized_sample_rate_hz: 16000
+  runtime_normalized_channels: 1
+  runtime_audio_dtype: float32
+inference_defaults:
+  language: ar
+  punctuation: true
+  batch_size: 8
+  max_audio_clip_s: 35
+  compile: false
+  pipeline_detokenization: false
+internal_stages:
+  - runtime_managed_audio_frontend
+  - batching
+  - asr_inference
+  - text_extraction
+used_by:
+  - TTS Arabic semantic CER default route
+notes:
+  - The node decodes audio paths, averages channels, and resamples to 16 kHz through Transformers audio utilities.
+  - The node emits transcripts only; NeMo Arabic TN and WeNet CER remain separate downstream nodes.

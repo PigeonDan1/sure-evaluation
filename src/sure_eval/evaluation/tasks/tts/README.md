@@ -13,6 +13,7 @@ Semantic routes:
 
 | Language | Canonical metric | Execution selector | Transcription node | Normalization node | Downstream ASR metric |
 | --- | --- | --- | --- | --- | --- |
+| `ar` | `cer` | `tts_cer` | `transcription/cohere_transcribe_arabic_07_2026` | `normalization/nemo_norm` (`ar_tn`) | `cer` |
 | `zh` / `cmn` / `yue` | `cer` | `tts_cer` | `transcription/paraformer_zh` | `normalization/punctuation_strip_norm` | `cer` |
 | `zh` | `cer` | exact `pipeline_id` | `transcription/qwen3_asr_1_7b` | `normalization/punctuation_strip_norm` | `cer` |
 | `en` | `wer` | `tts_wer` | `transcription/whisper_large_v3` | `normalization/whisper_norm` | `wer` |

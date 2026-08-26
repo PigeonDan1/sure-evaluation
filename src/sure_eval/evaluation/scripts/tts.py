@@ -25,7 +25,7 @@ from sure_eval.evaluation.tasks.tts.types import TTSSample
 
 
 def _semantic_metric_for_language(language: str) -> str:
-    return "tts_cer" if language.lower().startswith(("zh", "cmn", "yue")) else "tts_wer"
+    return "tts_cer" if language.lower().startswith(("zh", "cmn", "yue", "ar")) else "tts_wer"
 
 
 def describe_pipeline(
@@ -209,6 +209,15 @@ def _default_transcribers(
 ) -> Mapping[str, Any] | None:
     if transcribers is not None or not (set(metrics) & {"tts_wer", "tts_cer"}):
         return transcribers
+
+    if semantic_transcription_node == "transcription/cohere_transcribe_arabic_07_2026":
+        from sure_eval.evaluation.nodes.transcription.cohere_transcribe_arabic_07_2026.node import (
+            NODE_DIR,
+            NODE_ID,
+        )
+        from sure_eval.evaluation.nodes.transcription.common.providers import NodeLocalTranscriber
+
+        return {"ar": NodeLocalTranscriber(node_id=NODE_ID, node_dir=NODE_DIR, device=device)}
 
     if semantic_transcription_node == "transcription/qwen3_asr_1_7b":
         from sure_eval.evaluation.nodes.transcription.qwen3_asr_1_7b.node import DEFAULT_CACHE_DIR as DEFAULT_QWEN_CACHE_DIR

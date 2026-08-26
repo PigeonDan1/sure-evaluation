@@ -8,7 +8,12 @@ from pathlib import Path
 from typing import Any, Mapping, Protocol
 
 from sure_eval.evaluation.core.types import EvaluationReport, PipelineNodeResult
-from sure_eval.evaluation.nodes.frontend.funasr_loader_16k_mono import describe_funasr_loader_16k_mono
+from sure_eval.evaluation.nodes.frontend.funasr_loader_16k_mono import (
+    describe_funasr_loader_16k_mono,
+)
+from sure_eval.evaluation.nodes.transcription.cohere_transcribe_arabic_07_2026 import (
+    transcribe_cohere_transcribe_arabic_07_2026,
+)
 from sure_eval.evaluation.nodes.transcription.paraformer_zh import transcribe_paraformer_zh
 from sure_eval.evaluation.nodes.transcription.qwen3_asr_1_7b import transcribe_qwen3_asr_1_7b
 from sure_eval.evaluation.nodes.transcription.whisper_large_v3 import transcribe_whisper_large_v3
@@ -32,7 +37,7 @@ class SemanticASRBatchResult:
 
 
 def uses_cer(language: str) -> bool:
-    return language.lower().startswith(("zh", "cmn", "yue"))
+    return language.lower().startswith(("zh", "cmn", "yue", "ar"))
 
 
 def default_semantic_metric(prefix: str, language: str) -> str:
@@ -86,14 +91,18 @@ def transcriber_for_language(
         return None
     if language in transcribers:
         return transcribers[language]
-    family = "zh" if uses_cer(language) else "en"
+    if language.lower().startswith(("ar", "ara")):
+        family = "ar"
+    else:
+        family = "zh" if uses_cer(language) else "en"
     return transcribers.get(family)
 
 
 def transcription_node_needs_frontend(node_id: str, language: str) -> bool:
     """Return whether a transcription route includes the FunASR loader frontend."""
 
-    return node_id == "transcription/paraformer_zh" or (not node_id and uses_cer(language))
+    selected_node = node_id or _default_transcription_node_id(language)
+    return selected_node == "transcription/paraformer_zh"
 
 
 def _asr_trace_components(trace: tuple[PipelineNodeResult, ...]) -> tuple[PipelineComponent, ...]:
@@ -114,6 +123,8 @@ def _profile_for_asr_node(node: PipelineNodeResult) -> str | None:
     if node.node_id == "normalization/canonical_itn":
         profile = str(node.details.get("profile") or node.details.get("language") or "")
         return profile.removesuffix("_canonical")
+    if node.node_id == "normalization/nemo_norm":
+        return str(node.details.get("profile") or "ar_tn")
     return None
 
 
@@ -126,6 +137,14 @@ def transcribe_audio(
     transcription_node_id: str | None = None,
 ) -> tuple[str, tuple[PipelineNodeResult, ...]]:
     selected_node = transcription_node_id or _default_transcription_node_id(language)
+    if selected_node == "transcription/cohere_transcribe_arabic_07_2026":
+        transcript, transcription_result = transcribe_cohere_transcribe_arabic_07_2026(
+            audio_path,
+            language=language,
+            runner=runner,
+            role=role,
+        )
+        return transcript, (transcription_result,)
     if selected_node == "transcription/qwen3_asr_1_7b":
         transcript, transcription_result = transcribe_qwen3_asr_1_7b(
             audio_path,
@@ -163,6 +182,8 @@ def _transcription_components(
     transcription_node_id: str | None,
 ) -> tuple[PipelineComponent, ...]:
     selected_node = transcription_node_id or _default_transcription_node_id(language)
+    if selected_node == "transcription/cohere_transcribe_arabic_07_2026":
+        return (node_component("transcription/cohere_transcribe_arabic_07_2026"),)
     if selected_node == "transcription/qwen3_asr_1_7b":
         return (node_component("transcription/qwen3_asr_1_7b"),)
     if selected_node == "transcription/paraformer_zh":
@@ -176,6 +197,8 @@ def _transcription_components(
 
 
 def _default_transcription_node_id(language: str) -> str:
+    if language.lower().startswith(("ar", "ara")):
+        return "transcription/cohere_transcribe_arabic_07_2026"
     return "transcription/paraformer_zh" if uses_cer(language) else "transcription/whisper_large_v3"
 
 

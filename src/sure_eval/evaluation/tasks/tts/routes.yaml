@@ -57,6 +57,20 @@ routes:
     input_contract: semantic/asr_error_rate
     executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
   -
+    language: ar
+    metric: cer
+    aliases:
+      - tts_cer
+    executor_metric: tts_cer
+    family: semantic_error_rate
+    pipeline_id: tts.{language}.cer.cohere_transcribe_arabic_07_2026_v1.nemo_norm_ar_tn_v1.wenet_cer_v1
+    nodes:
+      - transcription/cohere_transcribe_arabic_07_2026
+      - normalization/nemo_norm
+      - scoring/wenet_cer
+    input_contract: semantic/asr_error_rate
+    executor: sure_eval.evaluation.tasks.tts.pipeline.evaluate_tts_samples
+  -
     metric: spk_sim
     method: wavlm_large
     aliases:

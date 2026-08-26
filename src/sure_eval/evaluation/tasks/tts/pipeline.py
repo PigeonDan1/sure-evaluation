@@ -33,6 +33,7 @@ _TTS_SEMANTIC_TEXT_CONTRACT = MetricInputContract(
 )
 _ZIP_SENTINEL = object()
 _ZH_DEFAULT_SEMANTIC_NORMALIZER = "punctuation_strip"
+_AR_DEFAULT_SEMANTIC_NORMALIZER = "nemo:ar_tn"
 
 
 def evaluate_tts_samples(
@@ -343,7 +344,7 @@ def _default_metrics(samples: list[TTSSample], *, prefix: str) -> tuple[str, ...
 
 
 def _uses_cer(language: str) -> bool:
-    return language.lower().startswith(("zh", "cmn", "yue"))
+    return language.lower().startswith(("zh", "cmn", "yue", "ar"))
 
 
 def _default_semantic_metric(prefix: str, language: str) -> str:
@@ -353,6 +354,8 @@ def _default_semantic_metric(prefix: str, language: str) -> str:
 def _effective_semantic_normalizer(*, language: str, explicit_normalizer: str | None) -> str | None:
     if explicit_normalizer is not None:
         return explicit_normalizer
+    if language.lower().startswith(("ar", "ara")):
+        return _AR_DEFAULT_SEMANTIC_NORMALIZER
     if _uses_cer(language):
         return _ZH_DEFAULT_SEMANTIC_NORMALIZER
     return None
