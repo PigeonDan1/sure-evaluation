@@ -115,7 +115,17 @@ def _build_audio_runtime(
     mos_providers: dict[str, Any] = {}
 
     if requested & {"tts_wer", "tts_cer", "vc_wer", "vc_cer", "tse_wer", "tse_cer"}:
-        if transcription_node_id == "transcription/qwen3_asr_1_7b":
+        if transcription_node_id == "transcription/cohere_transcribe_arabic_07_2026":
+            from sure_eval.evaluation.nodes.transcription.common.providers import (
+                NodeLocalTranscriber,
+            )
+
+            transcribers["ar"] = NodeLocalTranscriber(
+                node_id="transcription/cohere_transcribe_arabic_07_2026",
+                node_dir=NODES_ROOT / "transcription" / "cohere_transcribe_arabic_07_2026",
+                device=device,
+            )
+        elif transcription_node_id == "transcription/qwen3_asr_1_7b":
             from sure_eval.evaluation.nodes.transcription.common.providers import (
                 NodeLocalTranscriber,
             )
