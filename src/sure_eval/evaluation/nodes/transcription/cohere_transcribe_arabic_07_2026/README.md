@@ -38,7 +38,8 @@ transcript text. It does not normalize text or compute CER.
 
 - Node-local `uv` environment with Python 3.11.
 - Transformers 5.4.0 and PyTorch 2.8.0.
-- GPU is optional; CUDA uses bfloat16 and CPU uses float32.
+- GPU is optional; CUDA uses bfloat16 when supported and otherwise falls back
+  to float16. CPU uses float32.
 - Local checkpoint directory:
   `checkpoints/cohere-transcribe-arabic-07-2026`.
 - Override variable: `COHERE_TRANSCRIBE_ARABIC_07_2026_CHECKPOINT`.

@@ -137,6 +137,7 @@ def test_cohere_arabic_transcription_node_records_runtime_managed_frontend() -> 
     )
 
     runner = RecordingTranscriber("مرحبا بالعالم")
+    runner.resolved_model_path = "/private/checkpoints/cohere-transcribe-arabic-07-2026"
     transcript, trace = transcribe_cohere_transcribe_arabic_07_2026(
         "sample.wav",
         language="ar",
@@ -147,6 +148,7 @@ def test_cohere_arabic_transcription_node_records_runtime_managed_frontend() -> 
     assert trace.node_id == "transcription/cohere_transcribe_arabic_07_2026"
     assert trace.version == "v1"
     assert trace.details["model_id"] == "CohereLabs/cohere-transcribe-arabic-07-2026"
+    assert trace.details["resolved_model_path"] == "cohere-transcribe-arabic-07-2026"
     assert trace.details["audio_frontend_policy"] == "runtime_managed"
     assert trace.details["runtime_normalized_sample_rate_hz"] == 16000
     assert trace.internal_stages == (

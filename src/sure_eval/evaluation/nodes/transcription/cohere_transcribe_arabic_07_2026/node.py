@@ -147,6 +147,7 @@ def _trace_result(
     transcript: str,
     runner: Any,
 ) -> PipelineNodeResult:
+    resolved_model_path = getattr(runner, "resolved_model_path", None)
     return PipelineNodeResult(
         stage="transcription",
         node_id=NODE_ID,
@@ -158,7 +159,7 @@ def _trace_result(
             "transcript": transcript,
             "model_id": getattr(runner, "model_id", MODEL_ID),
             "model_revision": MODEL_REVISION,
-            "resolved_model_path": getattr(runner, "resolved_model_path", None),
+            "resolved_model_path": Path(resolved_model_path).name if resolved_model_path else None,
             "runtime_package": RUNTIME_PACKAGE,
             "runtime_package_version": _installed_version(RUNTIME_PACKAGE) or RUNTIME_PACKAGE_VERSION,
             "backend": "transformers",
