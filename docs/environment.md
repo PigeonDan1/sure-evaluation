@@ -1,59 +1,79 @@
 # Environment Management
 
-SURE-EVAL uses two levels of environment:
+SURE-EVALUATION separates two environment levels:
 
-- Root environment: CLI, routing, reports, lightweight scoring.
-- Node-local environments: heavyweight ASR, MOS, speaker similarity, learned MT metrics, and external binaries.
+- **Root environment:** CLI, routing, input contracts, reports, and lightweight
+  scoring.
+- **Node-local environment:** optional models, toolkits, learned metrics, or
+  external binaries owned by one versioned node.
 
-Inspect environments:
+This separation keeps the base installation light and makes each pipeline's
+runtime requirements explicit.
+
+## Recommended Exact-Pipeline Flow
 
 ```bash
-sure-eval agent plan asr --language zh --metric cer --json
+# 1. Discover exact alternatives.
+sure-eval metric routes tts --language zh --metric cer --json
+
+# 2. Describe the selected identity.
+sure-eval metric describe tts \
+  --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
+  --output .sure-eval-demo/tts-qwen.json
+
+# 3. Review setup before making changes.
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json --dry-run --json
+
+# 4. Prepare and validate only selected optional nodes.
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json
+sure-eval env download --node transcription/qwen3_asr_1_7b --dry-run
+sure-eval env download --node transcription/qwen3_asr_1_7b
+sure-eval env check --pipeline .sure-eval-demo/tts-qwen.json --json
+```
+
+`env setup --pipeline` and `env check --pipeline` rebuild the registered route
+and validate the pipeline identity before resolving node environments. They
+deduplicate repeated nodes while preserving computation order.
+
+## Other Selection Modes
+
+Use lower-level selectors for maintenance or bulk preparation:
+
+```bash
 sure-eval env list --json
 sure-eval env check --node scoring/dnsmos --json
-sure-eval env check --task tts --language zh --metrics cer,dnsmos --json
-sure-eval env check --node transcription/qwen3_asr_1_7b --json
-sure-eval env check --node normalization/funasr_itn --json
-sure-eval env check --node normalization/nemo_norm --json
-```
-
-Use `agent plan` first when an agent or harness needs a single readiness
-payload. It resolves the selected route, checks only the selected nodes, and
-returns setup hints for blocking requirements. Use `env check/setup/download`
-when you need lower-level node inspection or preparation.
-
-Prepare environments:
-
-```bash
-sure-eval env setup --task asr --language zh --metric cer --dry-run
 sure-eval env setup --node scoring/dnsmos --dry-run
-sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
-sure-eval env setup --node normalization/funasr_itn --dry-run
-sure-eval env setup --node normalization/nemo_norm --dry-run
+sure-eval env setup --task asr --language ar --metric cer --dry-run
 sure-eval env setup --group tts-vc-mos --dry-run
+sure-eval env check --all --json
 ```
 
-Download assets:
+`--node`, `--pipeline`, `--task`, `--group`, and `--all` are mutually
+exclusive. Prefer `--pipeline` for an evaluation run because it preserves the
+same exact selection across discovery, description, setup, checking, running,
+and reporting.
+
+## Assets And Locks
+
+Inspect declared downloads without fetching them:
 
 ```bash
-sure-eval env download --node scoring/dnsmos --dry-run
+sure-eval env download --node scoring/dnsmos --dry-run --json
+sure-eval env download --node transcription/qwen3_asr_1_7b --dry-run --json
 ```
 
-`--dry-run` is recommended first. It prints the provider, target path, and
-environment-variable override for each declared asset.
+A node may declare a Python version, runtime type, project file, frozen lock,
+post-setup script, model provider, checkpoint target, and environment-variable
+override in `node_env.yaml`. A frozen uv node installs from its committed
+`uv.lock`. Source fetched during setup must use an immutable revision rather
+than a moving branch.
 
-Runtime assets remain local and ignored by git:
+Runtime assets remain local and ignored by Git:
 
-- `.venv/`
-- `.venv.hostbak/`
-- `**/.venv/`
+- `.venv/` and node-local `**/.venv/`
 - `**/checkpoints/`
-- model files such as `*.ckpt`, `*.pt`, `*.onnx`, `*.safetensors`, `*.bin`
+- generated runtime metadata and logs
+- model files such as `*.ckpt`, `*.pt`, `*.onnx`, `*.safetensors`, and `*.bin`
 
-A uv node may declare `frozen: true` and a `post_setup_script` in
-`node_env.yaml`. Setup then installs exactly from the committed `uv.lock` and
-runs the packaged script with the node-local Python. For example,
-`normalization/funasr_itn` uses this mechanism to fetch a commit-pinned source
-subdirectory and records its Git tree in local runtime metadata.
-`normalization/nemo_norm` also uses a committed lock, but installs the pinned
-NeMo package directly and requires no post-setup source fetch or checkpoint.
+Do not add private absolute paths, credentials, or local checkpoints to route,
+node, or documentation files.

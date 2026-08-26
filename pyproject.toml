@@ -86,6 +86,8 @@ sure_eval = [
     "evaluation/nodes/*/*/prepare_*.py",
     "evaluation/nodes/*/*/source_lock.json",
     "evaluation/nodes/*/*/README.md",
+    "evaluation/nodes/normalization/whisper_norm/normalization_impl/*.json",
+    "evaluation/nodes/normalization/whisper_norm/normalization_impl/LICENSE.*",
     "evaluation/nodes/scoring/sctk_sclite/*.sh",
     "evaluation/conversion/*/manifest.yaml",
     "evaluation/conversion/*/*.md",

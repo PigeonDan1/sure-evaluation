@@ -111,6 +111,56 @@ def test_metric_describe_outputs_route_backed_pipeline_json(tmp_path: Path) -> N
     assert payload["executor"] == "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files"
 
 
+def test_metric_routes_lists_exact_language_and_metric_variants() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["metric", "routes", "asr", "--language", "zh", "--metric", "cer", "--json"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["schema"] == "sure.metric.routes.v1"
+    assert payload["count"] == 3
+    assert payload["default_pipeline_id"] == (
+        "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
+    )
+    assert {route["pipeline_id"] for route in payload["routes"]} == {
+        "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
+        "asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1",
+        "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1",
+    }
+    assert all(route["language"] == "zh" for route in payload["routes"])
+    assert all(route["metric"] == "cer" for route in payload["routes"])
+
+
+def test_metric_routes_exposes_kws_input_contract_variants() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["metric", "routes", "kws", "--metric", "macro-recall", "--json"],
+    )
+
+    assert result.exit_code == 0, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["metric"] == "macro_recall"
+    assert {route["selectors"]["input_mode"] for route in payload["routes"]} == {
+        "sure_json",
+        "wekws_score_ctc",
+        "wekws_frame_score",
+    }
+    assert sum(route["default"] for route in payload["routes"]) == 1
+
+
+def test_metric_routes_requires_language_for_templated_pipeline_ids() -> None:
+    result = CliRunner().invoke(
+        app,
+        ["metric", "routes", "tts", "--metric", "spk_sim", "--json"],
+    )
+
+    assert result.exit_code == 1
+    payload = json.loads(result.stdout)
+    assert "pass --language" in payload["message"]
+
+
 def test_metric_describe_can_select_asr_pipeline_id(tmp_path: Path) -> None:
     runner = CliRunner()
     pipeline_path = tmp_path / "asr_canonical_pipeline.json"
@@ -188,6 +238,33 @@ def test_metric_run_uses_exact_asr_pipeline_id_selectors(tmp_path: Path) -> None
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report_payload["pipeline_id"] == pipeline_id
     assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/aispeech_norm"
+
+
+def test_metric_run_rejects_tampered_pipeline_identity(tmp_path: Path) -> None:
+    from sure_eval.evaluation.cli_adapters import build_pipeline_spec
+
+    pipeline_path = tmp_path / "pipeline.json"
+    pipeline = build_pipeline_spec(
+        "asr", pipeline_id="asr.en.wer.whisper_norm_english_v1.wenet_wer_v1"
+    )
+    pipeline["computation_node_ids"] = ["scoring/wenet_cer"]
+    pipeline_path.write_text(json.dumps(pipeline), encoding="utf-8")
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "metric",
+            "run",
+            "--pipeline",
+            str(pipeline_path),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Pipeline identity mismatch for computation_node_ids" in result.stdout
 
 
 def test_metric_run_executes_pipeline_file_and_writes_outputs(tmp_path: Path) -> None:

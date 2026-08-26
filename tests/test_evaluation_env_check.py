@@ -441,6 +441,56 @@ def test_env_setup_dry_run_resolves_task_metrics_and_group() -> None:
     }
 
 
+def test_env_setup_dry_run_uses_exact_pipeline_json(tmp_path: Path) -> None:
+    runner = CliRunner()
+    pipeline_path = tmp_path / "qwen_pipeline.json"
+    pipeline_id = "tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1"
+    describe_result = runner.invoke(
+        app,
+        [
+            "metric",
+            "describe",
+            "tts",
+            "--pipeline-id",
+            pipeline_id,
+            "--output",
+            str(pipeline_path),
+            "--json",
+        ],
+    )
+    assert describe_result.exit_code == 0, describe_result.stdout
+
+    setup_result = runner.invoke(
+        app,
+        ["env", "setup", "--pipeline", str(pipeline_path), "--dry-run", "--json"],
+    )
+
+    assert setup_result.exit_code == 0, setup_result.stdout
+    payload = json.loads(setup_result.stdout)
+    assert [action["node_id"] for action in payload["actions"]] == [
+        "transcription/qwen3_asr_1_7b"
+    ]
+
+
+def test_env_setup_rejects_tampered_pipeline_identity(tmp_path: Path) -> None:
+    from sure_eval.evaluation.cli_adapters import build_pipeline_spec
+
+    pipeline_path = tmp_path / "tampered_pipeline.json"
+    payload = build_pipeline_spec(
+        "asr", pipeline_id="asr.en.wer.whisper_norm_english_v1.wenet_wer_v1"
+    )
+    payload["computation_node_ids"] = ["scoring/wenet_cer"]
+    pipeline_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = CliRunner().invoke(
+        app,
+        ["env", "setup", "--pipeline", str(pipeline_path), "--dry-run", "--json"],
+    )
+
+    assert result.exit_code == 1
+    assert "Pipeline identity mismatch for computation_node_ids" in result.stdout
+
+
 def test_env_download_dry_run_reports_declared_assets() -> None:
     runner = CliRunner()
 

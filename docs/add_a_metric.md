@@ -12,6 +12,10 @@ matching guide.
 - `pipeline_id`: exact computation identity in the form
   `task.language.metric.node_version...`.
 
+Use `sure-eval metric routes <task> ...` to inspect existing identities before
+creating a new declaration. A different implementation of an existing metric
+is normally a new route, not a new metric.
+
 Do not create a new metric name when only the route, backend, normalizer, or
 tool changes.
 

@@ -2,6 +2,10 @@
 
 Evaluates target-speaker-extraction models that take mixed speech + speaker enrollment clue and output the extracted clean speech.
 
+```bash
+sure-eval metric routes tse --language zh --metric spk_sim
+```
+
 ## Metrics
 
 | Canonical metric | Execution selector | Pipeline ID | Node chain | Higher is better |

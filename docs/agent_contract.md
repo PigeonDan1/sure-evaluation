@@ -1,46 +1,54 @@
 # Agent Contract
 
-This document defines how Codex, Kimi Code, and other TUI agents should use
-SURE-EVAL as a deterministic evaluation skill.
+This document defines how Codex, Kimi Code, and other agents should use
+SURE-EVALUATION as a versioned, reviewable evaluation engine.
 
 ## Scope
 
-SURE-EVAL owns metric routing, node version selection, node environment
-diagnostics, and deterministic scoring. It does not own model inference,
-dataset sampling, harness state machines, or model onboarding.
+SURE-EVALUATION owns metric routing, node version selection, node environment
+diagnostics, score execution, and structured evaluation reports. It does not
+own the system being evaluated, dataset sampling, harness state machines, or
+model onboarding.
 
 An agent should treat this repository as the scoring engine behind a larger
 workflow.
 
-## Two-Phase Flow
+## Exact-Pipeline Flow
 
-1. Plan and validate.
+1. Discover registered alternatives. Never infer a route from a metric name.
 
    ```bash
-   sure-eval agent plan asr --language zh --metric cer --json
-   sure-eval agent plan asr --language es --metric wer --json
-   sure-eval agent plan asr --language ar --metric cer --json
-   sure-eval agent plan tts --language zh --metrics cer,spk_sim --json
-   sure-eval agent plan tts \
-     --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
-     --json
+   sure-eval metric routes asr --language zh --metric cer --json
    ```
 
-   The plan resolves the configured pipeline from `tasks/<task>/routes.yaml`,
-   expands the selected versioned nodes, checks only those node environments,
-   and returns setup commands for missing requirements.
+   The response gives exact pipeline IDs, the default marker, ordered
+   computation nodes, required roles, route selectors, and declared runtimes.
 
-2. Score.
+2. Describe, prepare, and validate the selected identity.
 
    ```bash
-   sure-eval metric describe asr --language zh --metric cer --output pipeline.json
+   sure-eval metric describe asr \
+     --pipeline-id asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1 \
+     --output pipeline.json
+   sure-eval env setup --pipeline pipeline.json --dry-run --json
+   sure-eval env setup --pipeline pipeline.json
+   sure-eval env check --pipeline pipeline.json --json
+   ```
+
+3. Score and retain both output artifacts.
+
+   ```bash
    sure-eval metric run --pipeline pipeline.json \
      --ref-file ref.txt --hyp-file hyp.txt --output-dir eval_out \
      --validate-env
    ```
 
-   `metric run` remains the only deterministic scoring entrypoint. `agent plan`
-   is a readiness and routing interface, not a second evaluator.
+   `metric run` is the scoring entrypoint. `metric routes`, `metric describe`,
+   environment commands, and `agent plan` do not calculate a score.
+
+Use `sure-eval agent plan ... --json` when a harness needs route resolution and
+environment readiness in one payload. For same-metric alternatives, pass an
+exact `--pipeline-id`; use `metric routes` first to obtain that ID.
 
 ## Plan Payload
 
@@ -49,7 +57,7 @@ workflow.
 - `task`, `language`, `metrics`: normalized user selection.
 - `root_env`: Python/package/cache checks needed before any route can run.
 - `selected_routes`: one entry per requested metric.
-- `selected_routes[].pipeline_id`: concrete deterministic pipeline id.
+- `selected_routes[].pipeline_id`: concrete versioned pipeline id.
 - `selected_routes[].resolved_metric`: canonical reported metric for this selection.
 - `selected_routes[].pipeline_kind`: `atomic` or `bundle`.
 - `selected_routes[].member_pipeline_ids`: atomic member IDs for bundle selections.
@@ -57,8 +65,7 @@ workflow.
 - `selected_routes[].route_config_path`: repository-relative task route file.
 - `selected_routes[].describe_entrypoint`: dotted Python entrypoint for route
   description.
-- `selected_routes[].script_entrypoint`: dotted Python entrypoint for
-  deterministic scoring.
+- `selected_routes[].script_entrypoint`: dotted Python scoring entrypoint.
 - `selected_routes[].executor`: dotted task executor called by the route script.
 - `selected_routes[].nodes`: ordered versioned node ids and runtimes.
 - `selected_routes[].required_roles`: input roles required by the scorer.
@@ -76,22 +83,23 @@ pip install -e .
 sure-eval doctor
 ```
 
-Prepare optional node environments only after route selection:
+Prepare optional node environments only after exact route selection:
 
 ```bash
-sure-eval agent plan asr --language zh --metric cer --json
-sure-eval env setup --task asr --language zh --metric cer --dry-run
-sure-eval agent plan asr --language ar --metric cer --json
-sure-eval env setup --node normalization/nemo_norm --dry-run
-sure-eval agent plan tts --language zh --metrics cer,dnsmos --json
-sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
-sure-eval env setup --task tts --language zh --metrics cer,dnsmos
+sure-eval metric routes asr --language ar --metric cer --json
+sure-eval metric describe asr \
+  --pipeline-id asr.ar.cer.nemo_norm_ar_tn_v1.wenet_cer_v1 \
+  --output pipeline.json
+sure-eval env setup --pipeline pipeline.json --dry-run
+sure-eval env setup --pipeline pipeline.json
+sure-eval env check --pipeline pipeline.json --json
 ```
 
 Node-local virtual environments, heavy models, and checkpoints remain local
 assets. They must not be committed.
 
-An agent must execute the returned setup command as-is. A node may use a
+An agent must review the dry-run and preserve the selected pipeline identity.
+A node may use a
 committed lock file and a packaged post-setup script to prepare immutable
 upstream source; agents must not replace its revision with a branch head or a
 machine-local source path.
@@ -107,7 +115,8 @@ Agents should not guess metric behavior from names. The source of truth is:
 
 If a collaborator adds a new task, metric, route, or node version, they should
 update those declarations, tests, and docs. Agents should validate the change
-with both `agent plan` and `metric describe`.
+with `metric routes`, exact `metric describe`, pipeline-based environment
+checks, and `metric run` where practical.
 
 ## Identity Rules
 
@@ -127,5 +136,7 @@ Arabic ASR uses the canonical metric `cer`; its exact default identity is
 After `metric describe` writes a pipeline JSON, `metric run --pipeline` must
 execute that selected identity and reject reports whose `pipeline_id`,
 `pipeline_kind`, member IDs, or computation nodes diverge from the description.
+`env setup --pipeline` and `env check --pipeline` must reject stale or edited
+pipeline identity fields before resolving node environments.
 Multi-metric requests are `pipeline_kind=bundle` and list atomic members in
 `member_pipeline_ids`.

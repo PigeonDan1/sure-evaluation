@@ -13,6 +13,8 @@ score-affecting conversions.
 When a run starts from a pipeline JSON, `pipeline_id` is the selected execution
 identity. The run path validates that the returned report still matches the
 described `pipeline_id`, `pipeline_kind`, member IDs, and computation nodes.
+Environment setup and checking rebuild the same registered identity before
+resolving optional nodes.
 
 For heavyweight metrics, reproducibility also requires:
 
@@ -30,6 +32,10 @@ For heavyweight metrics, reproducibility also requires:
 Use dry-run commands before preparing large assets:
 
 ```bash
+sure-eval metric routes tts --language zh --metric dnsmos --json
+sure-eval metric describe tts \
+  --pipeline-id tts.zh.dnsmos.dnsmos_v1 --output pipeline.json
+sure-eval env setup --pipeline pipeline.json --dry-run --json
 sure-eval env setup --node scoring/dnsmos --dry-run --json
 sure-eval env download --node scoring/dnsmos --dry-run --json
 sure-eval env setup --node normalization/funasr_itn --dry-run --json

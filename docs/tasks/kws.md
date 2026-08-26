@@ -2,6 +2,10 @@
 
 Evaluate keyword spotting outputs with accuracy, macro_recall, precision, recall, F1, and false-alarm/reject rates.
 
+```bash
+sure-eval metric routes kws --metric macro_recall
+```
+
 ## Metrics
 
 | Primary metric | Execution selector | Pipeline ID | Nodes |

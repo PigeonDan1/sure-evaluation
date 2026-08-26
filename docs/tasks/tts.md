@@ -2,6 +2,10 @@
 
 Evaluate synthesized speech for intelligibility, speaker similarity, and quality.
 
+```bash
+sure-eval metric routes tts --language zh --metric cer
+```
+
 ## Metrics
 
 ### Semantic error rate

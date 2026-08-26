@@ -2,6 +2,10 @@
 
 SE evaluates enhanced speech generated from noisy input audio.
 
+```bash
+sure-eval metric routes se --metric dnsmos
+```
+
 ## Metrics
 
 | Canonical metric | Execution selector | Pipeline ID | Nodes | Required roles |

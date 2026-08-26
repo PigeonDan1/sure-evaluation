@@ -30,6 +30,7 @@ runtime/
 *.bin
 
 # Local outputs
+.sure-eval-demo/
 artifacts/
 reports/*
 !reports/sota/

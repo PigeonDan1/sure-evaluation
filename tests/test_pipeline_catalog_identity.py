@@ -37,6 +37,17 @@ def test_pipeline_catalog_rows_expose_pipeline_identity() -> None:
             assert len(row["execution_metrics"]) == len(row["member_pipeline_ids"])
 
 
+def test_pipeline_catalog_contains_every_discovered_atomic_route() -> None:
+    from scripts.generate_pipeline_catalog import iter_atomic_pipeline_ids
+
+    catalog_ids = {
+        row["pipeline_id"] for row in _catalog_rows() if row["pipeline_kind"] == "atomic"
+    }
+    discovered_ids = {pipeline_id for _, pipeline_id in iter_atomic_pipeline_ids()}
+
+    assert catalog_ids == discovered_ids
+
+
 def test_pipeline_catalog_has_new_kws_and_sa_asr_identities() -> None:
     rows = _catalog_rows()
     kws_macro_rows = [

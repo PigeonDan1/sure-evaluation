@@ -2,6 +2,10 @@
 
 Score speech-to-text translation hypotheses against references.
 
+```bash
+sure-eval metric routes s2tt --language zh --metric bleu
+```
+
 ## Metrics
 
 | Metric | Languages | Pipeline ID | Nodes |

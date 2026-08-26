@@ -10,6 +10,13 @@ from pathlib import Path
 
 import yaml
 
+REQUIRED_NODE_STATIC_ASSETS = {
+    "sure_eval/evaluation/nodes/normalization/whisper_norm/manifest.yaml": (
+        "sure_eval/evaluation/nodes/normalization/whisper_norm/normalization_impl/english.json",
+        "sure_eval/evaluation/nodes/normalization/whisper_norm/normalization_impl/LICENSE.openai-whisper",
+    ),
+}
+
 
 def missing_node_assets(wheel: Path) -> list[str]:
     missing: list[str] = []
@@ -23,6 +30,13 @@ def missing_node_assets(wheel: Path) -> list[str]:
         )
         if packaged_runtime:
             missing.append(f"wheel contains node runtime asset: {packaged_runtime[0]}")
+
+        for trigger, required_assets in REQUIRED_NODE_STATIC_ASSETS.items():
+            if trigger not in names:
+                continue
+            for asset in required_assets:
+                if asset not in names:
+                    missing.append(f"{trigger}: missing {posixpath.basename(asset)}")
 
         for node_env_file in node_env_files:
             payload = yaml.safe_load(archive.read(node_env_file)) or {}

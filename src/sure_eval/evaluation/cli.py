@@ -17,8 +17,10 @@ from rich.table import Table
 import sure_eval
 from sure_eval.evaluation.cli_adapters import (
     build_pipeline_spec,
+    list_metric_routes,
     read_json,
     run_pipeline_spec,
+    validate_pipeline_identity,
 )
 from sure_eval.evaluation.agent_plan import build_agent_plan, write_agent_plan
 from sure_eval.evaluation.cache import get_cache_root
@@ -32,10 +34,10 @@ from sure_eval.evaluation.env_check import (
     raise_if_environment_failed,
 )
 
-metric_app = typer.Typer(help="Describe and run deterministic evaluation pipelines")
+metric_app = typer.Typer(help="Discover, describe, and run versioned evaluation pipelines")
 env_app = typer.Typer(help="Inspect and prepare optional node-local environments")
 agent_app = typer.Typer(help="Plan route selection and environment readiness for agents")
-app = typer.Typer(help="SURE-EVAL deterministic speech and audio evaluation")
+app = typer.Typer(help="SURE-EVAL versioned system evaluation")
 console = Console()
 
 
@@ -87,6 +89,44 @@ def describe_metric_pipeline(
     table.add_row("executor", payload.get("executor") or "")
     if output:
         table.add_row("pipeline_json", str(output))
+    console.print(table)
+
+
+@metric_app.command("routes")
+def list_routes(
+    task: str = typer.Argument(..., help="Task name, e.g. asr, tts, kws, classification"),
+    language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
+    metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Canonical metric name"),
+    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON"),
+) -> None:
+    """List exact registered pipeline IDs without loading metric runtimes."""
+
+    try:
+        payload = list_metric_routes(task, language=language, metric=metric)
+    except Exception as exc:
+        _print_error(exc, json_output=json_output)
+        raise typer.Exit(1) from exc
+    if json_output:
+        sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+        return
+
+    selection = " / ".join(
+        str(value) for value in (payload["task"], payload["language"], payload["metric"]) if value
+    )
+    table = Table(title=f"Metric Routes: {selection} ({payload['count']})")
+    table.add_column("Default", justify="center")
+    table.add_column("Pipeline ID", style="cyan")
+    table.add_column("Computation nodes")
+    table.add_column("Required inputs")
+    table.add_column("Setup")
+    for route in payload["routes"]:
+        table.add_row(
+            "*" if route["default"] else "",
+            str(route["pipeline_id"]),
+            " -> ".join(route["computation_node_ids"]),
+            ", ".join(route["required_roles"]),
+            ", ".join(route["setup_node_ids"]) or "none",
+        )
     console.print(table)
 
 
@@ -383,6 +423,9 @@ def env_check(
 @env_app.command("setup")
 def env_setup(
     node: Optional[str] = typer.Option(None, "--node", help="Prepare one node id"),
+    pipeline: Optional[Path] = typer.Option(
+        None, "--pipeline", "-p", help="Prepare nodes selected by a pipeline JSON"
+    ),
     task: Optional[str] = typer.Option(
         None, "--task", help="Prepare nodes selected by a task route"
     ),
@@ -406,25 +449,33 @@ def env_setup(
 ) -> None:
     """Prepare node-local environments from node_env.yaml metadata."""
 
-    if sum(bool(value) for value in (node, task, group, all_nodes)) > 1:
-        raise typer.BadParameter("Use only one of --node, --task, --group, or --all")
-    node_ids = _resolve_env_node_ids(
-        node=node,
-        pipeline=None,
-        task=task,
-        language=language,
-        metric=metric,
-        metrics=metrics,
-        group=group,
-        all_nodes=all_nodes,
-    )
-    actions = [_setup_plan_for_node(node_id, no_download=no_download) for node_id in node_ids]
-    if dry_run:
-        payload = {"status": "planned", "dry_run": True, "actions": actions}
-    else:
-        results = [_execute_setup_action(action, force=force) for action in actions]
-        failed = [item for item in results if item["status"] == "failed"]
-        payload = {"status": "failed" if failed else "ok", "dry_run": False, "actions": results}
+    if sum(bool(value) for value in (node, pipeline, task, group, all_nodes)) > 1:
+        raise typer.BadParameter("Use only one of --node, --pipeline, --task, --group, or --all")
+    try:
+        node_ids = _resolve_env_node_ids(
+            node=node,
+            pipeline=pipeline,
+            task=task,
+            language=language,
+            metric=metric,
+            metrics=metrics,
+            group=group,
+            all_nodes=all_nodes,
+        )
+        actions = [_setup_plan_for_node(node_id, no_download=no_download) for node_id in node_ids]
+        if dry_run:
+            payload = {"status": "planned", "dry_run": True, "actions": actions}
+        else:
+            results = [_execute_setup_action(action, force=force) for action in actions]
+            failed = [item for item in results if item["status"] == "failed"]
+            payload = {
+                "status": "failed" if failed else "ok",
+                "dry_run": False,
+                "actions": results,
+            }
+    except Exception as exc:
+        _print_error(exc, json_output=json_output)
+        raise typer.Exit(1) from exc
     if json_output:
         sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
         if payload["status"] == "failed":
@@ -675,13 +726,13 @@ def _resolve_env_node_ids(
 
 
 def _node_ids_from_pipeline(pipeline: dict[str, object]) -> list[str]:
+    expected = validate_pipeline_identity(pipeline)
     known = set(iter_known_node_ids())
     node_ids = []
-    for item in pipeline.get("nodes") or ():
-        if isinstance(item, dict):
-            node_id = str(item.get("node_id") or "")
-            if node_id in known and node_id not in node_ids:
-                node_ids.append(node_id)
+    for value in expected.get("computation_node_ids") or ():
+        node_id = str(value)
+        if node_id in known and node_id not in node_ids:
+            node_ids.append(node_id)
     return node_ids
 
 

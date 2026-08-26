@@ -11,7 +11,6 @@ not for alternate backends of an existing metric.
 - Add a route in `routes.yaml`.
 - Update task pipeline dispatch and report details.
 - Document the metric in `docs/tasks/<task>.md`.
-- Update `scripts/generate_pipeline_catalog.py`.
 - Regenerate `docs/pipeline_catalog.jsonl`.
 
 ## Required Tests
@@ -20,6 +19,7 @@ not for alternate backends of an existing metric.
 - Aggregation edge cases, including missing keys and empty references when
   applicable.
 - Script and CLI `describe -> run -> report` tests.
+- CLI `metric routes` discovery and default-marker tests.
 - Report shape tests for `report.json` and `pipeline_description.json`.
 - Regression tests when replacing or aliasing old behavior.
 
