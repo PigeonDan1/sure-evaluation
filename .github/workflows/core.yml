@@ -99,21 +99,23 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Describe, plan, dry-run, and run tiny fixtures
+      - name: Discover, describe, prepare, and run tiny fixtures
         run: |
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval --help
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval doctor --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval agent plan asr --language en --metric wer --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric routes asr --language en --metric wer --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe vad --metric f1 --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe kws --metric accuracy --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env download --node scoring/dnsmos --dry-run --json
 
           tmpdir="$(mktemp -d)"
-          printf "utt1\thello world\nutt2\tthis is a test\n" > "$tmpdir/asr_ref.txt"
-          printf "utt1\thello world\nutt2\tthis is test\n" > "$tmpdir/asr_hyp.txt"
-          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe asr --language en --metric wer --output "$tmpdir/asr.json"
-          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric run --pipeline "$tmpdir/asr.json" --ref-file "$tmpdir/asr_ref.txt" --hyp-file "$tmpdir/asr_hyp.txt" --output-dir "$tmpdir/asr_out" --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe asr --pipeline-id asr.en.wer.whisper_norm_english_v1.wenet_wer_v1 --output "$tmpdir/asr.json"
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --pipeline "$tmpdir/asr.json" --dry-run --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env check --pipeline "$tmpdir/asr.json" --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric run --pipeline "$tmpdir/asr.json" --ref-file examples/readme/asr_en_ref.txt --hyp-file examples/readme/asr_en_hyp.txt --output-dir "$tmpdir/asr_out" --validate-env --json
+          python -c 'import json,sys; r=json.load(open(sys.argv[1], encoding="utf-8")); assert r["pipeline_id"] == "asr.en.wer.whisper_norm_english_v1.wenet_wer_v1"; assert r["computation_node_ids"] == ["normalization/whisper_norm", "scoring/wenet_wer"]' "$tmpdir/asr_out/report.json"
 
           printf '%s\n' '{"key":"utt1","duration":1.0,"speech_segments":[{"start":0.2,"end":0.6}]}' > "$tmpdir/vad_ref.jsonl"
           printf '%s\n' '{"key":"utt1","speech_segments":[{"start":0.2,"end":0.6}],"frame_scores":[{"start":0.0,"end":0.2,"score":0.1},{"start":0.2,"end":0.6,"score":0.9},{"start":0.6,"end":1.0,"score":0.2}]}' > "$tmpdir/vad_pred.jsonl"

@@ -2,6 +2,10 @@
 
 Evaluate multi-speaker ASR outputs. Reports cpWER as the main metric and DER as a companion metric.
 
+```bash
+sure-eval metric routes sa_asr --language en --metric cpwer
+```
+
 ## Metrics
 
 | Metric | Pipeline ID | Nodes | Params |

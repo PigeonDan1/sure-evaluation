@@ -3,6 +3,10 @@
 Evaluate voice activity detection outputs as speech time-segment detection on a
 fixed seconds timebase.
 
+```bash
+sure-eval metric routes vad --metric f1
+```
+
 ## Metrics
 
 | Canonical metric | Pipeline ID | Nodes | Higher is better |

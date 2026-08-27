@@ -21,6 +21,8 @@ category applies.
 - Keep `metric` canonical, such as `cer`, `wer`, `spk_sim`, or `dnsmos`.
 - Put method or compatibility selectors in `execution_metrics`.
 - Select same-metric variants with exact `pipeline_id`.
+- `sure-eval metric routes` must discover every registered atomic route; do not
+  maintain a second hand-written list for route variants.
 - For every node/tool/version change, update the node README using
   [Node README Template](./node_readme_template.md).
 - Do not change a default route without saying so in the PR.
@@ -45,11 +47,23 @@ PYTHONPATH=src uv run python scripts/generate_pipeline_catalog.py
 git diff -- docs/pipeline_catalog.jsonl
 ```
 
+The generator discovers atomic rows from `routes.yaml`. Only new task
+registration or a deliberately curated multi-metric bundle should require a
+generator code change.
+
 For heavyweight nodes, also run:
 
 ```bash
 sure-eval env check --node <node-id>
 sure-eval env setup --node <node-id> --dry-run
+```
+
+For route-facing changes, also verify exact selection:
+
+```bash
+sure-eval metric routes <task> --language <lang> --metric <metric> --json
+sure-eval metric describe <task> --pipeline-id <pipeline-id> --output pipeline.json
+sure-eval env setup --pipeline pipeline.json --dry-run --json
 ```
 
 ## CI Gates

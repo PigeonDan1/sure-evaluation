@@ -2,6 +2,10 @@
 
 Evaluate prompt-based spoken language understanding answers with accuracy.
 
+```bash
+sure-eval metric routes slu --metric accuracy
+```
+
 ## Metrics
 
 | Output mode | Metric | Pipeline ID | Nodes |

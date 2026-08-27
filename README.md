@@ -1,253 +1,215 @@
 <div align="center">
 
-# 🎯 SURE-EVAL
+# SURE-EVALUATION
 
-**A reproducible, version-managed evaluation framework for speech & audio tasks.**
+**Build an evaluation pipeline you can explain, reproduce, compare, and share.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Core](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml/badge.svg)](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml)
 [![GitHub stars](https://img.shields.io/github/stars/PigeonDan1/sure-evaluation.svg?style=social&label=Stars)](https://github.com/PigeonDan1/sure-evaluation/stargazers)
 
-🌐 [English](./README.md) · [中文](./README_ZH.md) · [📖 Docs](./docs/) · [🚀 Demo](https://sure-eval.com/)
+[English](./README.md) | [中文](./README_ZH.md) | [Documentation](./docs/) | [Open Bench](https://www.open-bench.net/sure)
 
 </div>
 
----
+## What SURE-EVALUATION Is
 
-## ✨ What is SURE-EVAL?
+SURE-EVALUATION is a general system evaluation framework. It integrates
+evaluation tools for tasks such as speech recognition, speech generation,
+speech enhancement, translation, classification, and language understanding,
+while turning the complete evaluation process into versioned nodes.
 
-SURE-EVAL is a **deterministic evaluation system** for speech and audio benchmarks:
+You can choose a task-specific pipeline and its tools, such as different
+normalizers, transcription models, conversions, or scoring implementations.
+Every evaluation records the full path from model output to final score and
+writes it as structured data. A result is therefore tied to the exact inputs,
+pipeline identity, node sequence, configuration, and report that produced it.
 
-- 🧩 **Pipeline routes** — every metric is a declared chain of versioned nodes.
-- 📊 **Reproducible reports** — every run writes `report.json` + `pipeline_description.json`.
-- ⚖️ **Fair comparison** — same route + same inputs always produce the same score.
+The framework uses a lightweight root package and independently managed
+optional node environments. This design supports a broad task surface without
+forcing every user to install every model and tool.
 
-Use it as a **CLI**, a **Python library**, or a module in larger agent workflows.
+## Why Use It
 
----
+- **Broad coverage:** one framework covers text, audio, generation,
+  recognition, translation, classification, and structured detection tasks.
+- **Convenient:** ask the CLI for the available pipelines and required inputs,
+  then prepare only the environment selected by the exact pipeline.
+- **Trustworthy and reviewable:** each run records `pipeline_id`, ordered
+  computation nodes, input contracts, and structured output artifacts.
+- **Comparable:** results can be compared against the same explicit evaluation
+  definition instead of an ambiguous metric label.
+- **Customizable:** the same metric can have several registered routes, so you
+  can select a different normalizer, model, backend, or score implementation
+  without renaming the metric.
 
-## 🚀 30-Second Quick Start
+## How A Pipeline Works
 
-```bash
-# Clone and install the lightweight base package
-git clone https://github.com/PigeonDan1/sure-evaluation.git
-cd sure-evaluation
-pip install -e .
-
-# Check the installation
-sure-eval doctor
-
-# Prepare a tiny text-only ASR demo
-printf "utt1\thello world\nutt2\tthis is a test\n" > /tmp/sure_ref.txt
-printf "utt1\thello world\nutt2\tthis is test\n" > /tmp/sure_hyp.txt
-
-# Inspect, describe, and run an in-process ASR metric
-sure-eval agent plan asr --language en --metric wer --json
-sure-eval metric describe asr --language en --metric wer --output /tmp/asr.json
-sure-eval metric run --pipeline /tmp/asr.json \
-  --ref-file /tmp/sure_ref.txt --hyp-file /tmp/sure_hyp.txt --output-dir /tmp/asr_eval
-
-# View the score
-cat /tmp/asr_eval/report.json | grep score
-```
-
-Input files are tab-separated: `<key>\t<text>`.
-
----
-
-## 📋 Supported Tasks
-
-| Task | Metrics | Notes | Guide |
-|:-----|:--------|:------|:------|
-| **ASR** | WER, CER, MER | Text-only; canonical, multilingual FunASR ITN, and Arabic NeMo TN routes have optional setup | [docs/tasks/asr.md](./docs/tasks/asr.md) |
-| **S2TT** | BLEU, chrF2, XCOMET-XL, BLEURT-20 | Base + optional heavy metrics | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
-| **SD** | DER | Requires `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
-| **SA-ASR** | cpWER, DER | Requires `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
-| **TTS** | CER/WER, speaker similarity, MOS | Optional transcription + scoring nodes | [docs/tasks/tts.md](./docs/tasks/tts.md) |
-| **VC** | CER/WER, speaker similarity, MOS | Optional transcription + scoring nodes | [docs/tasks/vc.md](./docs/tasks/vc.md) |
-| **SE** | SI-SDR, STOI, PESQ, MOS | Full-reference + no-reference enhancement quality | [docs/tasks/se.md](./docs/tasks/se.md) |
-| **TSE** | SI-SDR, speaker similarity, MOS, WER/CER | Signal + optional sim/MOS/ASR nodes | [docs/tasks/tse.md](./docs/tasks/tse.md) |
-| **Classification / SER / GR** | Accuracy | Text-only, base install | [docs/tasks/classification.md](./docs/tasks/classification.md) |
-| **SLU** | Accuracy | Text-only, base install | [docs/tasks/slu.md](./docs/tasks/slu.md) |
-| **KWS** | accuracy, macro_recall, precision, recall, F1, FRR, FAR | Base + optional node | [docs/tasks/kws.md](./docs/tasks/kws.md) |
-| **VAD** | F1, p_fa, p_miss, dcf_nist, AUC-ROC | Segment/timebase JSONL, base install | [docs/tasks/vad.md](./docs/tasks/vad.md) |
-
-Each guide lists the exact pipeline IDs, nodes, input formats, and CLI examples.
-
-For a machine-readable catalog of every metric → pipeline → node mapping, see [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) and [docs/pipeline_catalog.md](./docs/pipeline_catalog.md).
-For agent-facing route and environment readiness, see [docs/agent_contract.md](./docs/agent_contract.md).
-Route variants with the same reported metric, such as ASR normalization
-variants, TTS Qwen3-ASR CER/WER, or `spk_sim` provider variants, are selected
-by exact `pipeline_id`.
-
-Click any task in the CLI for its route:
-
-```bash
-sure-eval metric describe <task> --help
-```
-
----
-
-## 🛠️ Installing Optional Parts
-
-```bash
-# From a source checkout; the package is not currently published to PyPI.
-git clone https://github.com/PigeonDan1/sure-evaluation.git
-cd sure-evaluation
-pip install -e .
-
-# Development
-pip install -e ".[dev]"
-
-# Optional extras, from the repository root
-pip install -e ".[diarization]"  # MeetEval for SD / SA-ASR
-pip install -e ".[audio]"        # Local audio helpers
-pip install -e ".[download]"     # Hugging Face / ModelScope download helpers
-pip install -e ".[wetext]"       # compatibility no-op; wetext_norm uses node-local uv
-pip install -e ".[canonical]"    # canonical ASR CER/MER/WER routes
-
-# Put caches on a large disk
-export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
-```
-
-Prepare a heavy metric environment:
-
-```bash
-sure-eval env list
-sure-eval env setup --task asr --language zh --metric cer --dry-run
-sure-eval agent plan asr --language es --metric wer --json
-sure-eval env setup --node normalization/funasr_itn --dry-run
-sure-eval agent plan asr --language ar --metric cer --json
-sure-eval env setup --node normalization/nemo_norm --dry-run
-sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
-sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
-sure-eval env setup --task tts --language zh --metrics cer,dnsmos
-```
-
-See [docs/installation.md](docs/installation.md) and [docs/environment.md](docs/environment.md) for details.
-
----
-
-## 📑 Pipeline Catalog
-
-SURE-EVAL exposes every metric as a declarative pipeline. The machine-readable
-catalog maps each supported `task + language + metric` to its selected nodes,
-required input roles, relative route config paths, and Python entrypoints:
-
-- [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) — one JSON object per line
-- [docs/pipeline_catalog.md](./docs/pipeline_catalog.md) — schema and usage notes
-
-`pipeline_id` names the computation as `task.language.metric.node_version...`.
-`metric` is the canonical reported metric (`cer`, `wer`, `spk_sim`, `wv_mos`,
-`macro_recall`, etc.). `execution_metrics` records accepted CLI/API selectors
-when a task needs a compatibility alias or method-specific selector such as
-`tts_cer`, `sim/wavlm-large`, or `wv-mos`. Bundle rows use
-`pipeline_kind=bundle` and list atomic members in `member_pipeline_ids`.
-`task_config_path` and `route_config_path` are repository-relative paths;
-`script_entrypoint` and `executor` link the route to runnable code.
-When a pipeline JSON contains an exact `pipeline_id`,
-`sure-eval metric run --pipeline ...` executes that selected route and rejects reports whose
-`pipeline_id`, `pipeline_kind`, member IDs, or computation nodes diverge from
-the description.
-
-Example entries:
-
-```json
-{
-  "task": "ASR",
-  "language": "zh",
-  "metric": "cer",
-  "pipeline_id": "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
-  "pipeline_kind": "atomic",
-  "member_pipeline_ids": [],
-  "execution_metrics": ["cer"],
-  "nodes": ["normalization/wetext_norm", "scoring/wenet_cer"],
-  "computation_node_ids": ["normalization/wetext_norm", "scoring/wenet_cer"],
-  "task_config_path": "src/sure_eval/evaluation/tasks/asr/manifest.yaml",
-  "route_config_path": "src/sure_eval/evaluation/tasks/asr/routes.yaml",
-  "describe_entrypoint": "sure_eval.evaluation.scripts.asr.describe_pipeline",
-  "script_entrypoint": "sure_eval.evaluation.scripts.asr.run",
-  "executor": "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files",
-  "required_roles": ["hyp", "ref"]
-}
-```
-
-Regenerate it after adding new routes:
-
-```bash
-python scripts/generate_pipeline_catalog.py
-```
-
----
-
-## 🐍 Python API
-
-```python
-from sure_eval.evaluation.scripts import describe_pipeline, run_task
-
-# Inspect the route
-desc = describe_pipeline("asr", language="zh", metric="cer")
-print(desc.node_ids)
-# ('normalization/wetext_norm', 'scoring/wenet_cer')
-
-# Run and get a report
-report = run_task(
-    "asr",
-    ref_file="ref.txt",
-    hyp_file="hyp.txt",
-    language="zh",
-    metric="cer",
-    output_dir="/tmp/asr_eval",
-)
-print(report.score)
-```
-
-Legacy one-liner:
-
-```python
-from sure_eval.evaluation import SUREEvaluator
-
-evaluator = SUREEvaluator(language="zh")
-print(evaluator.evaluate("asr", "ref.txt", "hyp.txt")["cer"])
-```
-
----
-
-## 🏗️ Design at a Glance
+SURE-EVALUATION treats every score-affecting step as a node:
 
 ```text
-User request
-    │
-    ▼
-sure-eval metric describe  ──►  pipeline JSON (route + nodes)
-    │
-    ▼
-sure-eval metric run       ──►  report.json + pipeline_description.json
+model output
+    -> validation / conversion
+    -> transcription / normalization
+    -> scoring
+    -> report.json + pipeline_description.json
 ```
 
-Every metric is a **route**: a declared combination of task, language, and versioned nodes. Routes live in `tasks/<task>/routes.yaml`; node metadata lives in `nodes/<stage>/<name>/manifest.yaml` and `node_env.yaml`.
+A `pipeline_id` names an exact computation as
+`task.language.metric.node_version...`. For example:
 
-This makes every score traceable to the exact code, config, and inputs that produced it.
+```text
+asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
+```
 
----
+`metric` stays globally canonical, such as `wer`, `cer`, `spk_sim`, `dnsmos`,
+`wv_mos`, or `utmos`. When two routes report the same metric, their
+`pipeline_id` differs because their node chain differs. Multi-metric requests
+are bundles whose identities contain their atomic member pipelines.
 
-## 🤝 How to Contribute
+## Quick Start
 
-Start with [docs/contributing.md](docs/contributing.md). It routes each PR type
-to the right short guide:
+SURE-EVALUATION is currently installed from source, not from PyPI. The commands
+below create an isolated environment and run a committed, text-only ASR example
+that does not download a model or create a node-local environment.
 
-- new task
-- new metric
-- new pipeline route
-- node/tool/version change
-- maintenance
+```bash
+git clone https://github.com/PigeonDan1/sure-evaluation.git
+cd sure-evaluation
 
-Use [docs/add_a_metric.md](docs/add_a_metric.md) only when the category is
-unclear.
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip check
+sure-eval doctor
+```
 
----
+Discover all English ASR WER routes. The table marks the default, prints every
+exact `pipeline_id`, shows the ordered computation nodes and required inputs,
+and identifies optional setup:
 
-## 📄 License
+```bash
+sure-eval metric routes asr --language en --metric wer
+```
+
+Select one exact route and write its executable pipeline JSON:
+
+```bash
+sure-eval metric describe asr \
+  --pipeline-id asr.en.wer.whisper_norm_english_v1.wenet_wer_v1 \
+  --output .sure-eval-demo/pipeline.json
+```
+
+Inspect the setup plan and validate only the environments used by that exact
+pipeline:
+
+```bash
+sure-eval env setup --pipeline .sure-eval-demo/pipeline.json --dry-run
+sure-eval env check --pipeline .sure-eval-demo/pipeline.json
+```
+
+Run the pipeline and inspect the structured report:
+
+```bash
+sure-eval metric run \
+  --pipeline .sure-eval-demo/pipeline.json \
+  --ref-file examples/readme/asr_en_ref.txt \
+  --hyp-file examples/readme/asr_en_hyp.txt \
+  --output-dir .sure-eval-demo/asr-en-wer \
+  --validate-env
+
+python -m json.tool .sure-eval-demo/asr-en-wer/report.json
+python -m json.tool .sure-eval-demo/asr-en-wer/pipeline_description.json
+```
+
+The same exact `pipeline_id` appears in the discovery result, pipeline JSON,
+run summary, `report.json`, and `pipeline_description.json`.
+
+## Select And Prepare Other Pipelines
+
+Use canonical metric names to discover alternatives, then copy the exact
+`pipeline_id` you intend to run:
+
+```bash
+# Three Mandarin ASR CER normalization/scoring routes
+sure-eval metric routes asr --language zh --metric cer
+
+# Three TTS speaker-similarity backends
+sure-eval metric routes tts --language zh --metric spk_sim
+
+# Three KWS input contracts for the same macro_recall metric
+sure-eval metric routes kws --metric macro_recall
+
+# Stable machine-readable discovery output
+sure-eval metric routes tts --language zh --metric cer --json
+```
+
+For a pipeline with optional models or tools, prepare only its declared nodes:
+
+```bash
+sure-eval metric describe tts \
+  --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
+  --output .sure-eval-demo/tts-qwen.json
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json --dry-run
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json
+sure-eval env download --node transcription/qwen3_asr_1_7b --dry-run
+sure-eval env download --node transcription/qwen3_asr_1_7b
+sure-eval env check --pipeline .sure-eval-demo/tts-qwen.json
+```
+
+See [Installation](docs/installation.md) and
+[Environment Management](docs/environment.md) before running heavyweight
+nodes. Environment setup installs declared tools; model assets are downloaded
+separately and should be reviewed with `env download --dry-run`. Checkpoints,
+caches, and node-local virtual environments remain local and are excluded from
+packages and Git.
+
+## Supported Tasks
+
+| Task | Canonical metrics | Guide |
+|:--|:--|:--|
+| ASR | WER, CER, MER | [ASR](docs/tasks/asr.md) |
+| S2TT | BLEU, BLEU-char, chrF, XCOMET-XL, BLEURT-20 | [S2TT](docs/tasks/s2tt.md) |
+| SD | DER | [SD](docs/tasks/sd.md) |
+| SA-ASR | cpWER, DER companion result | [SA-ASR](docs/tasks/sa_asr.md) |
+| TTS | CER, WER, speaker similarity, DNSMOS, WV-MOS, UTMOS | [TTS](docs/tasks/tts.md) |
+| VC | CER, WER, speaker similarity, DNSMOS, WV-MOS, UTMOS | [VC](docs/tasks/vc.md) |
+| SE | SI-SDR, STOI, PESQ, DNSMOS, WV-MOS, UTMOS | [SE](docs/tasks/se.md) |
+| TSE | SI-SDR, speaker similarity, DNSMOS, WV-MOS, UTMOS, CER, WER | [TSE](docs/tasks/tse.md) |
+| Classification / SER / GR | Accuracy | [Classification](docs/tasks/classification.md) |
+| SLU | Accuracy | [SLU](docs/tasks/slu.md) |
+| KWS | Accuracy, macro recall, precision, recall, F1, FRR, FAR | [KWS](docs/tasks/kws.md) |
+| VAD | F1, false alarm, miss, NIST DCF, ROC AUC | [VAD](docs/tasks/vad.md) |
+
+Each task guide defines its input contract, registered metrics, exact pipeline
+IDs, nodes, and run examples. The generated
+[pipeline catalog](docs/pipeline_catalog.md) contains all registered atomic
+route instances for declared language profiles plus curated multi-metric
+bundles.
+
+## Customize And Share
+
+Routes are declared in
+`src/sure_eval/evaluation/tasks/<task>/routes.yaml`. Node metadata lives in
+`src/sure_eval/evaluation/nodes/<stage>/<name>/manifest.yaml`; optional runtime
+requirements live beside it in `node_env.yaml`. Adding a route changes routing
+and identity metadata, while its computation remains owned by its versioned
+nodes.
+
+To contribute a task, metric, route, or node tool, start with
+[Contributing](docs/contributing.md). It directs each PR type to a focused
+manual and the repository PR template. Agents should also follow the
+[Agent Contract](docs/agent_contract.md).
+
+Community pipelines can be shared and explored on
+[Open Bench](https://www.open-bench.net/sure), where usage and community
+feedback help collaborators identify widely adopted evaluation routes.
+
+Create an evaluation pipeline that is truly yours, then make it reviewable and
+shareable.
+
+## License
 
 MIT License. See [LICENSE](LICENSE).

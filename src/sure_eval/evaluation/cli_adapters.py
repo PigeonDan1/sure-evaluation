@@ -8,8 +8,11 @@ from typing import Any
 
 from sure_eval.evaluation.scripts import describe_pipeline, run_task
 from sure_eval.evaluation.scripts.contracts import (
+    NODES_ROOT,
     load_task_routes,
+    load_yaml,
 )
+from sure_eval.evaluation.pipeline_identity import canonical_metric
 
 ROLE_TO_CLI_ARG = {
     "ref": "ref_file",
@@ -41,6 +44,9 @@ ENVIRONMENT_NOTE = (
 AUDIO_SAMPLE_TASKS = {"tts", "vc", "se", "speech_enhancement", "tse"}
 SE_TASKS = {"se", "speech_enhancement"}
 SE_DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
+PIPELINE_SCHEMA = "sure.metric.pipeline.v1"
+ROUTE_LIST_SCHEMA = "sure.metric.routes.v1"
+OPTIONAL_RUNTIME_TYPES = {"binary", "pip", "uv"}
 
 
 def build_pipeline_spec(
@@ -84,7 +90,7 @@ def build_pipeline_spec(
     )
 
     payload = {
-        "schema": "sure.metric.pipeline.v1",
+        "schema": PIPELINE_SCHEMA,
         "task": normalized_task,
         "task_alias": task,
         "language": description.language,
@@ -114,6 +120,251 @@ def build_pipeline_spec(
     return payload
 
 
+def list_metric_routes(
+    task: str,
+    *,
+    language: str | None = None,
+    metric: str | None = None,
+) -> dict[str, Any]:
+    """List exact atomic routes registered for one task selection."""
+
+    requested_task = normalize_task(task)
+    route_task = TASK_ALIASES.get(requested_task, requested_task)
+    routes, _ = load_task_routes(route_task)
+    requested_language = _normalize_language_filter(language)
+    requested_metric = canonical_metric(metric) if metric else None
+    language_sensitive = bool(routes.get("language_sensitive", False))
+    if not language_sensitive and requested_language not in {None, "n/a"}:
+        raise ValueError(f"Task {task!r} is language-independent; omit --language or use any")
+    matched: list[tuple[dict[str, Any], str]] = []
+    unresolved_template = False
+
+    for configured_route in routes.get("routes") or ():
+        route = dict(configured_route)
+        if not _route_matches_task_alias(route, requested_task):
+            continue
+        if requested_metric and canonical_metric(str(route.get("metric") or "")) != requested_metric:
+            continue
+        route_language = _concrete_route_language(
+            route,
+            requested_language=requested_language,
+            language_sensitive=language_sensitive,
+        )
+        if route_language is None:
+            unresolved_template = True
+            continue
+        if not _route_matches_language(route, requested_language):
+            continue
+        pipeline_id = str(route["pipeline_id"]).format(language=route_language)
+        matched.append((route, pipeline_id))
+
+    if unresolved_template and requested_language is None:
+        raise ValueError(
+            f"Task {task!r} has language-templated routes; pass --language to obtain exact "
+            "pipeline IDs"
+        )
+    if not matched:
+        filters = []
+        if language:
+            filters.append(f"language={language}")
+        if metric:
+            filters.append(f"metric={metric}")
+        suffix = f" ({', '.join(filters)})" if filters else ""
+        raise ValueError(f"No configured routes found for task {task!r}{suffix}")
+
+    entries: list[dict[str, Any]] = []
+    for route, pipeline_id in matched:
+        spec = build_pipeline_spec(task, pipeline_id=pipeline_id)
+        default_pipeline_id = _default_pipeline_id(
+            task,
+            language=str(spec.get("language") or "n/a"),
+            metric=str(spec["metric"]),
+        )
+        environments = _declared_route_environments(spec["computation_node_ids"])
+        entries.append(
+            {
+                "default": pipeline_id == default_pipeline_id,
+                "pipeline_id": pipeline_id,
+                "language": spec["language"],
+                "metric": spec["metric"],
+                "computation_node_ids": list(spec["computation_node_ids"]),
+                "required_roles": list(spec["required_roles"]),
+                "optional_roles": list(spec["optional_roles"]),
+                "input_contract": route.get("input_contract"),
+                "selectors": _route_selectors(route),
+                "environments": environments,
+                "setup_node_ids": [
+                    item["node_id"] for item in environments if item["setup_required"]
+                ],
+                "route_config_path": spec["route_config_path"],
+            }
+        )
+
+    default_ids = [entry["pipeline_id"] for entry in entries if entry["default"]]
+    return {
+        "schema": ROUTE_LIST_SCHEMA,
+        "task": requested_task,
+        "language": requested_language,
+        "metric": requested_metric,
+        "count": len(entries),
+        "default_pipeline_id": default_ids[0] if len(default_ids) == 1 else None,
+        "default_pipeline_ids": default_ids,
+        "routes": entries,
+    }
+
+
+def validate_pipeline_identity(pipeline: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild and validate the route identity declared by a pipeline JSON."""
+
+    if pipeline.get("schema") != PIPELINE_SCHEMA:
+        raise ValueError(f"Unsupported pipeline schema: {pipeline.get('schema')!r}")
+    task = str(pipeline.get("task_alias") or pipeline.get("task") or "").strip()
+    pipeline_id = str(pipeline.get("pipeline_id") or "").strip()
+    if not task or not pipeline_id:
+        raise ValueError("Pipeline JSON requires task and pipeline_id")
+
+    if pipeline.get("pipeline_kind") == "bundle":
+        metrics = [str(item) for item in pipeline.get("metrics") or ()]
+        if len(metrics) < 2:
+            raise ValueError("Bundle pipeline JSON requires at least two metrics")
+        expected = build_pipeline_spec(
+            task,
+            language=str(pipeline.get("language") or "n/a"),
+            metric=",".join(metrics),
+        )
+    else:
+        expected = build_pipeline_spec(task, pipeline_id=pipeline_id)
+
+    comparisons = {
+        "pipeline_id": str(pipeline.get("pipeline_id") or ""),
+        "pipeline_kind": str(pipeline.get("pipeline_kind") or ""),
+        "member_pipeline_ids": list(pipeline.get("member_pipeline_ids") or ()),
+        "computation_node_ids": list(pipeline.get("computation_node_ids") or ()),
+    }
+    for field, actual in comparisons.items():
+        expected_value = expected[field]
+        if actual != expected_value:
+            raise ValueError(
+                f"Pipeline identity mismatch for {field}: expected {expected_value!r}, "
+                f"found {actual!r}"
+            )
+
+    actual_node_ids = [
+        str(item.get("node_id") or "")
+        for item in pipeline.get("nodes") or ()
+        if isinstance(item, dict)
+    ]
+    expected_node_ids = [str(item["node_id"]) for item in expected["nodes"]]
+    if actual_node_ids != expected_node_ids:
+        raise ValueError(
+            f"Pipeline identity mismatch for nodes: expected {expected_node_ids!r}, "
+            f"found {actual_node_ids!r}"
+        )
+    for slot in pipeline.get("pipeline") or ():
+        selected = slot.get("selected")
+        selected_node = slot.get("default") if selected == "default" else selected
+        if selected_node != slot.get("default"):
+            raise ValueError(
+                "Exact pipeline JSON cannot switch nodes in place; select the registered "
+                "pipeline_id for the required node chain"
+            )
+    return expected
+
+
+def _normalize_language_filter(language: str | None) -> str | None:
+    if language is None:
+        return None
+    normalized = language.strip().lower().replace("-", "_")
+    return "n/a" if normalized in {"any", "n/a", "none"} else normalized
+
+
+def _route_matches_task_alias(route: dict[str, Any], requested_task: str) -> bool:
+    route_alias = route.get("task_alias")
+    if route_alias is None:
+        return True
+    return normalize_task(str(route_alias)) == requested_task
+
+
+def _route_matches_language(route: dict[str, Any], requested_language: str | None) -> bool:
+    if requested_language is None:
+        return True
+    route_language = route.get("language")
+    if route_language is None:
+        return True
+    return _normalize_language_filter(str(route_language)) == requested_language
+
+
+def _concrete_route_language(
+    route: dict[str, Any],
+    *,
+    requested_language: str | None,
+    language_sensitive: bool,
+) -> str | None:
+    route_language = route.get("language")
+    if route_language is not None:
+        return str(route_language).lower()
+    pipeline_id = str(route.get("pipeline_id") or "")
+    if "{language}" not in pipeline_id:
+        return "n/a"
+    if requested_language and requested_language != "n/a":
+        return requested_language
+    if language_sensitive:
+        return None
+    return "n/a"
+
+
+def _default_pipeline_id(task: str, *, language: str, metric: str) -> str:
+    try:
+        return str(build_pipeline_spec(task, language=language, metric=metric)["pipeline_id"])
+    except (KeyError, TypeError, ValueError):
+        return ""
+
+
+def _route_selectors(route: dict[str, Any]) -> dict[str, Any]:
+    structural_fields = {
+        "aliases",
+        "computation_nodes",
+        "executor",
+        "executor_metric",
+        "family",
+        "input_contract",
+        "internal_executor_metric",
+        "language",
+        "metric",
+        "nodes",
+        "pipeline_id",
+        "task_alias",
+    }
+    return {key: value for key, value in route.items() if key not in structural_fields}
+
+
+def _declared_route_environments(node_ids: list[str]) -> list[dict[str, Any]]:
+    environments: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for node_id in node_ids:
+        if node_id in seen:
+            continue
+        seen.add(node_id)
+        if node_id.startswith("conversion/"):
+            runtime_type = "in_process"
+            node_env: dict[str, Any] = {}
+        else:
+            stage, name = node_id.split("/", 1)
+            node_env_path = NODES_ROOT / stage / name / "node_env.yaml"
+            node_env = load_yaml(node_env_path) if node_env_path.is_file() else {}
+            runtime = node_env.get("runtime") if isinstance(node_env.get("runtime"), dict) else {}
+            runtime_type = str(runtime.get("type") or "in_process")
+        environments.append(
+            {
+                "node_id": node_id,
+                "runtime": runtime_type,
+                "setup_required": runtime_type in OPTIONAL_RUNTIME_TYPES,
+                "group": str(node_env.get("group") or ""),
+            }
+        )
+    return environments
+
+
 def run_pipeline_spec(
     pipeline: dict[str, Any],
     *,
@@ -139,6 +390,7 @@ def run_pipeline_spec(
     if not output_dir:
         raise ValueError("output_dir is required")
     validate_pipeline_selection(pipeline)
+    validate_pipeline_identity(pipeline)
     task = normalize_task(str(pipeline["task"]))
     kwargs = _run_kwargs_from_pipeline(pipeline)
     cli_values = {
@@ -308,6 +560,8 @@ def _describe_kwargs(
 def _route_choices(routes: dict[str, Any], *, language: str | None = None) -> list[dict[str, Any]]:
     choices = []
     for route in routes.get("routes") or ():
+        if language and route.get("language") and route["language"] != language:
+            continue
         route_language = route.get("language") or language or "n/a"
         pipeline_id = route.get("pipeline_id")
         choices.append(

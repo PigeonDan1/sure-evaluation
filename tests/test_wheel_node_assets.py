@@ -41,3 +41,20 @@ def test_wheel_node_assets_rejects_local_runtime(tmp_path: Path) -> None:
         "wheel contains node runtime asset: "
         "sure_eval/evaluation/nodes/normalization/example/runtime/generated.py"
     ]
+
+
+def test_wheel_node_assets_reports_missing_whisper_static_data(tmp_path: Path) -> None:
+    wheel = tmp_path / "missing_whisper_data.whl"
+    _write_wheel(wheel, include_lock=True)
+    with zipfile.ZipFile(wheel, "a") as archive:
+        archive.writestr(
+            "sure_eval/evaluation/nodes/normalization/whisper_norm/manifest.yaml",
+            "id: normalization/whisper_norm\n",
+        )
+
+    assert missing_node_assets(wheel) == [
+        "sure_eval/evaluation/nodes/normalization/whisper_norm/manifest.yaml: "
+        "missing english.json",
+        "sure_eval/evaluation/nodes/normalization/whisper_norm/manifest.yaml: "
+        "missing LICENSE.openai-whisper",
+    ]

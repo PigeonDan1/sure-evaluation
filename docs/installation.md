@@ -1,53 +1,66 @@
 # Installation
 
-## Base Package
+## Requirements
+
+- Python 3.10 or newer
+- Git
+- `uv` only when a selected optional node declares a uv-managed environment
+
+SURE-EVALUATION is currently installed from source and is not published to
+PyPI.
+
+## Clean Base Installation
 
 ```bash
 git clone https://github.com/PigeonDan1/sure-evaluation.git
 cd sure-evaluation
-pip install -e .
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip check
 sure-eval doctor
-printf "utt1\thello world\nutt2\tthis is a test\n" > /tmp/sure_ref.txt
-printf "utt1\thello world\nutt2\tthis is test\n" > /tmp/sure_hyp.txt
-sure-eval agent plan asr --language en --metric wer --json
-sure-eval metric describe asr --language en --metric wer --output /tmp/asr.json
-sure-eval metric run --pipeline /tmp/asr.json \
-  --ref-file /tmp/sure_ref.txt --hyp-file /tmp/sure_hyp.txt --output-dir /tmp/asr_eval
 ```
 
-The project is not currently published to PyPI. Install from a source checkout.
+The root package provides CLI routing, contracts, reporting, normalization,
+and lightweight metrics. It does not download model weights or create every
+optional node environment during installation.
 
-For local development, use the development extra from the repository root:
+Run the committed base smoke example:
 
 ```bash
-pip install -e ".[dev]"
+sure-eval metric routes asr --language en --metric wer
+sure-eval metric describe asr \
+  --pipeline-id asr.en.wer.whisper_norm_english_v1.wenet_wer_v1 \
+  --output .sure-eval-demo/pipeline.json
+sure-eval env setup --pipeline .sure-eval-demo/pipeline.json --dry-run
+sure-eval env check --pipeline .sure-eval-demo/pipeline.json
+sure-eval metric run \
+  --pipeline .sure-eval-demo/pipeline.json \
+  --ref-file examples/readme/asr_en_ref.txt \
+  --hyp-file examples/readme/asr_en_hyp.txt \
+  --output-dir .sure-eval-demo/asr-en-wer \
+  --validate-env
 ```
 
-The base package is intentionally lightweight. It must support route inspection,
-normalization, reporting, and lightweight metrics without downloading model
-weights or creating node-local environments.
-
-Mandarin ASR CER selects `normalization/wetext_norm` (`zh_itn`) by default.
-That node owns its pinned WeTextProcessing/Pynini environment under
-`src/sure_eval/evaluation/nodes/normalization/wetext_norm/`.
-The base smoke test above uses English ASR WER because it runs entirely
-in-process and does not require a node-local uv environment.
-
-Optional extras:
+## Development Installation
 
 ```bash
-pip install -e ".[audio]"        # local audio helpers
-pip install -e ".[download]"     # Hugging Face / ModelScope asset download helpers
-pip install -e ".[diarization]"  # MeetEval for SD and SA-ASR
-pip install -e ".[wetext]"       # compatibility no-op; wetext_norm uses node-local uv
-pip install -e ".[canonical]"    # canonical ASR CER/MER/WER routes
+python -m pip install -e ".[dev]"
 ```
 
-For maintainers:
+Optional root extras are installed only when needed:
 
 ```bash
-pip install -e ".[dev,audio,download,diarization,wetext,canonical]"
+python -m pip install -e ".[audio]"        # local audio helpers
+python -m pip install -e ".[download]"     # Hugging Face / ModelScope downloads
+python -m pip install -e ".[diarization]"  # MeetEval for SD and SA-ASR
+python -m pip install -e ".[canonical]"    # canonical ASR normalization routes
 ```
+
+The `wetext` extra is retained as a compatibility no-op. The actual
+`normalization/wetext_norm` dependencies are owned by its node-local uv
+project.
 
 ## Optional Cache Root
 
@@ -55,40 +68,46 @@ pip install -e ".[dev,audio,download,diarization,wetext,canonical]"
 export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
 ```
 
-If unset, SURE-EVAL uses `~/.cache/sure-eval`.
+If unset, SURE-EVALUATION uses `~/.cache/sure-eval`.
 
 ## Optional Node Environments
 
+Select an exact route before preparing heavyweight dependencies:
+
 ```bash
-sure-eval agent plan asr --language zh --metric cer --json
-sure-eval env setup --task asr --language zh --metric cer --dry-run
-sure-eval agent plan tts --language zh --metrics cer,dnsmos --json
-sure-eval env list
-sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
-sure-eval env check --task tts --language zh --metrics cer,dnsmos
-sure-eval agent plan tts \
+sure-eval metric routes tts --language zh --metric cer
+sure-eval metric describe tts \
   --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
-  --json
-sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
-sure-eval agent plan asr --language es --metric wer --json
-sure-eval env setup --node normalization/funasr_itn --dry-run
-sure-eval agent plan asr --language ar --metric cer --json
-sure-eval env setup --node normalization/nemo_norm --dry-run
+  --output .sure-eval-demo/tts-qwen.json
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json --dry-run
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json
+sure-eval env download --node transcription/qwen3_asr_1_7b --dry-run
+sure-eval env download --node transcription/qwen3_asr_1_7b
+sure-eval env check --pipeline .sure-eval-demo/tts-qwen.json
 ```
 
-Node environments are declared by `node_env.yaml` files under
-`src/sure_eval/evaluation/nodes/**`.
-Heavy transcription alternatives such as `transcription/qwen3_asr_1_7b`
-declare their own node-local uv project and checkpoint target.
+The pipeline JSON is validated against the registered route before setup.
+SURE-EVALUATION rejects a stale or edited identity whose pipeline ID, bundle
+members, computation nodes, or node descriptions no longer match the route.
+
+You may still inspect or prepare one node directly:
+
+```bash
+sure-eval env list
+sure-eval env setup --node normalization/funasr_itn --dry-run
+sure-eval env setup --node normalization/nemo_norm --dry-run
+sure-eval env setup --node scoring/dnsmos --dry-run
+```
+
 Multilingual ASR routes for `ja`, `ko`, `es`, `fr`, `de`, `ru`, `pt`, `vi`,
-`id`, and `tl` use the optional `normalization/funasr_itn` node. Its setup uses
-the committed dependency lock and fetches an immutable FunASR source revision.
-Arabic CER uses the optional `normalization/nemo_norm` node with profile
-`ar_tn`. Its Python 3.11 environment installs `nemo-text-processing==1.2.0`
-from a committed uv lock; no checkpoint, GPU, or API key is required.
-`sure-eval doctor` checks the base installation by default; use
-`sure-eval doctor --optional-nodes`, `sure-eval env check --all`, or a
-task/pipeline-specific `sure-eval env check ...` command when you want optional
-node-local environment diagnostics.
-For agent-facing route and environment readiness, see
-[`docs/agent_contract.md`](agent_contract.md).
+`id`, and `tl` use the optional `normalization/funasr_itn` node. Arabic CER
+uses `normalization/nemo_norm` with the `ar_tn` profile. Heavy transcription,
+speaker similarity, learned translation, and MOS nodes declare their own
+runtime and asset requirements in `node_env.yaml`.
+
+`env setup` installs the declared environment or tool. It does not implicitly
+download model assets. Use `env download --dry-run` to review providers and
+targets, then run the corresponding `env download` command when supported.
+
+See [Environment Management](environment.md) for runtime details and
+[Agent Contract](agent_contract.md) for machine-readable planning.

@@ -13,14 +13,15 @@ alignment semantics, aggregation policy, or report structure.
 - Add `node_env.yaml` for heavyweight dependencies, binaries, models, or
   checkpoints.
 - Add `docs/tasks/<task>.md` and link it from `docs/tasks/README.md`.
-- Update `README.md`, `README_ZH.md`, and `scripts/generate_pipeline_catalog.py`.
+- Update `README.md` and `README_ZH.md`, and register the task in the catalog
+  generator's discovery task list.
 - Regenerate `docs/pipeline_catalog.jsonl`.
 
 ## Required Tests
 
 - Task pipeline tests on small fixtures.
 - Script `describe_pipeline` and `run_task` tests.
-- CLI `metric describe -> metric run` tests.
+- CLI `metric routes -> metric describe -> metric run` tests.
 - Input contract tests for missing and malformed roles.
 - Env check tests for node-local environments.
 

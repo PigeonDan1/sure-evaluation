@@ -2,6 +2,10 @@
 
 Evaluate converted speech for content preservation, speaker similarity, and quality.
 
+```bash
+sure-eval metric routes vc --language zh --metric spk_sim
+```
+
 ## Metrics
 
 ### Semantic error rate

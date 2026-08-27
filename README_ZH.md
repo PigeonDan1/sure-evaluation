@@ -1,250 +1,200 @@
 <div align="center">
 
-# 🎯 SURE-EVAL
+# SURE-EVALUATION
 
-**面向语音与音频任务的可复现、版本化管理评测框架**
+**创建可解释、可复现、可比较、可共享的评估链路。**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Core](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml/badge.svg)](https://github.com/PigeonDan1/sure-evaluation/actions/workflows/core.yml)
 [![GitHub stars](https://img.shields.io/github/stars/PigeonDan1/sure-evaluation.svg?style=social&label=Stars)](https://github.com/PigeonDan1/sure-evaluation/stargazers)
 
-🌐 [English](./README.md) · [中文](./README_ZH.md) · [📖 文档](./docs/) · [🚀 Demo](https://sure-eval.com/)
+[English](./README.md) | [中文](./README_ZH.md) | [文档](./docs/) | [Open Bench](https://www.open-bench.net/sure)
 
 </div>
 
----
+## SURE-EVALUATION 是什么
 
-## ✨ SURE-EVAL 是什么？
+SURE-EVALUATION 是一个通用的系统评估框架。它不仅集成了语音识别、
+语音生成、语音增强、翻译、分类、语言理解等任务及其对应指标的评估工具，
+同时将完整的评估过程节点化并进行版本管理。
 
-SURE-EVAL 是一个面向语音与音频基准测试的**确定性评测系统**：
+你可以针对具体任务选择个性化的评估链路和节点工具，例如不同的
+normalization、转录模型、格式转换或评分脚本。每一次评估都是一条从模型
+输出到最终分数的完整链路，每个环节都会被严格记录并结构化展现。因此，
+一个结果总能对应到产生它的确切输入、pipeline identity、节点顺序、配置和
+报告。
 
-- 🧩 **流水线路由（Route）** —— 每个指标都是一条声明好的、由版本化节点组成的链。
-- 📊 **可复现报告** —— 每次运行都会生成 `report.json` + `pipeline_description.json`。
-- ⚖️ **公平比较** —— 相同路由 + 相同输入永远得到相同分数。
+框架采用轻量根包和独立可选节点环境的设计。它在支持广泛任务和工具的
+同时，不会要求每位使用者安装所有模型与依赖。
 
-你可以把它当作 **CLI 工具**、**Python 库**，或嵌入到更大的 Agent 工作流中使用。
+## 为什么使用
 
----
+- **全：** 一个框架覆盖文本、音频、生成、识别、翻译、分类和结构化检测等
+  多类任务。
+- **方便：** CLI 会列出可用链路、必需输入和环境要求；使用者只需准备精确
+  pipeline 所选择的环境。
+- **可信、可复查：** 每次运行都会记录 `pipeline_id`、有序计算节点、输入
+  contract 和结构化输出。
+- **可比较：** 结果依据同一条明确评估定义进行比较，而不是只依赖一个含义
+  不充分的 metric 名称。
+- **可定制、个性化：** 同一个 metric 可以注册多条 route，使用不同的 norm、
+  模型、backend 或评分实现，而无需为计算方法重新发明 metric 名称。
 
-## 🚀 30 秒快速上手
+## Pipeline 如何工作
 
-```bash
-# 克隆并安装轻量基础包
-git clone https://github.com/PigeonDan1/sure-evaluation.git
-cd sure-evaluation
-pip install -e .
-
-# 检查安装
-sure-eval doctor
-
-# 准备一个极小的纯文本 ASR demo
-printf "utt1\thello world\nutt2\tthis is a test\n" > /tmp/sure_ref.txt
-printf "utt1\thello world\nutt2\tthis is test\n" > /tmp/sure_hyp.txt
-
-# 查看、描述并运行一个全 in-process 的 ASR 指标
-sure-eval agent plan asr --language en --metric wer --json
-sure-eval metric describe asr --language en --metric wer --output /tmp/asr.json
-sure-eval metric run --pipeline /tmp/asr.json \
-  --ref-file /tmp/sure_ref.txt --hyp-file /tmp/sure_hyp.txt --output-dir /tmp/asr_eval
-
-# 查看分数
-cat /tmp/asr_eval/report.json | grep score
-```
-
-输入文件为制表符分隔格式：`<key>\t<text>`。
-
----
-
-## 📋 支持的任务
-
-| 任务 | 指标 | 说明 | 指南 |
-|:-----|:-----|:-----|:-----|
-| **ASR** | WER、CER、MER | 纯文本；canonical、多语种 FunASR ITN 和阿拉伯语 NeMo TN 路由需可选节点环境 | [docs/tasks/asr.md](./docs/tasks/asr.md) |
-| **S2TT** | BLEU、chrF2、XCOMET-XL、BLEURT-20 | 基础 + 可选重指标 | [docs/tasks/s2tt.md](./docs/tasks/s2tt.md) |
-| **SD** | DER | 需 `[diarization]` | [docs/tasks/sd.md](./docs/tasks/sd.md) |
-| **SA-ASR** | cpWER、DER | 需 `[diarization]` | [docs/tasks/sa_asr.md](./docs/tasks/sa_asr.md) |
-| **TTS** | CER/WER、说话人相似度、MOS | 可选转录 + 打分节点 | [docs/tasks/tts.md](./docs/tasks/tts.md) |
-| **VC** | CER/WER、说话人相似度、MOS | 可选转录 + 打分节点 | [docs/tasks/vc.md](./docs/tasks/vc.md) |
-| **SE** | SI-SDR、STOI、PESQ、MOS | 有参考 + 无参考语音增强质量评测 | [docs/tasks/se.md](./docs/tasks/se.md) |
-| **TSE** | SI-SDR、说话人相似度、MOS、WER/CER | 信号质量 + 可选相似度/MOS/ASR 节点 | [docs/tasks/tse.md](./docs/tasks/tse.md) |
-| **分类 / SER / GR** | Accuracy | 纯文本，基础包可用 | [docs/tasks/classification.md](./docs/tasks/classification.md) |
-| **SLU** | Accuracy | 纯文本，基础包可用 | [docs/tasks/slu.md](./docs/tasks/slu.md) |
-| **KWS** | accuracy、macro_recall、precision、recall、F1、FRR、FAR | 基础 + 可选节点 | [docs/tasks/kws.md](./docs/tasks/kws.md) |
-| **VAD** | F1、p_fa、p_miss、dcf_nist、AUC-ROC | 段级/时间轴 JSONL，基础包可用 | [docs/tasks/vad.md](./docs/tasks/vad.md) |
-
-每份指南都列出了具体的 pipeline ID、节点、输入格式和 CLI 示例。
-
-如需 metrics → pipelines → nodes 的机器可读对照表，查看 [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) 和 [docs/pipeline_catalog.md](./docs/pipeline_catalog.md)。
-Agent 路由选择和环境就绪约定见 [docs/agent_contract.md](./docs/agent_contract.md)。
-同一报告指标下的不同路由变体，例如 ASR 归一化变体、TTS Qwen3-ASR
-CER/WER，或 `spk_sim` 的不同说话人相似度 provider，都需要用精确
-`pipeline_id` 选择。
-
-在 CLI 中查看任意任务的路由：
-
-```bash
-sure-eval metric describe <task> --help
-```
-
----
-
-## 🛠️ 安装可选组件
-
-```bash
-# 从源码安装；当前项目尚未发布到 PyPI。
-git clone https://github.com/PigeonDan1/sure-evaluation.git
-cd sure-evaluation
-pip install -e .
-
-# 开发
-pip install -e ".[dev]"
-
-# 可选 extras，在仓库根目录执行
-pip install -e ".[diarization]"  # SD / SA-ASR 所需的 MeetEval
-pip install -e ".[audio]"        # 本地音频辅助库
-pip install -e ".[download]"     # Hugging Face / ModelScope 下载辅助
-pip install -e ".[wetext]"       # 兼容空 extra；wetext_norm 使用 node-local uv
-pip install -e ".[canonical]"    # canonical ASR CER/MER/WER 路由
-
-# 把缓存放到大容量磁盘
-export SURE_EVAL_CACHE_DIR=/path/to/sure-eval-cache
-```
-
-准备一个重指标环境：
-
-```bash
-sure-eval env list
-sure-eval agent plan asr --language es --metric wer --json
-sure-eval env setup --node normalization/funasr_itn --dry-run
-sure-eval agent plan asr --language ar --metric cer --json
-sure-eval env setup --node normalization/nemo_norm --dry-run
-sure-eval env setup --task tts --language zh --metrics cer,dnsmos --dry-run
-sure-eval env setup --node transcription/qwen3_asr_1_7b --dry-run
-sure-eval env setup --task tts --language zh --metrics cer,dnsmos
-```
-
-详见 [docs/installation.md](docs/installation.md) 和 [docs/environment.md](docs/environment.md)。
-
----
-
-## 📑 流水线路由目录
-
-SURE-EVAL 把每个指标都暴露为声明式流水线。`pipeline_catalog.jsonl`
-将每个支持的 `任务 + 语言 + 指标` 映射到所选节点、必填输入角色、
-相对路由配置路径和 Python 入口函数：
-
-- [docs/pipeline_catalog.jsonl](./docs/pipeline_catalog.jsonl) — 每行一个 JSON 对象
-- [docs/pipeline_catalog.md](./docs/pipeline_catalog.md) — schema 和使用说明
-
-`pipeline_id` 表示具体计算流程，格式为
-`任务.语种.metric.节点版本...`。`metric` 是规范化后的报告指标
-（如 `cer`、`wer`、`spk_sim`、`wv_mos`、`macro_recall`）。
-当任务需要兼容旧选择器或指定具体方法时，`execution_metrics` 会记录
-实际执行选择器，例如 `tts_cer`、`sim/wavlm-large`、`wv-mos`。
-多指标行使用 `pipeline_kind=bundle`，并在 `member_pipeline_ids` 中列出
-原子成员。`task_config_path` 和 `route_config_path` 使用仓库相对路径；
-`script_entrypoint` 和 `executor` 将路由连接到可执行代码。
-当 pipeline JSON 中包含精确 `pipeline_id` 时，
-`sure-eval metric run --pipeline ...` 会执行该路由，并拒绝
-`pipeline_id`、`pipeline_kind`、成员 ID 或计算节点与描述不一致的报告。
-
-示例条目：
-
-```json
-{
-  "task": "ASR",
-  "language": "zh",
-  "metric": "cer",
-  "pipeline_id": "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
-  "pipeline_kind": "atomic",
-  "member_pipeline_ids": [],
-  "execution_metrics": ["cer"],
-  "nodes": ["normalization/wetext_norm", "scoring/wenet_cer"],
-  "computation_node_ids": ["normalization/wetext_norm", "scoring/wenet_cer"],
-  "task_config_path": "src/sure_eval/evaluation/tasks/asr/manifest.yaml",
-  "route_config_path": "src/sure_eval/evaluation/tasks/asr/routes.yaml",
-  "describe_entrypoint": "sure_eval.evaluation.scripts.asr.describe_pipeline",
-  "script_entrypoint": "sure_eval.evaluation.scripts.asr.run",
-  "executor": "sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files",
-  "required_roles": ["hyp", "ref"]
-}
-```
-
-添加新路由后可重新生成：
-
-```bash
-python scripts/generate_pipeline_catalog.py
-```
-
----
-
-## 🐍 Python API
-
-```python
-from sure_eval.evaluation.scripts import describe_pipeline, run_task
-
-# 查看路由
-desc = describe_pipeline("asr", language="zh", metric="cer")
-print(desc.node_ids)
-# ('normalization/wetext_norm', 'scoring/wenet_cer')
-
-# 运行并获取报告
-report = run_task(
-    "asr",
-    ref_file="ref.txt",
-    hyp_file="hyp.txt",
-    language="zh",
-    metric="cer",
-    output_dir="/tmp/asr_eval",
-)
-print(report.score)
-```
-
-传统一行式调用：
-
-```python
-from sure_eval.evaluation import SUREEvaluator
-
-evaluator = SUREEvaluator(language="zh")
-print(evaluator.evaluate("asr", "ref.txt", "hyp.txt")["cer"])
-```
-
----
-
-## 🏗️ 设计一览
+SURE-EVALUATION 将所有影响分数的环节视作节点：
 
 ```text
-用户请求
-    │
-    ▼
-sure-eval metric describe  ──►  pipeline JSON（路由 + 节点）
-    │
-    ▼
-sure-eval metric run       ──►  report.json + pipeline_description.json
+模型输出
+    -> 校验 / 转换
+    -> 转录 / 归一化
+    -> 评分
+    -> report.json + pipeline_description.json
 ```
 
-每个指标都是一条**路由**：任务 + 语言 + 版本化节点的声明式组合。路由定义在 `tasks/<task>/routes.yaml` 中；节点元数据在 `nodes/<stage>/<name>/manifest.yaml` 和 `node_env.yaml` 中。
+`pipeline_id` 使用 `任务.语种.metric.节点版本...` 表示一条精确计算流程，
+例如：
 
-这让每个分数都可以追溯到产生它的确切代码、配置和输入。
+```text
+asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
+```
 
----
+`metric` 始终使用全局规范名称，例如 `wer`、`cer`、`spk_sim`、`dnsmos`、
+`wv_mos` 或 `utmos`。当两条 route 计算同一个 metric 时，因为节点链路不同，
+它们的 `pipeline_id` 也不同。多指标请求是由多个原子 pipeline 组成的 bundle。
 
-## 🤝 如何贡献
+## 快速开始
 
-从 [docs/contributing.md](docs/contributing.md) 开始。它会按 PR 类型进入
-对应短手册：
+SURE-EVALUATION 当前从源码安装，尚未发布到 PyPI。下面的命令会创建隔离
+环境，并运行仓库内置的纯文本 ASR 示例；该示例不会下载模型，也不会创建
+node-local 环境。
 
-- 新任务
-- 新指标
-- 新 pipeline route
-- 节点 / 工具 / 版本变更
-- 维护类改动
+```bash
+git clone https://github.com/PigeonDan1/sure-evaluation.git
+cd sure-evaluation
 
-如果不确定分类，再看 [docs/add_a_metric.md](docs/add_a_metric.md)。
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip check
+sure-eval doctor
+```
 
----
+查询所有英文 ASR WER route。输出会标记默认项，给出每条精确
+`pipeline_id`、有序计算节点、必需输入和可选环境准备项：
 
-## 📄 许可证
+```bash
+sure-eval metric routes asr --language en --metric wer
+```
+
+选择一条精确 route，并生成可执行 pipeline JSON：
+
+```bash
+sure-eval metric describe asr \
+  --pipeline-id asr.en.wer.whisper_norm_english_v1.wenet_wer_v1 \
+  --output .sure-eval-demo/pipeline.json
+```
+
+查看准备计划，并只校验该精确 pipeline 使用的环境：
+
+```bash
+sure-eval env setup --pipeline .sure-eval-demo/pipeline.json --dry-run
+sure-eval env check --pipeline .sure-eval-demo/pipeline.json
+```
+
+运行 pipeline 并查看结构化报告：
+
+```bash
+sure-eval metric run \
+  --pipeline .sure-eval-demo/pipeline.json \
+  --ref-file examples/readme/asr_en_ref.txt \
+  --hyp-file examples/readme/asr_en_hyp.txt \
+  --output-dir .sure-eval-demo/asr-en-wer \
+  --validate-env
+
+python -m json.tool .sure-eval-demo/asr-en-wer/report.json
+python -m json.tool .sure-eval-demo/asr-en-wer/pipeline_description.json
+```
+
+发现结果、pipeline JSON、运行摘要、`report.json` 和
+`pipeline_description.json` 中会出现同一个精确 `pipeline_id`。
+
+## 选择和准备其他 Pipeline
+
+使用规范 metric 名称查询不同实现，再选择需要运行的精确 `pipeline_id`：
+
+```bash
+# 三条中文 ASR CER 归一化与评分链路
+sure-eval metric routes asr --language zh --metric cer
+
+# 三种 TTS 说话人相似度 backend
+sure-eval metric routes tts --language zh --metric spk_sim
+
+# 同一个 macro_recall metric 的三种 KWS 输入 contract
+sure-eval metric routes kws --metric macro_recall
+
+# 稳定的机器可读发现结果
+sure-eval metric routes tts --language zh --metric cer --json
+```
+
+对于包含可选模型或工具的 pipeline，只准备它所声明的节点：
+
+```bash
+sure-eval metric describe tts \
+  --pipeline-id tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1 \
+  --output .sure-eval-demo/tts-qwen.json
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json --dry-run
+sure-eval env setup --pipeline .sure-eval-demo/tts-qwen.json
+sure-eval env download --node transcription/qwen3_asr_1_7b --dry-run
+sure-eval env download --node transcription/qwen3_asr_1_7b
+sure-eval env check --pipeline .sure-eval-demo/tts-qwen.json
+```
+
+运行重节点前请阅读[安装说明](docs/installation.md)和
+[环境管理](docs/environment.md)。环境 setup 负责安装声明的工具，模型资源
+需要单独下载，并应先用 `env download --dry-run` 审阅。checkpoint、缓存和
+node-local 虚拟环境只保留在本地，不会进入安装包或 Git。
+
+## 支持的任务
+
+| 任务 | 规范指标 | 指南 |
+|:--|:--|:--|
+| ASR | WER、CER、MER | [ASR](docs/tasks/asr.md) |
+| S2TT | BLEU、BLEU-char、chrF、XCOMET-XL、BLEURT-20 | [S2TT](docs/tasks/s2tt.md) |
+| SD | DER | [SD](docs/tasks/sd.md) |
+| SA-ASR | cpWER，DER 伴随结果 | [SA-ASR](docs/tasks/sa_asr.md) |
+| TTS | CER、WER、说话人相似度、DNSMOS、WV-MOS、UTMOS | [TTS](docs/tasks/tts.md) |
+| VC | CER、WER、说话人相似度、DNSMOS、WV-MOS、UTMOS | [VC](docs/tasks/vc.md) |
+| SE | SI-SDR、STOI、PESQ、DNSMOS、WV-MOS、UTMOS | [SE](docs/tasks/se.md) |
+| TSE | SI-SDR、说话人相似度、DNSMOS、WV-MOS、UTMOS、CER、WER | [TSE](docs/tasks/tse.md) |
+| Classification / SER / GR | Accuracy | [Classification](docs/tasks/classification.md) |
+| SLU | Accuracy | [SLU](docs/tasks/slu.md) |
+| KWS | Accuracy、macro recall、precision、recall、F1、FRR、FAR | [KWS](docs/tasks/kws.md) |
+| VAD | F1、false alarm、miss、NIST DCF、ROC AUC | [VAD](docs/tasks/vad.md) |
+
+每份任务指南都会说明输入 contract、已注册 metric、精确 pipeline ID、节点和
+运行示例。自动生成的 [pipeline catalog](docs/pipeline_catalog.md) 包含已声明
+语种 profile 下的全部注册原子 route，以及经过维护的多指标 bundle。
+
+## 定制并分享
+
+Route 定义在 `src/sure_eval/evaluation/tasks/<task>/routes.yaml`。节点元数据
+位于 `src/sure_eval/evaluation/nodes/<stage>/<name>/manifest.yaml`，可选运行
+环境则由同目录的 `node_env.yaml` 声明。新增 route 会改变路由和 identity
+元数据，而具体计算仍由对应的版本化节点负责。
+
+如果希望把自己的评估链路分享给社区，先阅读
+[贡献指南](docs/contributing.md)。它会根据任务、metric、route、节点工具等
+不同 PR 类型进入对应手册，并连接仓库 PR template。Agent 使用者还应遵循
+[Agent Contract](docs/agent_contract.md)。
+
+社区 pipeline 可以在 [Open Bench](https://www.open-bench.net/sure) 分享与
+查看；使用情况和社区反馈能帮助合作者识别被广泛采用的评估链路。
+
+来这里创建真正属于你的个性化评估链路，并让它可以被复查和共享。
+
+## 许可证
 
 MIT License。详见 [LICENSE](LICENSE)。

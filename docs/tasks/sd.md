@@ -2,6 +2,10 @@
 
 Evaluate speaker diarization outputs with Diarization Error Rate (DER).
 
+```bash
+sure-eval metric routes sd --metric der
+```
+
 ## Metrics
 
 | Metric | Pipeline ID | Nodes | Params |

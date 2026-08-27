@@ -2,6 +2,12 @@
 
 Evaluate text transcripts against references.
 
+Discover exact routes before selecting one:
+
+```bash
+sure-eval metric routes asr --language zh --metric cer
+```
+
 ## Metrics And Pipelines
 
 ASR reports only the public metrics `cer`, `wer`, and `mer`. Each metric can

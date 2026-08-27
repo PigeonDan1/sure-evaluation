@@ -2,6 +2,10 @@
 
 Generic classification routes align `key<TAB>label` files and compute accuracy.
 
+```bash
+sure-eval metric routes classification --metric accuracy
+```
+
 ## Metrics
 
 | Task alias | Metric | Pipeline ID | Nodes |

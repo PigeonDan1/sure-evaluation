@@ -184,14 +184,13 @@ def test_vad_auc_exact_pipeline_id_preserved(tmp_path: Path) -> None:
 
 
 def test_pipeline_catalog_contains_vad_routes() -> None:
-    from scripts.generate_pipeline_catalog import COMBINATIONS
-    from sure_eval.evaluation.scripts import describe_pipeline
+    from scripts.generate_pipeline_catalog import iter_atomic_pipeline_ids
 
-    vad_combinations = [kwargs for task, kwargs in COMBINATIONS if task == "vad"]
-    rows = [describe_pipeline("vad", **kwargs) for kwargs in vad_combinations]
+    pipeline_ids = {
+        pipeline_id for task, pipeline_id in iter_atomic_pipeline_ids() if task == "vad"
+    }
 
-    assert {row.metric for row in rows} == {"f1", "p_fa", "p_miss", "dcf_nist", "auc_roc"}
-    assert {row.pipeline_id for row in rows} == {
+    assert pipeline_ids == {
         "vad.any.f1.vad_contract_v1.vad_timebase_strict_v1.vad_detection_duration_v1",
         "vad.any.p_fa.vad_contract_v1.vad_timebase_strict_v1.vad_detection_duration_v1",
         "vad.any.p_miss.vad_contract_v1.vad_timebase_strict_v1.vad_detection_duration_v1",
