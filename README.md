@@ -68,6 +68,26 @@ asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
 `pipeline_id` differs because their node chain differs. Multi-metric requests
 are bundles whose identities contain their atomic member pipelines.
 
+## Pipeline Atlas
+
+The committed catalog can be drawn as one map: every atomic pipeline is a
+colored ribbon that flows from its task through frontend, transcription,
+validation, normalization, and scoring nodes into a report.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/atlas/pipeline_atlas_dark.svg">
+  <img src="docs/atlas/pipeline_atlas.svg" alt="Animated map of every registered SURE pipeline, drawn as colored ribbons from task to report" width="100%">
+</picture>
+
+[`docs/atlas/index.html`](docs/atlas/index.html) is the interactive version of
+the same map, with search, per-task filtering, hover tracing, and a catalog
+table; open it in a browser from a local clone. Both views are generated from
+`docs/pipeline_catalog.jsonl`:
+
+```bash
+python scripts/generate_pipeline_atlas.py
+```
+
 ## Quick Start
 
 SURE-EVALUATION is currently installed from source, not from PyPI. The commands

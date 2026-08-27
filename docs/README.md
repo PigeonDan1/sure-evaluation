@@ -6,6 +6,7 @@
 - [Task Guides](tasks/README.md): metrics, input contracts, exact pipelines, and examples
 - [Environment Management](environment.md): prepare only selected optional nodes
 - [Pipeline Catalog](pipeline_catalog.md): committed route-to-node inventory
+- [Pipeline Atlas](atlas/index.html): the catalog drawn as one interactive map from task to report
 - [Reproducibility](reproducibility.md): identity, reports, locks, and runtime assets
 
 The standard user flow is:

@@ -64,6 +64,25 @@ asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
 `wv_mos` 或 `utmos`。当两条 route 计算同一个 metric 时，因为节点链路不同，
 它们的 `pipeline_id` 也不同。多指标请求是由多个原子 pipeline 组成的 bundle。
 
+## 评估链路图谱
+
+已提交的 catalog 可以绘制成一张全景图：每条原子 pipeline 是一条彩色链路，
+从任务出发依次流经 frontend、transcription、validation、normalization、
+scoring 节点，最终落为一份 report。
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/atlas/pipeline_atlas_dark.svg">
+  <img src="docs/atlas/pipeline_atlas.svg" alt="全部已注册 SURE 评估链路的动画图谱，每条彩色链路从任务流向报告" width="100%">
+</picture>
+
+[`docs/atlas/index.html`](docs/atlas/index.html) 是同一张图的交互版本，支持
+搜索、按任务筛选、悬停追踪和目录表格；克隆仓库后用浏览器打开即可。两种视图
+均由 `docs/pipeline_catalog.jsonl` 生成：
+
+```bash
+python scripts/generate_pipeline_atlas.py
+```
+
 ## 快速开始
 
 SURE-EVALUATION 当前从源码安装，尚未发布到 PyPI。下面的命令会创建隔离
