@@ -45,6 +45,7 @@ After route changes, regenerate and inspect the catalog:
 ```bash
 PYTHONPATH=src uv run python scripts/generate_pipeline_catalog.py
 git diff -- docs/pipeline_catalog.jsonl
+python scripts/generate_pipeline_atlas.py
 ```
 
 The generator discovers atomic rows from `routes.yaml`. Only new task
