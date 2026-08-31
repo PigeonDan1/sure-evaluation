@@ -1,0 +1,37 @@
+id: normalization/openasr_norm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.openasr_norm.node
+runtime: in_process
+profiles:
+  english:
+    language: en
+    normalizer_class: EnglishTextNormalizer
+    default_for: []
+upstream:
+  package: open_asr_leaderboard
+  commit: 8f37837f988e3d641e726b61087b9c761c060013
+  url: https://github.com/huggingface/open_asr_leaderboard/tree/main/normalizer
+  license: Apache-2.0
+  local_changes:
+    - Packaged as a module (relative imports); no normalization logic changed.
+    - The node additionally replays the leaderboard scoring filter
+      (is_target_text_in_range on normalized refs) by dropping empty or
+      ignore-marker reference rows from both ref and hyp.
+  vendored_files:
+    - normalization_impl/normalizer.py
+    - normalization_impl/english_abbreviations.py
+    - normalization_impl/LICENSE.open_asr_leaderboard
+notes:
+  - Alternative route normalizer for English WER; the default English WER
+    route stays normalization/whisper_norm.
+  - The leaderboard normalizer extends the Whisper English normalizer with a
+    larger filler-word ignore list, acronym collapsing, name canonicalization,
+    and compound-word mappings.
+  - Scoring-side comparability boundary: the official pipeline computes WER
+    with kaldialign batch_error_rate(merge_compounds=True); the engine routes
+    this normalizer into scoring/wenet_wer (word-level edit distance without
+    compound merging).
