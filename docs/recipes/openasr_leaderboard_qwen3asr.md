@@ -73,5 +73,8 @@ arithmetic mean WER (the leaderboard composite), and informational RTFx.
   (`merge_compounds=True`); this recipe scores with `scoring/wenet_wer`, so
   compound split/join mismatches may differ slightly from official numbers.
 - RTFx depends on local hardware and is not comparable to leaderboard values.
-- Long-form sets (Earnings22, 14-22 minutes per sample) may need
-  `--max-new-tokens` tuning; the recipe default is 4096.
+- Inference runs inside the `transcription/qwen3_asr_1_7b` node-local uv
+  environment with that node's declared generation defaults; long-form sets
+  (Earnings22, 14-22 minutes per sample) inherit the node defaults, so check
+  `hyp.txt` coverage (`num_hyp_missing_utts` in the report) before trusting
+  those rows.
