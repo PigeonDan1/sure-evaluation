@@ -149,7 +149,10 @@ def run_metric_pipeline(
         None, "--reference-jsonl", help="KWS/VAD reference JSONL"
     ),
     sample_output: Optional[str] = typer.Option(
-        None, "--sample-output", help="KWS/VAD model output JSONL"
+        None, "--sample-output", help="KWS/VAD/SV model output JSONL"
+    ),
+    trial_manifest: Optional[str] = typer.Option(
+        None, "--trial-manifest", help="SV evaluator-owned trial manifest"
     ),
     wekws_label_file: Optional[str] = typer.Option(
         None, "--wekws-label-file", help="WeKWS label file"
@@ -195,6 +198,7 @@ def run_metric_pipeline(
             label_spec=label_spec,
             reference_jsonl=reference_jsonl,
             sample_output=sample_output,
+            trial_manifest=trial_manifest,
             wekws_label_file=wekws_label_file,
             wekws_score_file=wekws_score_file,
             wekws_frame_score_file=wekws_frame_score_file,

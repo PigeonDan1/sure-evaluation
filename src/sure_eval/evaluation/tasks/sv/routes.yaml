@@ -1,0 +1,18 @@
+task: SV
+language_sensitive: false
+routes:
+  - metric: eer
+    pipeline_id: sv.any.eer.cosine_trial_scores_v1.det_eer_v1
+    nodes:
+      - scoring/cosine_trial_scores
+      - scoring/det_eer
+    input_contract: scoring/sv_trials
+    executor: sure_eval.evaluation.tasks.sv.pipeline.evaluate_sv_files
+  - metric: min_dcf
+    aliases: [min-dcf, mindcf]
+    pipeline_id: sv.any.min_dcf.cosine_trial_scores_v1.min_dcf_p005_v1
+    nodes:
+      - scoring/cosine_trial_scores
+      - scoring/min_dcf_p005
+    input_contract: scoring/sv_trials
+    executor: sure_eval.evaluation.tasks.sv.pipeline.evaluate_sv_files

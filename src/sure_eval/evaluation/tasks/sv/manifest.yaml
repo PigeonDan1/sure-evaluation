@@ -1,0 +1,25 @@
+id: task/sv
+version: v1
+task: SV
+language_sensitive: false
+canonical_entry: sure_eval.evaluation.tasks.sv.pipeline.evaluate_sv_files
+default_metric: eer
+default_metrics: [eer, min_dcf]
+input_contracts:
+  scoring/sv_trials:
+    purpose: testset_level_speaker_verification
+    required_roles: [sample_output, trial_manifest]
+    optional_roles: []
+    row_format: embedding_jsonl_plus_trial_manifest
+    alignment_key: sample_id
+    aggregation: testset_trial_metric
+    main_report: true
+metrics:
+  - eer
+  - min_dcf
+notes:
+  - An OpenBench dataset may contain multiple testset protocols; each evaluation run consumes one testset trial manifest.
+  - Models output one embedding per unique audio sample in that testset.
+  - Trial labels and conditions remain in the evaluator-owned trial manifest.
+  - EER is reported in percent with DET-crossing linear interpolation.
+  - minDCF is normalized with P_target=0.05, C_miss=1, and C_fa=1.
