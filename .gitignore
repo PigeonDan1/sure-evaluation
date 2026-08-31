@@ -30,6 +30,7 @@ runtime/
 *.bin
 
 # Local outputs
+/data/
 .sure-eval-demo/
 artifacts/
 reports/*
