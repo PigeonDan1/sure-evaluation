@@ -1929,4 +1929,3 @@ english_compound_normalizer = {
     r"\bp\s+m\b": "pm",
     r"\bo\s+k\b": "okay",
 }
-
