@@ -31,6 +31,7 @@ specific non-default pipeline.
 | Pipeline ID | Language | Nodes | Notes |
 |:------------|:---------|:------|:------|
 | `asr.en.wer.whisper_norm_english_v1.wenet_wer_v1` | `en` | `normalization/whisper_norm` -> `scoring/wenet_wer` | Default English WER |
+| `asr.en.wer.openasr_norm_english_v1.wenet_wer_v1` | `en` | `normalization/openasr_norm` -> `scoring/wenet_wer` | Open ASR Leaderboard-aligned WER; see [the recipe](../recipes/openasr_leaderboard_qwen3asr.md) |
 | `asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1` | `en` | `normalization/aispeech_norm` -> `scoring/wenet_wer` | Legacy AISpeech-normalized WER |
 | `asr.en.wer.canonical_itn_en_v1.token_mer_v1` | `en` | `normalization/canonical_itn` -> `scoring/token_mer` | Canonical ITN WER; requires `[canonical]` |
 | `asr.es.wer.funasr_itn_es_v1.wenet_wer_v1` | `es` | `normalization/funasr_itn` (`es`) -> `scoring/wenet_wer` | Default Spanish WER; optional node setup required |
