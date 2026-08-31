@@ -24,6 +24,7 @@ from sure_eval.evaluation.nodes.normalization.giga_norm import (
     profile_for_language,
 )
 from sure_eval.evaluation.nodes.normalization.nemo_norm import normalize_nemo_key_text_files
+from sure_eval.evaluation.nodes.normalization.openasr_norm import normalize_openasr_asr_files
 from sure_eval.evaluation.nodes.normalization.punctuation_strip_norm import (
     normalize_punctuation_strip_key_text_files,
 )
@@ -287,6 +288,10 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         if language != "en" or metric != "wer":
             raise ValueError("whisper_norm is only a default-supported normalizer for English WER")
         return "whisper"
+    if normalized in {"openasr", "openasr_norm", "normalization/openasr_norm"}:
+        if language != "en" or metric != "wer":
+            raise ValueError("openasr_norm is only supported for English WER")
+        return "openasr"
     if normalized in {"aispeech", "aispeech_norm", "normalization/aispeech_norm"}:
         return "aispeech"
     if normalized.startswith("funasr:"):
@@ -364,6 +369,15 @@ def _normalization_node(*, language: str, normalizer: str):
             ),
             "whisper_norm",
         )
+    if normalizer == "openasr":
+        return (
+            lambda files: normalize_openasr_asr_files(
+                files,
+                language=language,
+                profile="english",
+            ),
+            "openasr_norm",
+        )
     if normalizer == "aispeech":
         return (
             lambda files: normalize_asr_files(files, language=language),
@@ -422,6 +436,8 @@ def _normalizer_component(*, language: str, normalizer_label: str):
         )
     if normalizer_label == "whisper_norm":
         return node_component("normalization/whisper_norm", profile="english")
+    if normalizer_label == "openasr_norm":
+        return node_component("normalization/openasr_norm", profile="english")
     if normalizer_label == "aispeech_norm":
         return node_component("normalization/aispeech_norm", profile=language)
     if normalizer_label.startswith("funasr_"):
