@@ -47,5 +47,5 @@ canonical result keys; the legacy `TTSMetricPipeline` wrapper still exposes
 
 `normalization/wetext_norm` can be selected explicitly with
 `evaluate_tts_samples(..., semantic_normalizer="wetext:zh_tn")`. Mandarin defaults
-use `normalization/punctuation_strip_norm`, not `normalization/aispeech_norm`, so
+use `normalization/punctuation_strip_norm`, not `normalization/site_norm`, so
 numbers, case, and non-punctuation text are preserved before WeNet CER scoring.

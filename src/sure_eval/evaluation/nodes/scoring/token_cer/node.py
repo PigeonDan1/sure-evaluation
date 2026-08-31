@@ -18,7 +18,7 @@ from __future__ import annotations
 import unicodedata
 
 from sure_eval.evaluation.core.types import KeyTextFiles, PipelineNodeResult
-from sure_eval.evaluation.nodes.normalization.aispeech_norm.node import _parse_key_text_line
+from sure_eval.evaluation.nodes.normalization.site_norm.node import _parse_key_text_line
 from sure_eval.evaluation.nodes.normalization.canonical_itn.chain import tokenize
 
 NODE_ID = "scoring/token_cer"

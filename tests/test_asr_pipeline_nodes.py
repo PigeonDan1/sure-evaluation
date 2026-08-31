@@ -122,7 +122,7 @@ def test_asr_zh_cer_pipeline_uses_wetext_itn_by_default(tmp_path: Path) -> None:
     assert report.pipeline_trace[1].internal_stages == ("tokenization", "case_normalization", "edit_distance")
 
 
-def test_asr_zh_cer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Path) -> None:
+def test_asr_zh_cer_pipeline_can_use_legacy_site_normalization(tmp_path: Path) -> None:
     from sure_eval.evaluation.sure_evaluator import SUREEvaluator
     from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 
@@ -137,13 +137,13 @@ def test_asr_zh_cer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Pat
         str(hyp_file),
         language="zh",
         metric="cer",
-        normalizer="aispeech",
+        normalizer="site",
     )
 
     assert report.score == legacy["score"]
     _assert_matches_legacy(report.details["scoring_result"], legacy)
-    assert report.pipeline_id == "asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1"
-    assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
+    assert report.pipeline_id == "asr.zh.cer.site_norm_zh_v1.wenet_cer_v1"
+    assert report.pipeline_trace[0].node_id == "normalization/site_norm"
     assert report.pipeline_trace[0].details["profile"] == "zh"
 
 
@@ -170,7 +170,7 @@ def test_asr_en_wer_pipeline_uses_whisper_normalization_by_default(tmp_path: Pat
     assert report.pipeline_trace[1].node_id == "scoring/wenet_wer"
 
 
-def test_asr_en_wer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Path) -> None:
+def test_asr_en_wer_pipeline_can_use_legacy_site_normalization(tmp_path: Path) -> None:
     from sure_eval.evaluation.sure_evaluator import SUREEvaluator
     from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 
@@ -185,13 +185,13 @@ def test_asr_en_wer_pipeline_can_use_legacy_aispeech_normalization(tmp_path: Pat
         str(hyp_file),
         language="en",
         metric="wer",
-        normalizer="aispeech",
+        normalizer="site",
     )
 
     assert report.score == legacy["score"]
     _assert_matches_legacy(report.details["scoring_result"], legacy)
-    assert report.pipeline_id == "asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1"
-    assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
+    assert report.pipeline_id == "asr.en.wer.site_norm_en_v1.wenet_wer_v1"
+    assert report.pipeline_trace[0].node_id == "normalization/site_norm"
     assert report.pipeline_trace[0].details["profile"] == "en"
 
 
@@ -399,6 +399,6 @@ def test_asr_codeswitch_mer_pipeline_matches_sure_evaluator(tmp_path: Path) -> N
     _assert_matches_legacy(report.details["scoring_result"], legacy)
     assert report.details["input_contract"]["required_roles"] == ["hyp", "ref"]
     assert report.details["input_contract"]["metric_id"] == "scoring/wenet_mer"
-    assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
+    assert report.pipeline_trace[0].node_id == "normalization/site_norm"
     assert report.pipeline_trace[0].details["profile"] == "cs"
     assert report.pipeline_trace[1].node_id == "scoring/wenet_mer"

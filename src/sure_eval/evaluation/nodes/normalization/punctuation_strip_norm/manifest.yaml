@@ -20,5 +20,5 @@ profiles:
     default_for:
       - TTS/zh/tts_cer
 notes:
-  - This node intentionally does not apply AISpeech number text normalization.
+  - This node intentionally does not apply Site number text normalization.
   - It exists so Mandarin TTS CER can strip punctuation without rewriting digits, Latin words, or Chinese text.

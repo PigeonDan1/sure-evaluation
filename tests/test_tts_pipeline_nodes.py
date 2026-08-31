@@ -86,7 +86,7 @@ def test_tts_zh_semantic_route_uses_punctuation_strip_norm() -> None:
         "normalization/punctuation_strip_norm",
         "scoring/wenet_cer",
     ]
-    assert "normalization/aispeech_norm" not in trace_ids
+    assert "normalization/site_norm" not in trace_ids
     assert report.pipeline_trace[0].details["audio_path"] == "hyp.wav"
     assert report.pipeline_trace[0].details["materialized_audio_path"] is None
     assert report.pipeline_trace[0].details["cv3_compatible"] is True

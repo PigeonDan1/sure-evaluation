@@ -13,7 +13,7 @@ from sure_eval.evaluation.core.types import (
     PipelineNodeResult,
     PipelineSpec,
 )
-from sure_eval.evaluation.nodes.normalization.aispeech_norm import (
+from sure_eval.evaluation.nodes.normalization.site_norm import (
     normalize_asr_files,
     normalize_codeswitch_asr_files,
 )
@@ -205,7 +205,7 @@ def _evaluate_codeswitch(
     input_contract = _ASR_CONTRACTS[metric]
     trace: tuple[PipelineNodeResult, ...] = ()
     components = (
-        node_component("normalization/aispeech_norm", profile="cs"),
+        node_component("normalization/site_norm", profile="cs"),
         node_component("scoring/wenet_mer"),
     )
     pipeline_id = build_atomic_pipeline_id("asr", "cs", "mer", components)
@@ -266,7 +266,7 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
             return "nemo:ar_tn"
         if language in FUNASR_PROFILES:
             return f"funasr:{language}"
-        return "aispeech"
+        return "site"
     if normalized.startswith("wetext:"):
         profile = normalized.split(":", 1)[1]
         _validate_wetext_profile_for_language(language=language, profile=profile)
@@ -275,8 +275,8 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         if language != "en" or metric != "wer":
             raise ValueError("whisper_norm is only a default-supported normalizer for English WER")
         return "whisper"
-    if normalized in {"aispeech", "aispeech_norm", "normalization/aispeech_norm"}:
-        return "aispeech"
+    if normalized in {"site", "site_norm", "normalization/site_norm"}:
+        return "site"
     if normalized.startswith("funasr:"):
         profile = normalized.split(":", 1)[1]
         _validate_funasr_profile_for_language(language=language, profile=profile)
@@ -346,10 +346,10 @@ def _normalization_node(*, language: str, normalizer: str):
             ),
             "whisper_norm",
         )
-    if normalizer == "aispeech":
+    if normalizer == "site":
         return (
             lambda files: normalize_asr_files(files, language=language),
-            "aispeech_norm",
+            "site_norm",
         )
     if normalizer.startswith("funasr:"):
         profile = normalizer.split(":", 1)[1]
@@ -399,8 +399,8 @@ def _normalizer_component(*, language: str, normalizer_label: str):
         )
     if normalizer_label == "whisper_norm":
         return node_component("normalization/whisper_norm", profile="english")
-    if normalizer_label == "aispeech_norm":
-        return node_component("normalization/aispeech_norm", profile=language)
+    if normalizer_label == "site_norm":
+        return node_component("normalization/site_norm", profile=language)
     if normalizer_label.startswith("funasr_"):
         return node_component(
             "normalization/funasr_itn",

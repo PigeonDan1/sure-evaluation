@@ -34,5 +34,5 @@ notes:
   - This node is optional and is never selected by default ASR routes.
   - The main Python environment only calls an existing sclite binary; it does not install SCTK.
   - Input key sets must match exactly before TRN materialization.
-  - Normalization remains upstream in aispeech_norm, whisper_norm, or wetext_norm.
+  - Normalization remains upstream in site_norm, whisper_norm, or wetext_norm.
   - The first implementation supports key-text to TRN scoring; STM/CTM timed scoring is a later extension.

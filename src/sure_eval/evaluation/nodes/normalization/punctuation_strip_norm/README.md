@@ -6,7 +6,7 @@
 without applying TN, ITN, number normalization, case folding, tokenization, or
 whitespace compaction.
 
-The node is intentionally narrower than `normalization/aispeech_norm`.
+The node is intentionally narrower than `normalization/site_norm`.
 
 ## Task Scenarios
 

@@ -133,7 +133,7 @@ def test_canonical_metric_rejects_foreign_normalizer_and_scorer(tmp_path: Path) 
 
     with pytest.raises(ValueError, match="canonical_itn"):
         evaluate_asr_files(
-            str(ref_file), str(hyp_file), language="zh", metric="cer_canonical", normalizer="aispeech"
+            str(ref_file), str(hyp_file), language="zh", metric="cer_canonical", normalizer="site"
         )
     with pytest.raises(ValueError, match="token_cer"):
         evaluate_asr_files(

@@ -114,7 +114,7 @@ legacy_reference:
 notes:
   - If reference_text is present, only converted_audio is transcribed.
   - If reference_text is absent, reference_audio is transcribed and used as the ASR reference text.
-  - Mandarin semantic CER uses punctuation-only normalization before WeNet CER and does not use AISpeech number text normalization by default.
+  - Mandarin semantic CER uses punctuation-only normalization before WeNet CER and does not use Site number text normalization by default.
   - English semantic WER uses OpenAI Whisper English normalization before WeNet WER.
   - WeTextProcessing profiles are available only through explicit semantic_normalizer arguments and do not change default VC routes.
   - Mandarin CER keeps CV3-compatible Paraformer execution by passing original audio paths to FunASR AutoModel.generate; frontend/funasr_loader_16k_mono records the internal loader contract.

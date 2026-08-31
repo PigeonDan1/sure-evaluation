@@ -27,20 +27,20 @@ default_pipelines:
       default: asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1
       variants:
         wetext_norm_zh_itn: asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1
-        aispeech_norm_zh: asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1
+        site_norm_zh: asr.zh.cer.site_norm_zh_v1.wenet_cer_v1
         canonical_itn_zh: asr.zh.cer.canonical_itn_zh_v1.token_cer_v1
   en:
     wer:
       default: asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
       variants:
         whisper_norm_english: asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
-        aispeech_norm_en: asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1
+        site_norm_en: asr.en.wer.site_norm_en_v1.wenet_wer_v1
         canonical_itn_en: asr.en.wer.canonical_itn_en_v1.token_mer_v1
   cs:
     mer:
-      default: asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1
+      default: asr.cs.mer.site_norm_cs_v1.wenet_mer_v1
       variants:
-        aispeech_norm_cs: asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1
+        site_norm_cs: asr.cs.mer.site_norm_cs_v1.wenet_mer_v1
         canonical_itn_cs: asr.cs.mer.canonical_itn_cs_v1.token_mer_v1
   ja:
     cer:
@@ -136,9 +136,9 @@ legacy_reference:
 notes:
   - ASR compatibility metric classes should route through the canonical task pipeline.
   - Legacy SUREEvaluator remains the regression oracle while other tasks are migrated.
-  - English WER defaults to OpenAI Whisper English normalization; the legacy AISpeech route remains available as asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1.
+  - English WER defaults to OpenAI Whisper English normalization; the legacy Site route remains available as asr.en.wer.site_norm_en_v1.wenet_wer_v1.
   - Mandarin CER defaults to WeTextProcessing inverse text normalization (normalization/wetext_norm profile zh_itn) before WeNet CER.
-  - The legacy AISpeech Mandarin CER route remains available explicitly as asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1.
+  - The legacy Site Mandarin CER route remains available explicitly as asr.zh.cer.site_norm_zh_v1.wenet_cer_v1.
   - Japanese and Korean CER plus Spanish, French, German, Russian, Portuguese, Vietnamese, Indonesian, and Tagalog WER default to normalization/funasr_itn and require its optional node-local environment.
   - Arabic CER defaults to normalization/nemo_norm profile ar_tn and requires its optional frozen node-local environment.
   - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.

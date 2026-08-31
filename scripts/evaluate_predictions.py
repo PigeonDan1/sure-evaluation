@@ -864,7 +864,7 @@ def _asr_normalization_node(*, language: str, metric: str) -> str:
         return "normalization/wetext_norm"
     if language == "en" and metric == "wer":
         return "normalization/whisper_norm"
-    return "normalization/aispeech_norm"
+    return "normalization/site_norm"
 
 
 def _asr_scoring_node(*, language: str, metric: str) -> str:

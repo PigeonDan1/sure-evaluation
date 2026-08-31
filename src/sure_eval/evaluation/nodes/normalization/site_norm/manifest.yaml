@@ -1,13 +1,13 @@
-id: normalization/aispeech_norm
+id: normalization/site_norm
 version: v1
 stage: normalization
 language_sensitive: true
 input_schema: key_text_files
 output_schema: key_text_files
-implementation: sure_eval.evaluation.nodes.normalization.aispeech_norm.node
+implementation: sure_eval.evaluation.nodes.normalization.site_norm.node
 reference_compatibility:
   legacy_entry: SUREEvaluator._eval_asr
-  normalizer: sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn.asr_num2words
+  normalizer: sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn.asr_num2words
   punctuation_policy: SUREEvaluator._strip_eval_punct_file
 profiles:
   en:
@@ -25,4 +25,4 @@ profiles:
       - number_text_normalization
       - language_split
 notes:
-  - en, zh, and cs are language profiles of the same AISpeech normalization backend.
+  - en, zh, and cs are language profiles of the same Site normalization backend.

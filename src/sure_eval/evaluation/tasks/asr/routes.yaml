@@ -22,9 +22,9 @@ routes:
   -
     language: zh
     metric: cer
-    pipeline_id: asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1
+    pipeline_id: asr.zh.cer.site_norm_zh_v1.wenet_cer_v1
     nodes:
-      - normalization/aispeech_norm
+      - normalization/site_norm
       - scoring/wenet_cer
     input_contract: scoring/wenet_cer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
@@ -41,9 +41,9 @@ routes:
   -
     language: en
     metric: wer
-    pipeline_id: asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1
+    pipeline_id: asr.en.wer.site_norm_en_v1.wenet_wer_v1
     nodes:
-      - normalization/aispeech_norm
+      - normalization/site_norm
       - scoring/wenet_wer
     input_contract: scoring/wenet_wer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
@@ -61,9 +61,9 @@ routes:
   -
     language: cs
     metric: mer
-    pipeline_id: asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1
+    pipeline_id: asr.cs.mer.site_norm_cs_v1.wenet_mer_v1
     nodes:
-      - normalization/aispeech_norm
+      - normalization/site_norm
       - scoring/wenet_mer
     input_contract: scoring/wenet_mer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files

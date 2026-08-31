@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 from sure_eval.evaluation.core.types import KeyTextFiles, PipelineNodeResult
-from sure_eval.evaluation.nodes.normalization.aispeech_norm.node import (
+from sure_eval.evaluation.nodes.normalization.site_norm.node import (
     _parse_key_text_line,
     _require_parsed_rows,
 )

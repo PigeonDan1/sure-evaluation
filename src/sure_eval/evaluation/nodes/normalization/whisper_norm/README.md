@@ -57,4 +57,4 @@ Whisper ASR package and does not transcribe audio.
 
 - The English profile is only a default for English WER routes.
 - Mandarin ASR CER defaults to `normalization/wetext_norm`.
-- Code-switch MER defaults to `normalization/aispeech_norm`.
+- Code-switch MER defaults to `normalization/site_norm`.

@@ -7,13 +7,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_aispeech_normalization_impl_lives_under_node_package() -> None:
+def test_site_normalization_impl_lives_under_node_package() -> None:
     impl = importlib.import_module(
-        "sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn"
+        "sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn"
     )
 
     impl_path = Path(impl.__file__).resolve()
-    assert "nodes/normalization/aispeech_norm/normalization_impl" in impl_path.as_posix()
+    assert "nodes/normalization/site_norm/normalization_impl" in impl_path.as_posix()
     assert callable(impl.asr_num2words)
 
 

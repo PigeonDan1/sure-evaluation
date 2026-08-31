@@ -115,7 +115,7 @@ def test_asr_en_wer_rejects_inputs_that_score_zero_reference_tokens(tmp_path: Pa
 
 def test_asr_normalization_keeps_empty_hypothesis_rows(tmp_path: Path) -> None:
     from sure_eval.evaluation.core.types import KeyTextFiles
-    from sure_eval.evaluation.nodes.normalization.aispeech_norm import normalize_asr_files
+    from sure_eval.evaluation.nodes.normalization.site_norm import normalize_asr_files
 
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"

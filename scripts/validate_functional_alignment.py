@@ -106,7 +106,7 @@ def _run_emit(repo: Path, variant: str, output_dir: Path) -> dict[str, Any]:
 def run_demo_suite(variant: str, work_dir: Path) -> dict[str, Any]:
     work_dir.mkdir(parents=True, exist_ok=True)
     cases = {
-        "asr_zh_cer_aispeech": _case_asr_zh_cer_aispeech(work_dir / "asr_zh_cer"),
+        "asr_zh_cer_site": _case_asr_zh_cer_site(work_dir / "asr_zh_cer"),
         "asr_zh_cer_canonical": _case_asr_zh_cer_canonical(work_dir / "asr_zh_canon"),
         "asr_cs_mer_canonical": _case_asr_cs_mer_canonical(work_dir / "asr_cs_mer"),
         "asr_canonical_description": _case_asr_canonical_description(variant),
@@ -125,7 +125,7 @@ def run_demo_suite(variant: str, work_dir: Path) -> dict[str, Any]:
     return payload
 
 
-def _case_asr_zh_cer_aispeech(work_dir: Path) -> dict[str, Any]:
+def _case_asr_zh_cer_site(work_dir: Path) -> dict[str, Any]:
     from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
 
     ref, hyp = _write_key_text_pair(
@@ -133,7 +133,7 @@ def _case_asr_zh_cer_aispeech(work_dir: Path) -> dict[str, Any]:
         [("utt1", "你好世界"), ("utt2", "今天 天气 很好")],
         [("utt1", "你好世界"), ("utt2", "今天 天气 一般")],
     )
-    report = evaluate_asr_files(str(ref), str(hyp), language="zh", metric="cer", normalizer="aispeech")
+    report = evaluate_asr_files(str(ref), str(hyp), language="zh", metric="cer", normalizer="site")
     return _report_summary(report)
 
 

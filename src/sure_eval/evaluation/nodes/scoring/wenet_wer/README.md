@@ -10,10 +10,10 @@ pipeline traces.
 ## Task Scenarios
 
 - ASR English WER after `normalization/whisper_norm` or legacy
-  `normalization/aispeech_norm`.
+  `normalization/site_norm`.
 - ASR Chinese CER after `normalization/wetext_norm` or legacy
-  `normalization/aispeech_norm`.
-- ASR code-switch MER after `normalization/aispeech_norm`.
+  `normalization/site_norm`.
+- ASR code-switch MER after `normalization/site_norm`.
 - TTS/VC/TSE semantic WER/CER after transcription and task-specific
   normalization.
 

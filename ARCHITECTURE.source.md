@@ -161,7 +161,7 @@ src/sure_eval/evaluation/
 The recommended package API is `sure_eval.evaluation.scripts.run_task(...)`.
 The recommended CLI is the two-step `sure-eval metric describe` and
 `sure-eval metric run` flow. ASR routes through
-`src/sure_eval/evaluation/tasks/asr/`, `normalization/aispeech_norm`, and
+`src/sure_eval/evaluation/tasks/asr/`, `normalization/site_norm`, and
 `src/sure_eval/evaluation/nodes/scoring/wenet_wer/`.
 
 Node directories own their `manifest.yaml`, README, and when needed

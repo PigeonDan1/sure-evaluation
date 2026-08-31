@@ -34,5 +34,5 @@ canonical result keys; the legacy `VCMetricPipeline` wrapper still exposes
 `sim/...` and aggregate `sim` for compatibility.
 
 Mandarin semantic CER uses punctuation-only normalization before WeNet CER and
-does not use AISpeech number text normalization by default. `normalization/wetext_norm`
+does not use Site number text normalization by default. `normalization/wetext_norm`
 can be selected explicitly with `evaluate_vc_samples(..., semantic_normalizer="wetext:zh_tn")`.

@@ -1,8 +1,8 @@
-# AISpeech ASR Normalization
+# Site ASR Normalization
 
 ## Purpose
 
-`normalization/aispeech_norm` preserves the legacy AISpeech-style ASR text
+`normalization/site_norm` preserves the legacy Site-style ASR text
 normalization that used to live inside `SUREEvaluator._eval_asr` and
 `SUREEvaluator._eval_asr_codeswitch`. It is now a versioned pipeline node so
 reports expose the exact normalization backend used before edit-distance
@@ -13,11 +13,11 @@ The node normalizes text only. It does not compute WER, CER, or MER.
 ## Task Scenarios
 
 - ASR Chinese CER legacy-compatible route:
-  `asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1`.
+  `asr.zh.cer.site_norm_zh_v1.wenet_cer_v1`.
 - ASR English WER legacy-compatible route:
-  `asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1`.
+  `asr.en.wer.site_norm_en_v1.wenet_wer_v1`.
 - ASR code-switch MER default route:
-  `asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1`.
+  `asr.cs.mer.site_norm_cs_v1.wenet_mer_v1`.
 
 ## Input
 
@@ -38,7 +38,7 @@ as deletions. Non-empty lines without a tab are dropped and counted in
 
 ## Versioned Computation
 
-- Node id: `normalization/aispeech_norm`.
+- Node id: `normalization/site_norm`.
 - Version: `v1`.
 - Profiles:
   - `zh`: number text normalization plus punctuation stripping.
@@ -59,7 +59,7 @@ legacy-compatible.
 - Runtime: `in_process`.
 - No optional node-local environment.
 - Uses vendored/local normalization implementation under
-  `normalization/aispeech_norm/normalization_impl/`.
+  `normalization/site_norm/normalization_impl/`.
 
 ## Source and References
 

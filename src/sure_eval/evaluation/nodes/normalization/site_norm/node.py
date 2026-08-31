@@ -1,4 +1,4 @@
-"""AISpeech-compatible ASR normalization wrappers.
+"""Site-compatible ASR normalization wrappers.
 
 This node preserves the normalization behavior currently embedded in
 ``SUREEvaluator._eval_asr`` and ``SUREEvaluator._eval_asr_codeswitch``.
@@ -12,14 +12,14 @@ import tempfile
 from pathlib import Path
 
 from sure_eval.evaluation.core.types import KeyTextFiles, PipelineNodeResult
-from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl import default_map_dir
+from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl import default_map_dir
 from sure_eval.evaluation.sure_evaluator import (
     _strip_eval_punct_file,
     split_tokens,
     tokenize_codeswitch,
 )
 
-NODE_ID = "normalization/aispeech_norm"
+NODE_ID = "normalization/site_norm"
 NODE_VERSION = "v1"
 
 
@@ -135,7 +135,7 @@ def _load_num2words_maps(language: str, map_dir: str) -> tuple[list, list]:
     root ``digit.map``) for digit-by-digit conversion.
     """
 
-    from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn import (
+    from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn import (
         load_and_sort_map,
     )
 
@@ -170,7 +170,7 @@ def _make_norm_context(language: str, map_dir: str) -> dict:
 
 
 def _normalize_text(text: str, language: str, norm_context: dict) -> str:
-    from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn import asr_num2words
+    from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn import asr_num2words
 
     return asr_num2words(
         text,

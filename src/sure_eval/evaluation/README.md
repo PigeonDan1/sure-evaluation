@@ -179,7 +179,7 @@ sure-eval metric run \
 For Mandarin TTS semantic CER, the default route is
 `frontend/funasr_loader_16k_mono -> transcription/paraformer_zh ->
 normalization/punctuation_strip_norm -> scoring/wenet_cer`. This strips
-punctuation only and does not use `normalization/aispeech_norm` unless an
+punctuation only and does not use `normalization/site_norm` unless an
 explicit semantic normalizer selects it.
 
 Qwen3-ASR-1.7B is available as an alternate TTS semantic transcription route

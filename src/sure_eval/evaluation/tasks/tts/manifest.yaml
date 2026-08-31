@@ -111,7 +111,7 @@ legacy_reference:
   pipeline: sure_eval.evaluation.tasks.tts.compat.TTSMetricPipeline
 notes:
   - Semantic WER/CER must transcribe audio first, then call the canonical ASR scoring path.
-  - Mandarin semantic CER uses punctuation-only normalization before WeNet CER and does not use AISpeech number text normalization by default.
+  - Mandarin semantic CER uses punctuation-only normalization before WeNet CER and does not use Site number text normalization by default.
   - English semantic WER uses OpenAI Whisper English normalization before WeNet WER.
   - Qwen3-ASR-1.7B TTS semantic routes are alternatives selected by exact pipeline_id; they do not replace the default Paraformer-ZH or Whisper-large-v3 routes.
   - Qwen3-ASR-1.7B audio decode, mono conversion, and 16 kHz resampling are managed inside the qwen-asr runtime and are recorded as runtime_managed trace metadata, not as a separate frontend node.

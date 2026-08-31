@@ -126,7 +126,7 @@ def test_metric_routes_lists_exact_language_and_metric_variants() -> None:
     )
     assert {route["pipeline_id"] for route in payload["routes"]} == {
         "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
-        "asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1",
+        "asr.zh.cer.site_norm_zh_v1.wenet_cer_v1",
         "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1",
     }
     assert all(route["language"] == "zh" for route in payload["routes"])
@@ -192,11 +192,11 @@ def test_metric_describe_can_select_asr_pipeline_id(tmp_path: Path) -> None:
 
 def test_metric_run_uses_exact_asr_pipeline_id_selectors(tmp_path: Path) -> None:
     runner = CliRunner()
-    pipeline_path = tmp_path / "asr_aispeech_pipeline.json"
+    pipeline_path = tmp_path / "asr_site_pipeline.json"
     ref_file = tmp_path / "ref.txt"
     hyp_file = tmp_path / "hyp.txt"
-    output_dir = tmp_path / "asr_aispeech_out"
-    pipeline_id = "asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1"
+    output_dir = tmp_path / "asr_site_out"
+    pipeline_id = "asr.zh.cer.site_norm_zh_v1.wenet_cer_v1"
     _write_key_text(ref_file, [("utt1", "你好世界")])
     _write_key_text(hyp_file, [("utt1", "你好世界")])
 
@@ -237,7 +237,7 @@ def test_metric_run_uses_exact_asr_pipeline_id_selectors(tmp_path: Path) -> None
     assert payload["pipeline_id"] == pipeline_id
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report_payload["pipeline_id"] == pipeline_id
-    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/aispeech_norm"
+    assert report_payload["pipeline_trace"][0]["node_id"] == "normalization/site_norm"
 
 
 def test_metric_run_rejects_tampered_pipeline_identity(tmp_path: Path) -> None:

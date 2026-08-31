@@ -109,7 +109,7 @@ def _profile_for_asr_node(node: PipelineNodeResult) -> str | None:
         return str(node.details.get("profile") or "")
     if node.node_id == "normalization/whisper_norm":
         return str(node.details.get("profile") or "english")
-    if node.node_id == "normalization/aispeech_norm":
+    if node.node_id == "normalization/site_norm":
         return str(node.details.get("profile") or "")
     if node.node_id == "normalization/canonical_itn":
         profile = str(node.details.get("profile") or node.details.get("language") or "")

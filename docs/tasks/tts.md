@@ -18,7 +18,7 @@ sure-eval metric routes tts --language zh --metric cer
 | `wer` | exact `pipeline_id` | `en` | `tts.en.wer.qwen3_asr_1_7b_v1.whisper_norm_english_v1.wenet_wer_v1` | `transcription/qwen3_asr_1_7b` → `normalization/whisper_norm` → `scoring/wenet_wer` |
 
 Mandarin semantic CER strips punctuation only before WeNet CER. It does not
-use `normalization/aispeech_norm` by default, so numbers, case, and
+use `normalization/site_norm` by default, so numbers, case, and
 non-punctuation text are preserved.
 
 The `cer` / `tts_cer` and `wer` / `tts_wer` selectors keep the default

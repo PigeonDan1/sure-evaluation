@@ -1,6 +1,6 @@
-"""AISpeech ASR text normalization node."""
+"""Site ASR text normalization node."""
 
-from sure_eval.evaluation.nodes.normalization.aispeech_norm.node import (
+from sure_eval.evaluation.nodes.normalization.site_norm.node import (
     normalize_asr_files,
     normalize_codeswitch_asr_files,
 )

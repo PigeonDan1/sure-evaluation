@@ -111,9 +111,9 @@ def _executor_selectors_from_route(route: dict) -> dict[str, str]:
             selectors["normalizer"] = f"wetext:{_wetext_profile_from_pipeline_id(route['pipeline_id'])}"
         elif node_id == "normalization/whisper_norm":
             selectors["normalizer"] = "whisper"
-        elif node_id == "normalization/aispeech_norm":
+        elif node_id == "normalization/site_norm":
             if not _is_codeswitch_wenet_route(route):
-                selectors["normalizer"] = "aispeech"
+                selectors["normalizer"] = "site"
         elif node_id == "normalization/canonical_itn":
             selectors["normalizer"] = "canonical"
         elif node_id == "normalization/punctuation_strip_norm":

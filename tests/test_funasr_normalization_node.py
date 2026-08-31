@@ -118,7 +118,7 @@ def test_funasr_is_default_normalizer_for_unsupported_languages() -> None:
 
     assert _normalize_normalizer(language="zh", metric="cer", normalizer=None) == "wetext:zh_itn"
     assert _normalize_normalizer(language="en", metric="wer", normalizer=None) == "whisper"
-    assert _normalize_normalizer(language="cs", metric="mer", normalizer=None) == "aispeech"
+    assert _normalize_normalizer(language="cs", metric="mer", normalizer=None) == "site"
 
 
 def test_funasr_profile_must_match_route_language() -> None:

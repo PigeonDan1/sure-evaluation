@@ -305,16 +305,16 @@ class SUREEvaluator:
         self.gr_mapping = gr_mapping or {"man": 0, "woman": 1}
         
         # Initialize preprocessor
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl import default_map_dir
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn import asr_num2words
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl import default_map_dir
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn import asr_num2words
         self._preprocessor = None
         self._asr_num2words = asr_num2words
         self._asr_norm_map_dir = default_map_dir()
     
     def _get_preprocessor(self, lang: str):
         """Get text preprocessor for language."""
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl import default_map_dir
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn import asr_num2words
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl import default_map_dir
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn import asr_num2words
 
         norm_map_dir = default_map_dir()
         
@@ -418,8 +418,8 @@ class SUREEvaluator:
         tochar = tochar or (self.language == "zh")
         
         # Normalize files first
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl import default_map_dir
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn import asr_num2words
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl import default_map_dir
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn import asr_num2words
         
         # Get default map directory
         map_dir = default_map_dir()
@@ -484,8 +484,8 @@ class SUREEvaluator:
 
     def _eval_asr_codeswitch(self, ref_file: str, hyp_file: str) -> Dict[str, Any]:
         """Evaluate code-switching ASR with upstream MER/WER/CER behavior."""
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl import default_map_dir
-        from sure_eval.evaluation.nodes.normalization.aispeech_norm.normalization_impl.asr_simple_tn import asr_num2words
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl import default_map_dir
+        from sure_eval.evaluation.nodes.normalization.site_norm.normalization_impl.asr_simple_tn import asr_num2words
 
         map_dir = default_map_dir()
 

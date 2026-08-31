@@ -20,7 +20,7 @@ specific non-default pipeline.
 | Pipeline ID | Language | Nodes | Notes |
 |:------------|:---------|:------|:------|
 | `asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1` | `zh` | `normalization/wetext_norm` (`zh_itn`) -> `scoring/wenet_cer` | Default Mandarin CER |
-| `asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1` | `zh` | `normalization/aispeech_norm` -> `scoring/wenet_cer` | Legacy AISpeech-normalized CER |
+| `asr.zh.cer.site_norm_zh_v1.wenet_cer_v1` | `zh` | `normalization/site_norm` -> `scoring/wenet_cer` | Legacy Site-normalized CER |
 | `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1` | `zh` | `normalization/canonical_itn` -> `scoring/token_cer` | Canonical ITN CER; requires `[canonical]` |
 | `asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1` | `ja` | `normalization/funasr_itn` (`ja`) -> `scoring/wenet_cer` | Default Japanese CER; optional node setup required |
 | `asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1` | `ko` | `normalization/funasr_itn` (`ko`) -> `scoring/wenet_cer` | Default Korean CER; optional node setup required |
@@ -31,7 +31,7 @@ specific non-default pipeline.
 | Pipeline ID | Language | Nodes | Notes |
 |:------------|:---------|:------|:------|
 | `asr.en.wer.whisper_norm_english_v1.wenet_wer_v1` | `en` | `normalization/whisper_norm` -> `scoring/wenet_wer` | Default English WER |
-| `asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1` | `en` | `normalization/aispeech_norm` -> `scoring/wenet_wer` | Legacy AISpeech-normalized WER |
+| `asr.en.wer.site_norm_en_v1.wenet_wer_v1` | `en` | `normalization/site_norm` -> `scoring/wenet_wer` | Legacy Site-normalized WER |
 | `asr.en.wer.canonical_itn_en_v1.token_mer_v1` | `en` | `normalization/canonical_itn` -> `scoring/token_mer` | Canonical ITN WER; requires `[canonical]` |
 | `asr.es.wer.funasr_itn_es_v1.wenet_wer_v1` | `es` | `normalization/funasr_itn` (`es`) -> `scoring/wenet_wer` | Default Spanish WER; optional node setup required |
 | `asr.fr.wer.funasr_itn_fr_v1.wenet_wer_v1` | `fr` | `normalization/funasr_itn` (`fr`) -> `scoring/wenet_wer` | Default French WER; optional node setup required |
@@ -46,7 +46,7 @@ specific non-default pipeline.
 
 | Pipeline ID | Language | Nodes | Notes |
 |:------------|:---------|:------|:------|
-| `asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1` | `cs` | `normalization/aispeech_norm` -> `scoring/wenet_mer` | Default code-switch MER |
+| `asr.cs.mer.site_norm_cs_v1.wenet_mer_v1` | `cs` | `normalization/site_norm` -> `scoring/wenet_mer` | Default code-switch MER |
 | `asr.cs.mer.canonical_itn_cs_v1.token_mer_v1` | `cs` | `normalization/canonical_itn` -> `scoring/token_mer` | Canonical ITN MER; requires `[canonical]` |
 
 `pipeline_id` uses the canonical metric plus versioned computation nodes.
