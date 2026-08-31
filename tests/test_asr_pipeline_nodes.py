@@ -402,3 +402,93 @@ def test_asr_codeswitch_mer_pipeline_matches_sure_evaluator(tmp_path: Path) -> N
     assert report.pipeline_trace[0].node_id == "normalization/aispeech_norm"
     assert report.pipeline_trace[0].details["profile"] == "cs"
     assert report.pipeline_trace[1].node_id == "scoring/wenet_mer"
+
+
+def test_asr_en_wer_pipeline_can_use_openasr_normalization(tmp_path: Path) -> None:
+    from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
+
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    _write_key_text(ref_file, [("utt1", "Um, the B B C paid $20 million.")])
+    _write_key_text(hyp_file, [("utt1", "the bbc paid 20 million dollars")])
+
+    report = evaluate_asr_files(
+        str(ref_file),
+        str(hyp_file),
+        language="en",
+        metric="wer",
+        normalizer="openasr",
+    )
+
+    assert report.task == "ASR"
+    assert report.language == "en"
+    assert report.metric == "wer"
+    assert report.score == 0.0
+    assert report.pipeline_id == "asr.en.wer.openasr_norm_english_v1.wenet_wer_v1"
+    assert report.pipeline_trace[0].node_id == "normalization/openasr_norm"
+    assert report.pipeline_trace[0].details["profile"] == "english"
+    assert report.pipeline_trace[1].node_id == "scoring/wenet_wer"
+    assert report.computation_node_ids == (
+        "normalization/openasr_norm",
+        "scoring/wenet_wer",
+    )
+
+
+def test_asr_openasr_normalizer_rejects_non_english_or_non_wer(tmp_path: Path) -> None:
+    import pytest
+
+    from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
+
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    _write_key_text(ref_file, [("utt1", "hello")])
+    _write_key_text(hyp_file, [("utt1", "hello")])
+
+    with pytest.raises(ValueError, match="openasr_norm is only supported for English WER"):
+        evaluate_asr_files(
+            str(ref_file), str(hyp_file), language="zh", metric="cer", normalizer="openasr"
+        )
+
+
+def test_asr_openasr_route_describe_and_selectors() -> None:
+    from sure_eval.evaluation.scripts.asr import (
+        _executor_selectors_from_route,
+        describe_pipeline,
+    )
+
+    desc = describe_pipeline(pipeline_id="asr.en.wer.openasr_norm_english_v1.wenet_wer_v1")
+    assert desc.pipeline_id == "asr.en.wer.openasr_norm_english_v1.wenet_wer_v1"
+    assert desc.language == "en"
+    assert desc.metric == "wer"
+    assert desc.node_ids == ("normalization/openasr_norm", "scoring/wenet_wer")
+    assert desc.computation_node_ids == ("normalization/openasr_norm", "scoring/wenet_wer")
+
+    selectors = _executor_selectors_from_route({"nodes": list(desc.node_ids), "pipeline_id": desc.pipeline_id})
+    assert selectors == {"normalizer": "openasr", "scorer": "wenet"}
+
+
+def test_asr_openasr_route_script_run_preserves_pipeline_id(tmp_path: Path) -> None:
+    from sure_eval.evaluation.scripts.asr import run
+
+    ref_file = tmp_path / "ref.txt"
+    hyp_file = tmp_path / "hyp.txt"
+    _write_key_text(ref_file, [("utt1", "Um, I think the B B C left.")])
+    _write_key_text(hyp_file, [("utt1", "i think the bbc left")])
+
+    result = run(
+        str(ref_file),
+        str(hyp_file),
+        pipeline_id="asr.en.wer.openasr_norm_english_v1.wenet_wer_v1",
+        output_dir=str(tmp_path / "out"),
+    )
+
+    import json
+
+    report = json.loads((tmp_path / "out" / "report.json").read_text(encoding="utf-8"))
+    assert report["pipeline_id"] == "asr.en.wer.openasr_norm_english_v1.wenet_wer_v1"
+    assert report["computation_node_ids"] == [
+        "normalization/openasr_norm",
+        "scoring/wenet_wer",
+    ]
+    assert report["score"] == 0.0
+    assert result is not None
