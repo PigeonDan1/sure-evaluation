@@ -78,3 +78,7 @@ arithmetic mean WER (the leaderboard composite), and informational RTFx.
   (Earnings22, 14-22 minutes per sample) inherit the node defaults, so check
   `hyp.txt` coverage (`num_hyp_missing_utts` in the report) before trusting
   those rows.
+- The node batches inputs per subprocess (default batch size 32). On
+  memory-constrained machines force sequential transcription with
+  `SURE_EVAL_TRANSCRIPTION_BATCH_SIZE=1` (each chunk reloads the model, so
+  expect slower runs).
