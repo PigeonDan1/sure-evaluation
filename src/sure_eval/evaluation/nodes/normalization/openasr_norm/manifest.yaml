@@ -31,7 +31,7 @@ notes:
   - The leaderboard normalizer extends the Whisper English normalizer with a
     larger filler-word ignore list, acronym collapsing, name canonicalization,
     and compound-word mappings.
-  - Scoring-side comparability boundary: the official pipeline computes WER
+  - "Scoring-side comparability boundary: the official pipeline computes WER
     with kaldialign batch_error_rate(merge_compounds=True); the engine routes
     this normalizer into scoring/wenet_wer (word-level edit distance without
-    compound merging).
+    compound merging)."

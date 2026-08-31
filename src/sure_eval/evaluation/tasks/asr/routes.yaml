@@ -41,6 +41,15 @@ routes:
   -
     language: en
     metric: wer
+    pipeline_id: asr.en.wer.openasr_norm_english_v1.wenet_wer_v1
+    nodes:
+      - normalization/openasr_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: en
+    metric: wer
     pipeline_id: asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1
     nodes:
       - normalization/aispeech_norm
