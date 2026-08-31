@@ -91,24 +91,36 @@ def transcribe_dataset(
     keys: list[str],
     *,
     device: str,
-    max_new_tokens: int,
 ) -> tuple[Path, float]:
     from sure_eval.evaluation.nodes.transcription.common.providers import (
-        Qwen3ASR17BTranscriber,
+        NodeLocalTranscriber,
     )
 
-    transcriber = Qwen3ASR17BTranscriber(device=device, max_new_tokens=max_new_tokens)
+    node_dir = (
+        Path(__file__).resolve().parent.parent
+        / "src"
+        / "sure_eval"
+        / "evaluation"
+        / "nodes"
+        / "transcription"
+        / "qwen3_asr_1_7b"
+    )
+    transcriber = NodeLocalTranscriber(
+        node_id="transcription/qwen3_asr_1_7b", node_dir=node_dir, device=device
+    )
     hyp_path = dataset_dir / "hyp.txt"
-    total_time = 0.0
+    started = time.perf_counter()
+    results = transcriber.transcribe_batch(
+        [str(dataset_dir / "wavs" / f"{key}.wav") for key in keys],
+        language="en",
+        role="prediction_audio",
+    )
+    total_time = time.perf_counter() - started
+    if len(results) != len(keys):
+        raise RuntimeError(f"transcriber returned {len(results)} rows for {len(keys)} inputs")
     with hyp_path.open("w", encoding="utf-8") as hyp_out:
-        for index, key in enumerate(keys, 1):
-            wav = dataset_dir / "wavs" / f"{key}.wav"
-            started = time.perf_counter()
-            text = transcriber.transcribe(str(wav), language="en")
-            total_time += time.perf_counter() - started
-            hyp_out.write(f"{key}\t{text}\n")
-            if index % 100 == 0:
-                print(f"  {index}/{len(keys)} transcribed", flush=True)
+        for key, (transcript, _trace) in zip(keys, results, strict=True):
+            hyp_out.write(f"{key}\t{transcript}\n")
     return hyp_path, total_time
 
 
@@ -145,12 +157,6 @@ def main() -> int:
     )
     parser.add_argument("--limit", type=int, default=None, help="Max samples per dataset")
     parser.add_argument("--device", type=str, default="cuda", help="Inference device")
-    parser.add_argument(
-        "--max-new-tokens",
-        type=int,
-        default=4096,
-        help="Generation cap per sample (long-form sets like Earnings22 need more than the node default)",
-    )
     parser.add_argument(
         "--hyp-dir",
         type=Path,
@@ -208,7 +214,6 @@ def main() -> int:
                 dataset_dir,
                 keys,
                 device=args.device,
-                max_new_tokens=args.max_new_tokens,
             )
 
         scores = score_dataset(ref_file, hyp_file)
