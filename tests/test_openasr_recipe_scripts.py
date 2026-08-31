@@ -167,3 +167,41 @@ def test_prepare_script_earnings22_jsonl_variant(tmp_path: Path) -> None:
     assert manifest["num_samples"] == 1
     assert (dataset_dir / "ref.txt").read_text(encoding="utf-8") == "utt1\thello earnings\n"
     assert (dataset_dir / "wavs" / "utt1.wav").exists()
+
+
+def test_download_script_dataset_mapping_covers_prepare_datasets() -> None:
+    download = _load_script("download_openasr_leaderboard")
+    prepare = _load_script("prepare_openasr_leaderboard")
+    # every recipe dataset the downloader offers is consumed by the prepare script
+    assert set(download.ALL_DATASETS) == set(prepare.ALL_DATASETS)
+    for name, patterns in download.LEADERBOARD_PATTERNS.items():
+        config_dir = patterns[0].split("/")[0]
+        expected_glob = prepare.PARQUET_DATASETS[name]
+        assert expected_glob.split("/")[0] == config_dir
+
+
+def test_download_script_planned_files_filters_by_patterns() -> None:
+    download = _load_script("download_openasr_leaderboard")
+
+    class _FakeApi:
+        def list_repo_files(self, repo, repo_type=None):
+            assert repo_type == "dataset"
+            if repo == download.LEADERBOARD_REPO:
+                return [
+                    "librispeech/test.clean-00000-of-00001.parquet",
+                    "librispeech/test.other-00000-of-00001.parquet",
+                    "ami/test-00000-of-00015.parquet",
+                    "README.md",
+                ]
+            return ["earnings22_cleaned_aa_v1.jsonl", "audio/a.mp3", "README.md"]
+
+    assert download.planned_files("librispeech_test.clean", _FakeApi()) == [
+        "librispeech/test.clean-00000-of-00001.parquet"
+    ]
+    assert download.planned_files("librispeech_test.other", _FakeApi()) == [
+        "librispeech/test.other-00000-of-00001.parquet"
+    ]
+    assert download.planned_files("earnings22_cleaned_aa_test", _FakeApi()) == [
+        "audio/a.mp3",
+        "earnings22_cleaned_aa_v1.jsonl",
+    ]

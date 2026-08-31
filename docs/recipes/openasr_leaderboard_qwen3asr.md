@@ -11,8 +11,20 @@ keys: `ami_cleaned_test`, `earnings22_cleaned_aa_test`,
 
 ## 1. Prepare the datasets
 
-Point the script at a local copy of the leaderboard data (Hugging Face parquet
-shards; Earnings22-Cleaned-AA is a JSONL + mp3 layout). Each dataset is
+If you do not have a local copy yet, download the datasets to any location
+(honors `HTTPS_PROXY`/`HF_ENDPOINT`/`HF_TOKEN`):
+
+```bash
+python scripts/download_openasr_leaderboard.py --output-dir /data/open-asr-leaderboard
+
+# subset / dry run
+python scripts/download_openasr_leaderboard.py \
+    --output-dir /data/open-asr-leaderboard \
+    --datasets librispeech_test.clean,earnings22_cleaned_aa_test --dry-run
+```
+
+Then point the prepare script at the downloaded copy (or any existing one).
+Each dataset is
 materialized as `<output-root>/<dataset>/v1.0.0/` with 16 kHz mono wavs, a
 tab-separated `ref.txt`, and a `manifest.json` carrying source shard hashes:
 
