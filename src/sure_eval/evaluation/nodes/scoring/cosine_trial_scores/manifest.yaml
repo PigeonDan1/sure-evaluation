@@ -1,0 +1,17 @@
+id: scoring/cosine_trial_scores
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: embedding_jsonl_plus_sv_trial_manifest
+output_schema: sv_trial_score_memmaps
+implementation: sure_eval.evaluation.nodes.scoring.cosine_trial_scores.node
+supports:
+  - l2_normalized_cosine_scoring
+  - streaming_jsonl
+  - numpy_memmap
+  - frozen_trial_sha256
+input_contract:
+  required_roles: [sample_output, trial_manifest]
+  row_format: embedding_jsonl_and_trial_tsv
+  alignment_key: sample_id
+  aggregation: trial_scores

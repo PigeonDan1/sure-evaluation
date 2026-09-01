@@ -1,0 +1,13 @@
+id: scoring/min_dcf_p005
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: scores_plus_binary_labels
+output_schema: normalized_min_dcf_report
+implementation: sure_eval.evaluation.nodes.scoring.min_dcf_p005.node
+metrics:
+  - min_dcf
+parameters:
+  p_target: 0.05
+  c_miss: 1.0
+  c_fa: 1.0

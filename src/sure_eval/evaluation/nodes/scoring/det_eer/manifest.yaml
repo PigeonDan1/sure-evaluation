@@ -1,0 +1,12 @@
+id: scoring/det_eer
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: scores_plus_binary_labels
+output_schema: eer_report
+implementation: sure_eval.evaluation.nodes.scoring.det_eer.node
+metrics:
+  - eer
+supports:
+  - det_crossing_linear_interpolation
+  - percent_output

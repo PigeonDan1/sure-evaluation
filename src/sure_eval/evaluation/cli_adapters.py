@@ -22,6 +22,7 @@ ROLE_TO_CLI_ARG = {
     "label_spec": "label_spec",
     "reference_jsonl": "reference_jsonl",
     "sample_output": "sample_output",
+    "trial_manifest": "trial_manifest",
     "wekws_label_file": "wekws_label_file",
     "wekws_score_file": "wekws_score_file",
     "wekws_frame_score_file": "wekws_frame_score_file",
@@ -44,6 +45,7 @@ ENVIRONMENT_NOTE = (
 AUDIO_SAMPLE_TASKS = {"tts", "vc", "se", "speech_enhancement", "tse"}
 SE_TASKS = {"se", "speech_enhancement"}
 SE_DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
+SV_DEFAULT_METRICS = ("eer", "min_dcf")
 PIPELINE_SCHEMA = "sure.metric.pipeline.v1"
 ROUTE_LIST_SCHEMA = "sure.metric.routes.v1"
 OPTIONAL_RUNTIME_TYPES = {"binary", "pip", "uv"}
@@ -376,6 +378,7 @@ def run_pipeline_spec(
     label_spec: str | None = None,
     reference_jsonl: str | None = None,
     sample_output: str | None = None,
+    trial_manifest: str | None = None,
     wekws_label_file: str | None = None,
     wekws_score_file: str | None = None,
     wekws_frame_score_file: str | None = None,
@@ -401,6 +404,7 @@ def run_pipeline_spec(
         "label_spec": label_spec,
         "reference_jsonl": reference_jsonl,
         "sample_output": sample_output,
+        "trial_manifest": trial_manifest,
         "wekws_label_file": wekws_label_file,
         "wekws_score_file": wekws_score_file,
         "wekws_frame_score_file": wekws_frame_score_file,
@@ -521,6 +525,13 @@ def _describe_kwargs(
         return kwargs
     if task == "sd":
         kwargs = {"metric": metric or "der"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
+    if task == "sv":
+        kwargs = {}
+        if metric:
+            kwargs["metrics"] = split_metric_csv(metric)
         if pipeline_id:
             kwargs["pipeline_id"] = pipeline_id
         return kwargs
@@ -686,7 +697,7 @@ def _run_kwargs_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
     elif task in {"ser", "gr", "slu"}:
         if pipeline.get("pipeline_id"):
             kwargs["pipeline_id"] = pipeline["pipeline_id"]
-    elif task in AUDIO_SAMPLE_TASKS:
+    elif task in AUDIO_SAMPLE_TASKS or task == "sv":
         use_atomic_pipeline_id = (
             pipeline.get("pipeline_kind") == "atomic" and pipeline.get("pipeline_id")
         )
@@ -731,6 +742,8 @@ def _requested_metrics(
         return split_metric_csv(metric)
     if task in SE_TASKS and description_metric == "multi":
         return SE_DEFAULT_METRICS
+    if task == "sv" and description_metric == "multi":
+        return SV_DEFAULT_METRICS
     if description_metric and description_metric != "multi":
         return (description_metric,)
     return ()
@@ -827,6 +840,8 @@ def _metrics_from_pipeline(pipeline: dict[str, Any], *, task: str) -> tuple[str,
         return selected
     if task in SE_TASKS and pipeline.get("metric") == "multi":
         return SE_DEFAULT_METRICS
+    if task == "sv" and pipeline.get("metric") == "multi":
+        return SV_DEFAULT_METRICS
     return ()
 
 
