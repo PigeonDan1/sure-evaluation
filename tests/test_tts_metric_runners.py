@@ -1498,9 +1498,7 @@ def test_tts_pipeline_docker_wrapper_maps_container_paths() -> None:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
 
-    host_root = Path("/srv/example/host")
-    container_root = Path("/srv/example/container")
-    model_root = host_root / "workspace" / "sure-evaluation" / "src" / "sure_eval" / "models" / "m"
+    model_root = Path("/mnt/cloudstorfs/sjtu_home/jing.peng/workspace/sure-evaluation/src/sure_eval/models/m")
     args = module.parse_args(
         [
             "--prediction-audio",
@@ -1510,11 +1508,7 @@ def test_tts_pipeline_docker_wrapper_maps_container_paths() -> None:
             "--reference-audio",
             str(model_root / "fixture" / "tts" / "en" / "ref.wav"),
             "--cache-dir",
-            str(host_root / "workspace" / "sure-evaluation" / "runtime" / "cache" / "tts-metrics"),
-            "--shared-storage-host-root",
-            str(host_root),
-            "--shared-storage-container-root",
-            str(container_root),
+            "/mnt/cloudstorfs/sjtu_home/jing.peng/workspace/sure-evaluation/runtime/cache/tts-metrics",
             "--work-dir",
             str(model_root / "artifacts" / "tts_metric_parts"),
             "--output",
@@ -1524,18 +1518,16 @@ def test_tts_pipeline_docker_wrapper_maps_container_paths() -> None:
     segment = module.build_segments(args)[0]
     command = module._segment_command(args, segment, args.work_dir / segment.output_name)
 
-    mount_index = command.index("-v")
-    assert command[mount_index + 1] == f"{host_root}:{container_root}"
-    assert str(host_root) not in " ".join(command[:mount_index] + command[mount_index + 2 :])
+    assert "/mnt/cloudstorfs" not in " ".join(command)
     assert any(
         item
-        == "MODELSCOPE_CACHE=/srv/example/container/workspace/sure-evaluation/runtime/cache/tts-metrics/semantic/modelscope"
+        == "MODELSCOPE_CACHE=/hpc_stor03/sjtu_home/jing.peng/workspace/sure-evaluation/runtime/cache/tts-metrics/semantic/modelscope"
         for item in command
     )
-    assert str(command[command.index("--prediction-audio") + 1]).startswith(str(container_root))
-    assert str(command[command.index("--reference-audio") + 1]).startswith(str(container_root))
-    assert str(command[command.index("--cache-dir") + 1]).startswith(str(container_root))
-    assert str(command[command.index("--output") + 1]).startswith(str(container_root))
+    assert str(command[command.index("--prediction-audio") + 1]).startswith("/hpc_stor03/")
+    assert str(command[command.index("--reference-audio") + 1]).startswith("/hpc_stor03/")
+    assert str(command[command.index("--cache-dir") + 1]).startswith("/hpc_stor03/")
+    assert str(command[command.index("--output") + 1]).startswith("/hpc_stor03/")
 
 
 def test_tts_pipeline_docker_wrapper_passes_semantic_normalizer_only_to_semantic_segment() -> None:
@@ -1629,7 +1621,7 @@ def test_tts_pipeline_docker_wrapper_defaults_to_existing_sensevoice_image(monke
 
     assert (
         module.ASR_FUNASR_IMAGE
-        == "registry.example.com/sure/funasr-metrics:latest"
+        == "docker.v2.aispeech.com/sjtu/sjtu_yukai-dujunhao-sure_funaudiollm__sensevoicesmall:v1.0"
     )
 
 
@@ -1682,7 +1674,7 @@ def test_tts_docker_shell_accepts_semantic_normalizer_argument() -> None:
     assert "Unknown argument: --semantic-normalizer" not in completed.stderr
 
 
-def test_tts_pipeline_docker_wrapper_maps_configured_shared_storage() -> None:
+def test_tts_pipeline_docker_wrapper_uses_hpc_workdir() -> None:
     import importlib.util
     from pathlib import Path
 
@@ -1695,13 +1687,9 @@ def test_tts_pipeline_docker_wrapper_maps_configured_shared_storage() -> None:
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
 
-    mapped = module.map_shared_path(
-        Path("/srv/example/host/workspace/sure-evaluation"),
-        Path("/srv/example/host"),
-        Path("/srv/example/container"),
-    )
+    mapped = module.to_hpc_path(Path("/mnt/cloudstorfs/sjtu_home/jing.peng/workspace/sure-evaluation"))
 
-    assert str(mapped) == "/srv/example/container/workspace/sure-evaluation"
+    assert str(mapped) == "/hpc_stor03/sjtu_home/jing.peng/workspace/sure-evaluation"
 
 
 def test_validation_plan_lists_required_models_without_importing_heavy_deps() -> None:

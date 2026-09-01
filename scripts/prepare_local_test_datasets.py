@@ -11,7 +11,6 @@ import argparse
 import base64
 import http.client
 import json
-import os
 import shutil
 import subprocess
 import zipfile
@@ -27,16 +26,9 @@ SURE_ROOT = DATASETS_ROOT / "sure_benchmark"
 JSONL_ROOT = SURE_ROOT / "jsonl"
 SURE_SUITES_ROOT = SURE_ROOT / "SURE_Test_Suites"
 
-WENETSPEECH_ROOT = (
-    Path(os.environ["SURE_WENETSPEECH_ROOT"])
-    if os.environ.get("SURE_WENETSPEECH_ROOT")
-    else None
-)
-GIGASPEECH_ROOT = (
-    Path(os.environ["SURE_GIGASPEECH_ROOT"])
-    if os.environ.get("SURE_GIGASPEECH_ROOT")
-    else None
-)
+LIBRISPEECH_ROOT = Path("/hpc_stor03/public/shared/data/asr/rawdata/LibriSpeech")
+WENETSPEECH_ROOT = Path("/hpc_stor03/public/shared/data/asr/rawdata/WenetSpeech")
+GIGASPEECH_ROOT = Path("/hpc_stor03/public/shared/data/asr/am/GigaSpeech")
 SLIDESPEECH_ROOT = DATASETS_ROOT / "slidespeech_test"
 SLIDESPEECH_INFO_ROOT = SLIDESPEECH_ROOT / "info" / "test"
 SLIDESPEECH_AUDIO_ROOT = SLIDESPEECH_ROOT / "audio"
@@ -326,17 +318,10 @@ def extract_audio_segment(src: Path, dst: Path, start: float, end: float) -> Non
     subprocess.run(cmd, check=True)
 
 
-def prepare_wenetspeech(
-    split: str, limit: int | None = None, *, dataset_root: Path | None = None
-) -> int:
+def prepare_wenetspeech(split: str, limit: int | None = None) -> int:
     assert split in {"test_net", "test_meeting"}
     split_marker = "TEST_NET" if split == "test_net" else "TEST_MEETING"
-    root = dataset_root or WENETSPEECH_ROOT
-    if root is None:
-        raise ValueError(
-            "WenetSpeech requires --wenetspeech-root or SURE_WENETSPEECH_ROOT"
-        )
-    json_path = root / "data" / "WenetSpeech.json"
+    json_path = WENETSPEECH_ROOT / "data" / "WenetSpeech.json"
 
     def rows() -> Iterable[dict[str, Any]]:
         count = 0
@@ -349,7 +334,7 @@ def prepare_wenetspeech(
             ):
                 continue
 
-            source_audio = root / "data" / audio_rel
+            source_audio = WENETSPEECH_ROOT / "data" / audio_rel
             for segment in segments:
                 subsets = [str(item).upper() for item in segment.get("subsets", [])]
                 if split_marker not in subsets:
@@ -381,7 +366,10 @@ def prepare_wenetspeech(
 
 def parse_ark_spec(spec: str) -> tuple[Path, int]:
     ark, offset = spec.rsplit(":", 1)
-    return Path(ark), int(offset)
+    ark_path = Path(ark)
+    if not ark_path.exists() and str(ark_path).startswith("/mnt/lustre/sjtu/shared/"):
+        ark_path = Path(str(ark_path).replace("/mnt/lustre/sjtu/shared", "/hpc_stor03/public/shared", 1))
+    return ark_path, int(offset)
 
 
 def export_kaldi_audio_object(ark_path: Path, offset: int, next_offset: int, dst: Path) -> None:
@@ -402,15 +390,8 @@ def export_kaldi_audio_object(ark_path: Path, offset: int, next_offset: int, dst
     dst.write_bytes(audio_payload)
 
 
-def prepare_gigaspeech_test(
-    limit: int | None = None, *, dataset_root: Path | None = None
-) -> int:
-    root = dataset_root or GIGASPEECH_ROOT
-    if root is None:
-        raise ValueError(
-            "GigaSpeech requires --gigaspeech-root or SURE_GIGASPEECH_ROOT"
-        )
-    split_dir = root / "dump" / "raw" / "test"
+def prepare_gigaspeech_test(limit: int | None = None) -> int:
+    split_dir = GIGASPEECH_ROOT / "dump" / "raw" / "test"
     texts = read_key_text(split_dir / "text")
     wav_rows: list[tuple[str, Path, int]] = []
     with (split_dir / "wav.scp").open(encoding="utf-8") as handle:
@@ -804,7 +785,7 @@ def prepare_cv3_eval(limit: int | None = None) -> int:
     return total
 
 
-def main(argv: list[str] | None = None) -> int:
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dataset",
@@ -820,36 +801,18 @@ def main(argv: list[str] | None = None) -> int:
         ],
     )
     parser.add_argument("--limit", type=int, help="Debug limit per generated dataset")
-    parser.add_argument(
-        "--wenetspeech-root",
-        type=Path,
-        default=WENETSPEECH_ROOT,
-        help="Local WenetSpeech checkout (or SURE_WENETSPEECH_ROOT).",
-    )
-    parser.add_argument(
-        "--gigaspeech-root",
-        type=Path,
-        default=GIGASPEECH_ROOT,
-        help="Local GigaSpeech checkout (or SURE_GIGASPEECH_ROOT).",
-    )
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
 
     prepared: dict[str, int] = {}
     for dataset in args.dataset:
         if dataset == "librispeech_other":
             prepared[dataset] = prepare_librispeech_other()
         elif dataset == "wenetspeech_test_net":
-            prepared[dataset] = prepare_wenetspeech(
-                "test_net", args.limit, dataset_root=args.wenetspeech_root
-            )
+            prepared[dataset] = prepare_wenetspeech("test_net", args.limit)
         elif dataset == "wenetspeech_test_meeting":
-            prepared[dataset] = prepare_wenetspeech(
-                "test_meeting", args.limit, dataset_root=args.wenetspeech_root
-            )
+            prepared[dataset] = prepare_wenetspeech("test_meeting", args.limit)
         elif dataset == "gigaspeech_test":
-            prepared[dataset] = prepare_gigaspeech_test(
-                args.limit, dataset_root=args.gigaspeech_root
-            )
+            prepared[dataset] = prepare_gigaspeech_test(args.limit)
         elif dataset == "slidespeech_test":
             prepared[dataset] = prepare_slidespeech_test(args.limit)
         elif dataset == "seedtts_test_eval":
