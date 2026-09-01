@@ -29,6 +29,7 @@ DISCOVERY_TASKS = (
     "slu",
     "kws",
     "vad",
+    "sv",
 )
 
 # Multi pipelines are curated presets. Atomic pipelines are always discovered
@@ -38,6 +39,7 @@ BUNDLE_COMBINATIONS = (
     ("vc", {"language": "zh", "metrics": ("vc_cer", "sim/wavlm-large", "dnsmos")}),
     ("se", {"metrics": ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")}),
     ("tse", {"language": "zh", "metrics": ("si_sdr", "sim/wavlm-large", "dnsmos")}),
+    ("sv", {"metrics": ("eer", "min_dcf")}),
 )
 
 

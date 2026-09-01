@@ -16,6 +16,7 @@ multi-metric bundles, see [Pipeline Catalog](../pipeline_catalog.md).
 - [ASR — Automatic Speech Recognition](./asr.md)
 - [S2TT — Speech-to-Text Translation](./s2tt.md)
 - [SD — Speaker Diarization](./sd.md)
+- [SV — Speaker Verification](./sv.md)
 - [SA-ASR — Speaker-Aware ASR](./sa_asr.md)
 - [TTS — Text-to-Speech](./tts.md)
 - [VC — Voice Conversion](./vc.md)
