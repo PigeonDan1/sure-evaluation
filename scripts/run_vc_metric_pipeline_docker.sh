@@ -4,6 +4,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CACHE_DIR="${SURE_EVALUATION_VC_CACHE:-${REPO_ROOT}/runtime/cache/vc-metrics}"
 WORK_DIR="${REPO_ROOT}/artifacts/vc_metric_pipeline"
+ASR_FUNASR_IMAGE="${SURE_VC_ASR_FUNASR_IMAGE:-registry.example.com/sure/funasr-metrics:latest}"
+ASR_TTS_IMAGE="${SURE_VC_ASR_TTS_IMAGE:-registry.example.com/sure/asr-tts-metrics:latest}"
+UTMOS_IMAGE="${SURE_VC_UTMOS_IMAGE:-registry.example.com/sure/utmos-metrics:latest}"
+SHARED_STORAGE_HOST_ROOT="${SURE_SHARED_STORAGE_HOST_ROOT:-}"
+SHARED_STORAGE_CONTAINER_ROOT="${SURE_SHARED_STORAGE_CONTAINER_ROOT:-}"
 OUTPUT=""
 CONVERTED_AUDIO=""
 REFERENCE_AUDIO=""
@@ -69,7 +74,33 @@ if [[ -z "${CONVERTED_AUDIO}" || -z "${REFERENCE_AUDIO}" || -z "${OUTPUT}" ]]; t
   exit 2
 fi
 
+if { [[ -z "${SHARED_STORAGE_HOST_ROOT}" ]] && [[ -n "${SHARED_STORAGE_CONTAINER_ROOT}" ]]; } ||
+  { [[ -n "${SHARED_STORAGE_HOST_ROOT}" ]] && [[ -z "${SHARED_STORAGE_CONTAINER_ROOT}" ]]; }; then
+  echo "SURE_SHARED_STORAGE_HOST_ROOT and SURE_SHARED_STORAGE_CONTAINER_ROOT must be set together" >&2
+  exit 2
+fi
+
+to_container_path() {
+  local path="$1"
+  if [[ -n "${SHARED_STORAGE_HOST_ROOT}" ]]; then
+    if [[ "${path}" == "${SHARED_STORAGE_HOST_ROOT}" ]]; then
+      printf '%s\n' "${SHARED_STORAGE_CONTAINER_ROOT}"
+      return
+    fi
+    if [[ "${path}" == "${SHARED_STORAGE_HOST_ROOT}/"* ]]; then
+      printf '%s/%s\n' "${SHARED_STORAGE_CONTAINER_ROOT%/}" "${path#"${SHARED_STORAGE_HOST_ROOT}/"}"
+      return
+    fi
+  fi
+  printf '%s\n' "${path}"
+}
+
 mkdir -p "${WORK_DIR}" "$(dirname "${OUTPUT}")"
+CONTAINER_CACHE_DIR="$(to_container_path "${CACHE_DIR}")"
+STORAGE_MOUNT="${REPO_ROOT}:${REPO_ROOT}"
+if [[ -n "${SHARED_STORAGE_HOST_ROOT}" ]]; then
+  STORAGE_MOUNT="${SHARED_STORAGE_HOST_ROOT}:${SHARED_STORAGE_CONTAINER_ROOT}"
+fi
 
 contains_csv() {
   local csv="$1"
@@ -85,8 +116,8 @@ uses_chinese_asr() {
 docker_base=(
   env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy
   docker run --rm --gpus "device=${GPU}"
-  -v /hpc_stor03:/hpc_stor03
-  -w "${REPO_ROOT}"
+  -v "${STORAGE_MOUNT}"
+  -w "$(to_container_path "${REPO_ROOT}")"
   -e PYTHONPATH=src
 )
 
@@ -115,16 +146,16 @@ run_inner() {
   fi
   "${docker_base[@]}" "$@" "${image}" \
     python scripts/run_vc_metric_pipeline.py \
-      --converted-audio "${CONVERTED_AUDIO}" \
-      --reference-audio "${REFERENCE_AUDIO}" \
-      --source-audio "${SOURCE_AUDIO}" \
+      --converted-audio "$(to_container_path "${CONVERTED_AUDIO}")" \
+      --reference-audio "$(to_container_path "${REFERENCE_AUDIO}")" \
+      --source-audio "$(to_container_path "${SOURCE_AUDIO}")" \
       --reference-text "${REFERENCE_TEXT}" \
       --language "${LANGUAGE}" \
       --device "${DEVICE}" \
-      --cache-dir "${CACHE_DIR}" \
+      --cache-dir "${CONTAINER_CACHE_DIR}" \
       --speaker-backends "${speaker}" \
       --mos-backends "${mos}" \
-      --output "${output}" \
+      --output "$(to_container_path "${output}")" \
       "${semantic_normalizer_args[@]}" \
       ${no_semantic}
 }
@@ -133,16 +164,16 @@ PARTS=()
 
 if [[ "${SKIP_SEMANTIC}" -eq 0 ]]; then
   echo "[vc-metric] semantic"
-  SEMANTIC_IMAGE="docker.v2.aispeech.com/sjtu/sjtu_yukai-wenbinhuang-asr-tts:eval-dnsmos"
+  SEMANTIC_IMAGE="${ASR_TTS_IMAGE}"
   if uses_chinese_asr "${LANGUAGE}"; then
-    SEMANTIC_IMAGE="docker.v2.aispeech.com/sjtu/sjtu_yukai-dujunhao-sure_iic__sensevoicesmall:v1.0"
+    SEMANTIC_IMAGE="${ASR_FUNASR_IMAGE}"
   fi
   run_inner \
     "${SEMANTIC_IMAGE}" \
     "${WORK_DIR}/semantic.json" "" "" "" \
-    -e "MODELSCOPE_CACHE=${CACHE_DIR}/semantic/modelscope" \
-    -e "HF_HOME=${CACHE_DIR}/semantic/huggingface" \
-    -e "HF_HUB_CACHE=${CACHE_DIR}/semantic/huggingface/hub"
+    -e "MODELSCOPE_CACHE=${CONTAINER_CACHE_DIR}/semantic/modelscope" \
+    -e "HF_HOME=${CONTAINER_CACHE_DIR}/semantic/huggingface" \
+    -e "HF_HUB_CACHE=${CONTAINER_CACHE_DIR}/semantic/huggingface/hub"
   PARTS+=("${WORK_DIR}/semantic.json")
 fi
 
@@ -156,11 +187,11 @@ done
 if [[ -n "${speaker_fast}" ]]; then
   echo "[vc-metric] speaker wavlm/ecapa"
   run_inner \
-    docker.v2.aispeech.com/sjtu/sjtu_yukai-wenbinhuang-asr-tts:eval-dnsmos \
+    "${ASR_TTS_IMAGE}" \
     "${WORK_DIR}/speaker_wavlm_ecapa.json" "${speaker_fast}" "" "--no-semantic" \
-    -e "HF_HOME=${CACHE_DIR}/huggingface" \
-    -e "HF_HUB_CACHE=${CACHE_DIR}/huggingface/hub" \
-    -e "MODELSCOPE_CACHE=${CACHE_DIR}/modelscope" \
+    -e "HF_HOME=${CONTAINER_CACHE_DIR}/huggingface" \
+    -e "HF_HUB_CACHE=${CONTAINER_CACHE_DIR}/huggingface/hub" \
+    -e "MODELSCOPE_CACHE=${CONTAINER_CACHE_DIR}/modelscope" \
     -e TRITON_CACHE_DIR=/tmp/sure-eval-triton
   PARTS+=("${WORK_DIR}/speaker_wavlm_ecapa.json")
 fi
@@ -168,9 +199,9 @@ fi
 if contains_csv "${SPEAKER_BACKENDS}" "eres2net"; then
   echo "[vc-metric] speaker eres2net"
   run_inner \
-    docker.v2.aispeech.com/sjtu/sjtu_yukai-dujunhao-sure_iic__sensevoicesmall:v1.0 \
+    "${ASR_FUNASR_IMAGE}" \
     "${WORK_DIR}/speaker_eres2net.json" "eres2net" "" "--no-semantic" \
-    -e "MODELSCOPE_CACHE=${CACHE_DIR}/speaker/modelscope" \
+    -e "MODELSCOPE_CACHE=${CONTAINER_CACHE_DIR}/speaker/modelscope" \
     -e LD_LIBRARY_PATH=/usr/lib64:/opt/conda/lib \
     -v /usr/lib64/libsox.so:/usr/lib64/libsox.so:ro \
     -v /usr/lib64/libsox.so.3:/usr/lib64/libsox.so.3:ro \
@@ -190,10 +221,10 @@ done
 if [[ -n "${mos_fast}" ]]; then
   echo "[vc-metric] mos dnsmos/wv-mos"
   run_inner \
-    docker.v2.aispeech.com/sjtu/sjtu_yukai-wenbinhuang-asr-tts:eval-dnsmos \
+    "${ASR_TTS_IMAGE}" \
     "${WORK_DIR}/mos_dnsmos_wvmos.json" "" "${mos_fast}" "--no-semantic" \
-    -e "HF_HOME=${CACHE_DIR}/mos/huggingface" \
-    -e "HF_HUB_CACHE=${CACHE_DIR}/mos/huggingface/hub" \
+    -e "HF_HOME=${CONTAINER_CACHE_DIR}/mos/huggingface" \
+    -e "HF_HUB_CACHE=${CONTAINER_CACHE_DIR}/mos/huggingface/hub" \
     -e TRITON_CACHE_DIR=/tmp/sure-eval-triton
   PARTS+=("${WORK_DIR}/mos_dnsmos_wvmos.json")
 fi
@@ -201,7 +232,7 @@ fi
 if contains_csv "${MOS_BACKENDS}" "utmos"; then
   echo "[vc-metric] mos utmos"
   run_inner \
-    docker.v2.aispeech.com/sjtu/sjtu_yukai-yiweiguo-utmos:v1.0 \
+    "${UTMOS_IMAGE}" \
     "${WORK_DIR}/mos_utmos.json" "" "utmos" "--no-semantic"
   PARTS+=("${WORK_DIR}/mos_utmos.json")
 fi

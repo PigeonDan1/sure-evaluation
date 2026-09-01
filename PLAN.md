@@ -40,7 +40,7 @@ Verified commands:
 1. Do not commit `.venv`, `.venv.hostbak`, node-local `.venv`, checkpoints, caches, or model artifacts.
 2. Do not make every heavy node a mandatory dependency of the base package.
 3. Do not require users to build all environments before running simple text metrics.
-4. Do not encode local user paths such as `/hpc_stor03/sjtu_home/<user>` in source code or public docs.
+4. Do not encode local user paths such as `/srv/example/users/<user>` in source code or public docs.
 
 ## Current Constraints
 
