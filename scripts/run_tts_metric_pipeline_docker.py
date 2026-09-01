@@ -21,15 +21,15 @@ DEFAULT_WORK_DIR = REPO_ROOT / "artifacts" / "tts_metric_pipeline"
 
 ASR_FUNASR_IMAGE = os.environ.get(
     "SURE_TTS_ASR_FUNASR_IMAGE",
-    "registry.example.com/sure/funasr-metrics:latest",
+    "docker.v2.aispeech.com/sjtu/sjtu_yukai-dujunhao-sure_funaudiollm__sensevoicesmall:v1.0",
 )
 ASR_TTS_IMAGE = os.environ.get(
     "SURE_TTS_ASR_TTS_IMAGE",
-    "registry.example.com/sure/asr-tts-metrics:latest",
+    "docker.v2.aispeech.com/sjtu/sjtu_yukai-wenbinhuang-asr-tts:eval-dnsmos",
 )
 UTMOS_IMAGE = os.environ.get(
     "SURE_TTS_UTMOS_IMAGE",
-    "registry.example.com/sure/utmos-metrics:latest",
+    "docker.v2.aispeech.com/sjtu/sjtu_yukai-yiweiguo-utmos:v1.0",
 )
 
 
@@ -45,26 +45,22 @@ class Segment:
     extra_mounts: list[str] = field(default_factory=list)
 
 
-def map_shared_path(path: Path, host_root: Path | None, container_root: Path | None) -> Path:
-    """Map a path below an explicitly configured shared-storage root."""
-    if host_root is None or container_root is None:
-        return path
-    try:
-        relative = path.relative_to(host_root)
-    except ValueError:
-        return path
-    return container_root / relative
+def to_hpc_path(path: Path) -> Path:
+    """Map cloudstorfs paths to the /hpc_stor03 path Docker wrapper handles."""
+    text = str(path)
+    prefix = "/mnt/cloudstorfs/"
+    if text.startswith(prefix):
+        return Path("/hpc_stor03") / text[len(prefix):]
+    return path
 
 
-def _container_path(args: argparse.Namespace, path: Path) -> str:
-    return str(map_shared_path(path, args.shared_storage_host_root, args.shared_storage_container_root))
+def _container_path(path: Path) -> str:
+    return str(to_hpc_path(path))
 
 
-def _container_env_value(args: argparse.Namespace, value: str) -> str:
-    path = Path(value)
-    mapped = map_shared_path(path, args.shared_storage_host_root, args.shared_storage_container_root)
-    if mapped != path:
-        return str(mapped)
+def _container_env_value(value: str) -> str:
+    if value.startswith("/mnt/cloudstorfs/"):
+        return str(to_hpc_path(Path(value)))
     return value
 
 
@@ -79,20 +75,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--gpu", default="0")
     parser.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR)
     parser.add_argument("--work-dir", type=Path, default=DEFAULT_WORK_DIR)
-    parser.add_argument(
-        "--shared-storage-host-root",
-        type=Path,
-        default=Path(os.environ["SURE_SHARED_STORAGE_HOST_ROOT"])
-        if os.environ.get("SURE_SHARED_STORAGE_HOST_ROOT")
-        else None,
-    )
-    parser.add_argument(
-        "--shared-storage-container-root",
-        type=Path,
-        default=Path(os.environ["SURE_SHARED_STORAGE_CONTAINER_ROOT"])
-        if os.environ.get("SURE_SHARED_STORAGE_CONTAINER_ROOT")
-        else None,
-    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--skip-semantic", action="store_true")
     parser.add_argument(
@@ -102,12 +84,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--speaker-backends", default="wavlm-large,ecapa-tdnn,eres2net")
     parser.add_argument("--mos-backends", default="dnsmos,wv-mos,utmos")
     parser.add_argument("--keep-partials", action="store_true")
-    args = parser.parse_args(argv)
-    if (args.shared_storage_host_root is None) != (args.shared_storage_container_root is None):
-        parser.error(
-            "--shared-storage-host-root and --shared-storage-container-root must be provided together"
-        )
-    return args
+    return parser.parse_args(argv)
 
 
 def _csv(value: str) -> set[str]:
@@ -230,8 +207,6 @@ def build_segments(args: argparse.Namespace) -> list[Segment]:
 
 
 def _docker_base(args: argparse.Namespace, segment: Segment) -> list[str]:
-    host_root = args.shared_storage_host_root or REPO_ROOT
-    container_root = args.shared_storage_container_root or REPO_ROOT
     command = [
         "env",
         "-u",
@@ -252,14 +227,14 @@ def _docker_base(args: argparse.Namespace, segment: Segment) -> list[str]:
         "--gpus",
         f'"device={args.gpu}"',
         "-v",
-        f"{host_root}:{container_root}",
+        "/hpc_stor03:/hpc_stor03",
         "-w",
-        _container_path(args, REPO_ROOT),
+        str(to_hpc_path(REPO_ROOT)),
         "-e",
         "PYTHONPATH=src",
     ]
     for key, value in segment.extra_env.items():
-        command.extend(["-e", f"{key}={_container_env_value(args, value)}"])
+        command.extend(["-e", f"{key}={_container_env_value(value)}"])
     for mount in segment.extra_mounts:
         command.extend(["-v", mount])
     command.append(segment.image)
@@ -273,23 +248,23 @@ def _segment_command(args: argparse.Namespace, segment: Segment, output_path: Pa
             "python",
             "scripts/run_tts_metric_pipeline.py",
             "--prediction-audio",
-            _container_path(args, args.prediction_audio),
+            _container_path(args.prediction_audio),
             "--reference-text",
             args.reference_text,
             "--reference-audio",
-            _container_path(args, args.reference_audio),
+            _container_path(args.reference_audio),
             "--language",
             args.language,
             "--device",
             args.device,
             "--cache-dir",
-            _container_path(args, args.cache_dir),
+            _container_path(args.cache_dir),
             "--speaker-backends",
             segment.speaker_backends,
             "--mos-backends",
             segment.mos_backends,
             "--output",
-            _container_path(args, output_path),
+            _container_path(output_path),
         ]
     )
     if args.sample_id:

@@ -4,11 +4,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CACHE_DIR="${SURE_EVALUATION_TTS_CACHE:-${REPO_ROOT}/runtime/cache/tts-metrics}"
 WORK_DIR="${REPO_ROOT}/artifacts/tts_metric_pipeline"
-ASR_FUNASR_IMAGE="${SURE_TTS_ASR_FUNASR_IMAGE:-registry.example.com/sure/funasr-metrics:latest}"
-ASR_TTS_IMAGE="${SURE_TTS_ASR_TTS_IMAGE:-registry.example.com/sure/asr-tts-metrics:latest}"
-UTMOS_IMAGE="${SURE_TTS_UTMOS_IMAGE:-registry.example.com/sure/utmos-metrics:latest}"
-SHARED_STORAGE_HOST_ROOT="${SURE_SHARED_STORAGE_HOST_ROOT:-}"
-SHARED_STORAGE_CONTAINER_ROOT="${SURE_SHARED_STORAGE_CONTAINER_ROOT:-}"
+ASR_FUNASR_IMAGE="${SURE_TTS_ASR_FUNASR_IMAGE:-docker.v2.aispeech.com/sjtu/sjtu_yukai-dujunhao-sure_funaudiollm__sensevoicesmall:v1.0}"
+ASR_TTS_IMAGE="${SURE_TTS_ASR_TTS_IMAGE:-docker.v2.aispeech.com/sjtu/sjtu_yukai-wenbinhuang-asr-tts:eval-dnsmos}"
+UTMOS_IMAGE="${SURE_TTS_UTMOS_IMAGE:-docker.v2.aispeech.com/sjtu/sjtu_yukai-yiweiguo-utmos:v1.0}"
 OUTPUT=""
 PREDICTION_AUDIO=""
 REFERENCE_TEXT=""
@@ -47,10 +45,6 @@ Environment image overrides:
   SURE_TTS_ASR_FUNASR_IMAGE
   SURE_TTS_ASR_TTS_IMAGE
   SURE_TTS_UTMOS_IMAGE
-
-Optional shared-storage mapping (both required together):
-  SURE_SHARED_STORAGE_HOST_ROOT
-  SURE_SHARED_STORAGE_CONTAINER_ROOT
 USAGE
 }
 
@@ -80,33 +74,22 @@ if [[ -z "${PREDICTION_AUDIO}" || -z "${REFERENCE_TEXT}" || -z "${REFERENCE_AUDI
   exit 2
 fi
 
-if { [[ -z "${SHARED_STORAGE_HOST_ROOT}" ]] && [[ -n "${SHARED_STORAGE_CONTAINER_ROOT}" ]]; } ||
-  { [[ -n "${SHARED_STORAGE_HOST_ROOT}" ]] && [[ -z "${SHARED_STORAGE_CONTAINER_ROOT}" ]]; }; then
-  echo "SURE_SHARED_STORAGE_HOST_ROOT and SURE_SHARED_STORAGE_CONTAINER_ROOT must be set together" >&2
-  exit 2
-fi
-
-to_container_path() {
+to_hpc_path() {
   local path="$1"
-  if [[ -n "${SHARED_STORAGE_HOST_ROOT}" ]]; then
-    if [[ "${path}" == "${SHARED_STORAGE_HOST_ROOT}" ]]; then
-      printf '%s\n' "${SHARED_STORAGE_CONTAINER_ROOT}"
-      return
-    fi
-    if [[ "${path}" == "${SHARED_STORAGE_HOST_ROOT}/"* ]]; then
-      printf '%s/%s\n' "${SHARED_STORAGE_CONTAINER_ROOT%/}" "${path#"${SHARED_STORAGE_HOST_ROOT}/"}"
-      return
-    fi
+  if [[ "${path}" == /mnt/cloudstorfs/* ]]; then
+    printf '/hpc_stor03/%s\n' "${path#/mnt/cloudstorfs/}"
+  else
+    printf '%s\n' "${path}"
   fi
-  printf '%s\n' "${path}"
 }
 
+PREDICTION_AUDIO="$(to_hpc_path "${PREDICTION_AUDIO}")"
+REFERENCE_AUDIO="$(to_hpc_path "${REFERENCE_AUDIO}")"
+CACHE_DIR="$(to_hpc_path "${CACHE_DIR}")"
+WORK_DIR="$(to_hpc_path "${WORK_DIR}")"
+OUTPUT="$(to_hpc_path "${OUTPUT}")"
+
 mkdir -p "${WORK_DIR}" "$(dirname "${OUTPUT}")"
-CONTAINER_CACHE_DIR="$(to_container_path "${CACHE_DIR}")"
-STORAGE_MOUNT="${REPO_ROOT}:${REPO_ROOT}"
-if [[ -n "${SHARED_STORAGE_HOST_ROOT}" ]]; then
-  STORAGE_MOUNT="${SHARED_STORAGE_HOST_ROOT}:${SHARED_STORAGE_CONTAINER_ROOT}"
-fi
 
 contains_csv() {
   local csv="$1"
@@ -122,8 +105,8 @@ uses_chinese_asr() {
 docker_base=(
   env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy -u ALL_PROXY -u all_proxy
   docker run --rm --gpus "device=${GPU}"
-  -v "${STORAGE_MOUNT}"
-  -w "$(to_container_path "${REPO_ROOT}")"
+  -v /hpc_stor03:/hpc_stor03
+  -w "${REPO_ROOT}"
   -e PYTHONPATH=src
 )
 
@@ -152,15 +135,15 @@ run_inner() {
   fi
   "${docker_base[@]}" "$@" "${image}" \
     python scripts/run_tts_metric_pipeline.py \
-      --prediction-audio "$(to_container_path "${PREDICTION_AUDIO}")" \
+      --prediction-audio "${PREDICTION_AUDIO}" \
       --reference-text "${REFERENCE_TEXT}" \
-      --reference-audio "$(to_container_path "${REFERENCE_AUDIO}")" \
+      --reference-audio "${REFERENCE_AUDIO}" \
       --language "${LANGUAGE}" \
       --device "${DEVICE}" \
-      --cache-dir "${CONTAINER_CACHE_DIR}" \
+      --cache-dir "${CACHE_DIR}" \
       --speaker-backends "${speaker}" \
       --mos-backends "${mos}" \
-      --output "$(to_container_path "${output}")" \
+      --output "${output}" \
       "${semantic_normalizer_args[@]}" \
       ${no_semantic}
 }
@@ -176,9 +159,9 @@ if [[ "${SKIP_SEMANTIC}" -eq 0 ]]; then
   run_inner \
     "${SEMANTIC_IMAGE}" \
     "${WORK_DIR}/semantic.json" "" "" "" \
-    -e "MODELSCOPE_CACHE=${CONTAINER_CACHE_DIR}/semantic/modelscope" \
-    -e "HF_HOME=${CONTAINER_CACHE_DIR}/semantic/huggingface" \
-    -e "HF_HUB_CACHE=${CONTAINER_CACHE_DIR}/semantic/huggingface/hub"
+    -e "MODELSCOPE_CACHE=${CACHE_DIR}/semantic/modelscope" \
+    -e "HF_HOME=${CACHE_DIR}/semantic/huggingface" \
+    -e "HF_HUB_CACHE=${CACHE_DIR}/semantic/huggingface/hub"
   PARTS+=("${WORK_DIR}/semantic.json")
 fi
 
@@ -194,9 +177,9 @@ if [[ -n "${speaker_fast}" ]]; then
   run_inner \
     "${ASR_TTS_IMAGE}" \
     "${WORK_DIR}/speaker_wavlm_ecapa.json" "${speaker_fast}" "" "--no-semantic" \
-    -e "HF_HOME=${CONTAINER_CACHE_DIR}/huggingface" \
-    -e "HF_HUB_CACHE=${CONTAINER_CACHE_DIR}/huggingface/hub" \
-    -e "MODELSCOPE_CACHE=${CONTAINER_CACHE_DIR}/modelscope" \
+    -e "HF_HOME=${CACHE_DIR}/huggingface" \
+    -e "HF_HUB_CACHE=${CACHE_DIR}/huggingface/hub" \
+    -e "MODELSCOPE_CACHE=${CACHE_DIR}/modelscope" \
     -e TRITON_CACHE_DIR=/tmp/sure-eval-triton
   PARTS+=("${WORK_DIR}/speaker_wavlm_ecapa.json")
 fi
@@ -206,7 +189,7 @@ if contains_csv "${SPEAKER_BACKENDS}" "eres2net"; then
   run_inner \
     "${ASR_FUNASR_IMAGE}" \
     "${WORK_DIR}/speaker_eres2net.json" "eres2net" "" "--no-semantic" \
-    -e "MODELSCOPE_CACHE=${CONTAINER_CACHE_DIR}/speaker/modelscope" \
+    -e "MODELSCOPE_CACHE=${CACHE_DIR}/speaker/modelscope" \
     -e LD_LIBRARY_PATH=/usr/lib64:/opt/conda/lib \
     -v /usr/lib64/libsox.so:/usr/lib64/libsox.so:ro \
     -v /usr/lib64/libsox.so.3:/usr/lib64/libsox.so.3:ro \
@@ -228,8 +211,8 @@ if [[ -n "${mos_fast}" ]]; then
   run_inner \
     "${ASR_TTS_IMAGE}" \
     "${WORK_DIR}/mos_dnsmos_wvmos.json" "" "${mos_fast}" "--no-semantic" \
-    -e "HF_HOME=${CONTAINER_CACHE_DIR}/mos/huggingface" \
-    -e "HF_HUB_CACHE=${CONTAINER_CACHE_DIR}/mos/huggingface/hub" \
+    -e "HF_HOME=${CACHE_DIR}/mos/huggingface" \
+    -e "HF_HUB_CACHE=${CACHE_DIR}/mos/huggingface/hub" \
     -e TRITON_CACHE_DIR=/tmp/sure-eval-triton
   PARTS+=("${WORK_DIR}/mos_dnsmos_wvmos.json")
 fi

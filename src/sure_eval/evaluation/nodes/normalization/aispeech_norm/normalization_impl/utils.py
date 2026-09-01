@@ -2,7 +2,7 @@
 #########################################################################
 # File: utils.py
 # Date: 2025-07-22
-# Source: bundled normalization implementation
+# Author: kunyang.peng@aispeech.com
 # Description:
 #########################################################################
 
