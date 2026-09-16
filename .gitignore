@@ -35,3 +35,6 @@ results/
 tmp/
 *.log
 MANIFEST.runtime*
+
+# Local reference papers / large binaries
+assets/
