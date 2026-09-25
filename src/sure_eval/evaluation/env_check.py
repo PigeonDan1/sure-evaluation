@@ -17,6 +17,7 @@ import yaml
 from sure_eval.evaluation.cache import CACHE_ENV_VAR, get_cache_root
 from sure_eval.evaluation.checksums import verify_file_sha256
 from sure_eval.evaluation.scripts.contracts import NODES_ROOT, load_node_manifest
+from sure_eval.evaluation.nodes.common.venv_paths import venv_python_candidates
 
 NODE_LOCAL_PROJECTS = {
     "scoring/bleurt_20",
@@ -166,8 +167,9 @@ class NodeEnvChecker:
         if runtime == "pip_optional":
             return self._check_pip_node(node_id, node_path, node_env or {})
         python_name = self._runtime_python_name(node_env)
-        venv_python = node_path / ".venv" / "bin" / python_name
-        fallback_python = node_path / ".venv" / "bin" / "python"
+        python_paths = venv_python_candidates(node_path / ".venv", python_name)
+        venv_python = python_paths[0]
+        fallback_python = python_paths[-1]
         details = {
             "node_path": str(node_path),
             "pyproject": str(node_path / "pyproject.toml"),
@@ -210,10 +212,15 @@ class NodeEnvChecker:
                     fix=f"sure-eval env download --node {node_id}",
                     details=details,
                 )
-        venv_exists, venv_error = _path_exists(venv_python)
-        fallback_exists, fallback_error = _path_exists(fallback_python)
-        if not venv_exists and not fallback_exists:
-            permission_error = venv_error or fallback_error
+        existing_python: Path | None = None
+        permission_error = None
+        for candidate in python_paths:
+            exists, path_error = _path_exists(candidate)
+            if exists:
+                existing_python = candidate
+                break
+            permission_error = permission_error or path_error
+        if existing_python is None:
             message = ".venv is missing"
             if permission_error:
                 message = f".venv python is not accessible: {permission_error}"
@@ -248,7 +255,7 @@ class NodeEnvChecker:
         imports = [str(name) for name in verify.get("imports") or ()]
         if verify.get("import_check") and imports:
             import_result = _check_node_local_imports(
-                venv_python if venv_exists else fallback_python,
+                existing_python,
                 imports,
             )
             details["imports"] = imports

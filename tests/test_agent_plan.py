@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 
 from typer.testing import CliRunner
 
@@ -125,6 +126,7 @@ def test_agent_plan_reports_blocking_setup_hints(monkeypatch) -> None:
 def test_agent_plan_funasr_setup_hint_matches_declared_runtime() -> None:
     from sure_eval.evaluation import agent_plan
     from sure_eval.evaluation.env_check import NodeEnvChecker
+    from sure_eval.evaluation.nodes.common.venv_paths import venv_python_candidates
 
     checker = NodeEnvChecker()
     node_env = checker.load_node_env("normalization/funasr_itn") or {}
@@ -135,9 +137,10 @@ def test_agent_plan_funasr_setup_hint_matches_declared_runtime() -> None:
         fallback="setup required",
     )
 
+    python_bin = venv_python_candidates(checker.node_path("normalization/funasr_itn") / ".venv")[0]
     assert setup["command"].endswith(
         "funasr_itn && uv venv --python 3.11 && uv sync --frozen "
-        "&& .venv/bin/python prepare_funasr_itn.py"
+        f"&& {shlex.quote(str(python_bin))} prepare_funasr_itn.py"
     )
 
 

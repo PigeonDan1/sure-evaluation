@@ -7,6 +7,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from sure_eval.evaluation.nodes.common.venv_paths import venv_python_candidates
+
 
 @dataclass(frozen=True)
 class NodeLocalPython:
@@ -21,13 +23,13 @@ class NodeLocalPython:
 def resolve_node_local_python(node_dir: Path, node_id: str) -> NodeLocalPython:
     """Resolve a node-local Python command without leaking incompatible deps.
 
-    Node `.venv/bin/python` is the preferred execution path. Some vc base
+    The node's platform-native `.venv` Python is the preferred execution path. Some vc base
     images do not contain the interpreter target used by the node-local venv
     symlink; when the node has site-packages for the current interpreter, run
     the current interpreter with `-S` and only the node-local site-packages.
     """
 
-    python_bin = node_dir / ".venv" / "bin" / "python"
+    python_bin = venv_python_candidates(node_dir / ".venv")[0]
     if not python_bin.exists() and not python_bin.is_symlink():
         raise RuntimeError(f"{node_id} local environment is missing: {python_bin}")
 

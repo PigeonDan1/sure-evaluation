@@ -6,6 +6,19 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from sure_eval.cli import app
+from sure_eval.evaluation.nodes.common.venv_paths import venv_python_candidates
+
+
+def test_node_venv_python_candidates_are_platform_native(tmp_path: Path) -> None:
+    venv_dir = tmp_path / ".venv"
+
+    assert venv_python_candidates(venv_dir, "python3.11", windows=True) == (
+        venv_dir / "Scripts" / "python.exe",
+    )
+    assert venv_python_candidates(venv_dir, "python3.11", windows=False) == (
+        venv_dir / "bin" / "python3.11",
+        venv_dir / "bin" / "python",
+    )
 
 
 def test_node_env_checker_treats_in_process_node_as_ok_without_venv() -> None:
@@ -311,6 +324,8 @@ def test_env_setup_dry_run_builds_pip_runtime_command() -> None:
 
 
 def test_funasr_env_setup_dry_run_uses_frozen_uv_and_post_setup() -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
     runner = CliRunner()
 
     result = runner.invoke(
@@ -324,7 +339,10 @@ def test_funasr_env_setup_dry_run_uses_frozen_uv_and_post_setup() -> None:
     assert action["frozen"] is True
     assert action["post_setup_script"] == "prepare_funasr_itn.py"
     assert "uv sync --frozen" in action["command"]
-    assert ".venv/bin/python prepare_funasr_itn.py" in action["command"]
+    python_bin = venv_python_candidates(
+        NodeEnvChecker().node_path("normalization/funasr_itn") / ".venv"
+    )[0]
+    assert f"{python_bin} prepare_funasr_itn.py" in action["command"]
 
 
 def test_nemo_env_setup_dry_run_uses_frozen_uv() -> None:
@@ -350,8 +368,9 @@ def test_uv_env_check_distinguishes_verify_files_from_checkpoints(tmp_path: Path
 
     nodes_root = tmp_path / "nodes"
     node_path = nodes_root / "normalization" / "funasr_itn"
-    (node_path / ".venv" / "bin").mkdir(parents=True)
-    (node_path / ".venv" / "bin" / "python3.11").write_text("", encoding="utf-8")
+    python_candidates = venv_python_candidates(node_path / ".venv", "python3.11")
+    python_candidates[0].parent.mkdir(parents=True)
+    python_candidates[0].write_text("", encoding="utf-8")
     (node_path / "node_env.yaml").write_text(
         "runtime:\n  type: uv\n  python: '3.11'\nverify:\n  files:\n    - runtime/ready.json\n",
         encoding="utf-8",
@@ -396,7 +415,7 @@ def test_uv_setup_executes_declared_project_lock_and_post_setup(
     assert [item[0] for item in commands] == [
         ["uv", "venv", "--python", "3.11"],
         ["uv", "sync", "--project", "config/pyproject.toml", "--frozen"],
-        [str(node_path / ".venv" / "bin" / "python"), str(script), "--force"],
+        [str(venv_python_candidates(node_path / ".venv")[0]), str(script), "--force"],
     ]
     assert all(cwd == node_path for _, cwd, _ in commands)
     assert all(path == log_file for _, _, path in commands)

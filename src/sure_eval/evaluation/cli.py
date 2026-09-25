@@ -34,6 +34,7 @@ from sure_eval.evaluation.env_check import (
     package_install_specs,
     raise_if_environment_failed,
 )
+from sure_eval.evaluation.nodes.common.venv_paths import venv_python_candidates
 
 metric_app = typer.Typer(help="Discover, describe, and run versioned evaluation pipelines")
 env_app = typer.Typer(help="Inspect and prepare optional node-local environments")
@@ -598,7 +599,8 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
             sync_command += " --frozen"
         command_parts.append(sync_command)
         if post_setup_script:
-            command_parts.append(f".venv/bin/python {shlex.quote(str(post_setup_script))}")
+            python_bin = venv_python_candidates(node_path / ".venv")[0]
+            command_parts.append(f"{python_bin} {shlex.quote(str(post_setup_script))}")
     elif runtime_type == "pip":
         specs = package_install_specs(node_env)
         if specs:
@@ -859,7 +861,7 @@ def _execute_uv_setup(
         script_path = node_path / str(post_setup_script)
         if not script_path.is_file():
             raise RuntimeError(f"post-setup script is missing: {script_path}")
-        post_command = [str(venv_dir / "bin" / "python"), str(script_path)]
+        post_command = [str(venv_python_candidates(venv_dir)[0]), str(script_path)]
         if force:
             post_command.append("--force")
         _run_logged(post_command, cwd=node_path, log_file=log_file)

@@ -12,6 +12,7 @@ from typing import Any
 from sure_eval.evaluation.cache import CACHE_ENV_VAR, get_cache_root
 from sure_eval.evaluation.cli_adapters import build_pipeline_spec, normalize_task, split_metric_csv
 from sure_eval.evaluation.env_check import NodeEnvChecker, package_install_specs
+from sure_eval.evaluation.nodes.common.venv_paths import venv_python_candidates
 
 SCHEMA = "sure.eval.agent_plan.v1"
 
@@ -214,7 +215,8 @@ def _setup_hint(
         commands.append(sync_command)
         post_setup_script = runtime.get("post_setup_script")
         if post_setup_script:
-            commands.append(f".venv/bin/python {shlex.quote(str(post_setup_script))}")
+            python = venv_python_candidates(node_path / ".venv")[0]
+            commands.append(f"{shlex.quote(str(python))} {shlex.quote(str(post_setup_script))}")
         command = f"cd {node_path} && " + " && ".join(commands)
     elif runtime_type == "binary":
         build_script = runtime.get("build_script")
