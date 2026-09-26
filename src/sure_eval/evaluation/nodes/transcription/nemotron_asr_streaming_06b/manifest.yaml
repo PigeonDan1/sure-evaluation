@@ -1,0 +1,43 @@
+id: transcription/nemotron_asr_streaming_06b
+version: v1
+stage: transcription
+language_sensitive: true
+languages: [auto, en-US, es-ES, es-US, fr-FR, it-IT, pt-BR, pt-PT, de-DE, hi-IN]
+input_schema: audio_path
+output_schema: transcript_text
+implementation: sure-evaluation.nodes.transcription.nemotron_asr_streaming_06b.node
+default_runner: sure-evaluation.nodes.transcription.NemotronASRStreamingTranscriber
+runtime:
+  package: transformers
+  package_version: "5.13.0"
+  model_id: nvidia/nemotron-3.5-asr-streaming-0.6b
+  backend: transformers
+audio_frontend:
+  audio_input_mode: path
+  audio_frontend_policy: runtime_managed
+  resample_policy: nemotron_asr_runtime_managed
+  runtime_normalized_sample_rate_hz: 16000
+  runtime_normalized_channels: 1
+  runtime_audio_dtype: float32
+  external_frontend_node:
+inference_defaults:
+  language: auto
+  dtype: auto_bfloat16_cuda_else_float32
+  device_map: "auto"
+  chunk_s: 0.56
+  max_new_tokens: 256
+  strip_language_tags: true
+internal_stages:
+  - runtime_managed_audio_frontend
+  - streaming_chunking
+  - asr_inference
+  - text_extraction
+  - language_tag_stripping
+used_by:
+  - TTS English semantic WER alternative route
+  - TTS English semantic CER alternative route
+notes:
+  - Uses the Hugging Face transformers Nemotron3_5Asr architecture, loading model and processor with AutoModelForRNNT and AutoProcessor.
+  - Streaming mode uses chunked audio frames and the model's native stream interface.
+  - Offline mode accepts a whole audio file path.
+  - Verification requires the model checkpoint (set NEMOTRON_ASR_STREAMING_06B_CHECKPOINT or pass --checkpoint).

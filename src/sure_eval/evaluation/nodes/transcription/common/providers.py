@@ -61,6 +61,14 @@ QWEN3_ASR_DEFAULT_MAX_INFERENCE_BATCH_SIZE = 32
 QWEN3_ASR_DEFAULT_MAX_NEW_TOKENS = 256
 QWEN3_ASR_RUNTIME_SAMPLE_RATE_HZ = 16000
 
+NEMOTRON_ASR_3_5_STREAMING_NODE_ID = "transcription/nemotron_asr_streaming_0.6b"
+NEMOTRON_ASR_3_5_STREAMING_NODE_VERSION = "v1"
+NEMOTRON_ASR_3_5_STREAMING_MODEL_ID = "nvidia/nemotron-3.5-asr-streaming-0.6b"
+NEMOTRON_ASR_3_5_STREAMING_CHECKPOINT_ENV = "NEMOTRON_ASR_3_5_STREAMING_CHECKPOINT"
+NEMOTRON_ASR_3_5_STREAMING_SAMPLE_RATE_HZ = 16000
+DEFAULT_CHUNK_S = 0.56
+NEMOTRON_ASR_3_5_STREAMING_MAX_TOKENS = 256
+
 
 def qwen3_asr_language_hint(language: str) -> str | None:
     """Return the Qwen3-ASR language prompt used for routed TTS evaluation."""
@@ -603,6 +611,186 @@ class Qwen3ASR17BTranscriber:
         if normalized in {"", "auto"}:
             return "float32" if device_map == "cpu" else "bfloat16"
         return normalized.removeprefix("torch.")
+
+
+def _nemotron_asr_trace_details(
+    *,
+    audio_path: str,
+    language: str,
+    role: str,
+    transcript: str,
+    runner: Any | None = None,
+    checkpoint: str | None = None,
+    streaming: bool = False,
+    chunk_s: float = DEFAULT_CHUNK_S,
+) -> dict[str, Any]:
+    """Build stable trace metadata for the Nemotron-3.5-ASR node."""
+
+    return {
+        "audio_path": audio_path,
+        "language": language,
+        "role": role,
+        "transcript": transcript,
+        "model_id": getattr(runner, "model_id", MODEL_ID),
+        "resolved_model_id": getattr(runner, "resolved_model_id", checkpoint),
+        "runtime_package": "transformers",
+        "runtime_package_version": _installed_package_version("transformers")
+        or "transformers",
+        "backend": "transformers",
+        "audio_input_mode": "path",
+        "audio_frontend_policy": "runtime_managed",
+        "resample_policy": "nemotron_asr_runtime_managed",
+        "runtime_audio_normalizer": "nemotron_asr.inference.utils.normalize_audio_input",
+        "runtime_normalized_sample_rate_hz": SAMPLE_RATE_HZ,
+        "runtime_normalized_channels": 1,
+        "runtime_audio_dtype": "float32",
+        "external_frontend_node": None,
+        "dtype": getattr(runner, "dtype_name", "auto_bfloat16_cuda_else_float32"),
+        "device_map": getattr(runner, "device_map", None),
+        "max_new_tokens": getattr(runner, "max_new_tokens", NEMOTRON_ASR_3_5_STREAMING_MAX_TOKENS),
+        "streaming": streaming,
+        "chunk_s": chunk_s,
+        "language_hint": language,
+    }
+
+
+class NemotronASR3_5StreamingTranscriber:
+    """Nemotron-3.5-ASR-0.6B streaming transcription via transformers."""
+
+    model_id = NEMOTRON_ASR_3_5_STREAMING_MODEL_ID
+    backend = "transformers"
+
+    def __init__(
+        self,
+        model_id: str | None = None,
+        device: str = "auto",
+        cache_dir: str | Path | None = None,
+        *,
+        max_new_tokens: int = NEMOTRON_ASR_3_5_STREAMING_MAX_TOKENS,
+        chunk_s: float = DEFAULT_CHUNK_S,
+        language: str = "auto",
+    ) -> None:
+        self.model_id = model_id or self.model_id
+        self.device = device
+        self.cache_dir = cache_dir
+        self.max_new_tokens = max_new_tokens
+        self.chunk_s = chunk_s
+        self.language = language
+        self.resolved_model_id: str | None = None
+        self._model: Any | None = None
+        self._processor: Any | None = None
+
+    def _resolved_model_id(self) -> str:
+        if self.resolved_model_id:
+            return self.resolved_model_id
+        return self.model_id
+
+    def _load(self) -> tuple[Any, Any]:
+        if self._model is None or self._processor is None:
+            configure_model_cache(self.cache_dir)
+            if self.cache_dir is not None:
+                os.environ.setdefault("HF_HUB_OFFLINE", "1")
+                os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+            install_deepspeed_stub()
+
+            import torch
+
+            from transformers import AutoModelForRNNT, AutoProcessor
+
+            resolved = self._resolved_model_id()
+            self._processor = AutoProcessor.from_pretrained(
+                resolved,
+                local_files_only=True,
+            )
+            self._model = AutoModelForRNNT.from_pretrained(
+                resolved,
+                torch_dtype=torch.bfloat16 if self.device != "cpu" else torch.float32,
+                device_map="auto" if self.device == "auto" else self.device,
+            )
+            self._model.eval()
+        return self._model, self._processor
+
+    def transcribe(self, audio_path: str, *, language: str = "auto") -> str:
+        return self.transcribe_batch([audio_path], language=language)[0]
+
+    def transcribe_batch(
+        self,
+        audio_paths: list[str],
+        *,
+        language: str = "auto",
+        role: str = "prediction_audio",
+    ) -> list[tuple[str, PipelineNodeResult]]:
+        if not audio_paths:
+            return []
+
+        resolved_language = self.language if language == "auto" else language
+        transcripts = self._transcribe_raw(audio_paths, language=resolved_language)
+        results = []
+        for path, transcript in zip(audio_paths, transcripts, strict=True):
+            details = _nemotron_asr_trace_details(
+                audio_path=path,
+                language=resolved_language,
+                role=role,
+                transcript=transcript,
+                runner=self,
+                checkpoint=self._resolved_model_id(),
+                streaming=False,
+                chunk_s=self.chunk_s,
+            )
+            results.append(
+                (
+                    transcript,
+                    PipelineNodeResult(
+                        stage="transcription",
+                        node_id=NODE_ID,
+                        version=NODE_VERSION,
+                        details=details,
+                    ),
+                )
+            )
+        return results
+
+    def _transcribe_raw(self, audio_paths: list[str], language: str = "auto") -> list[str]:
+        import numpy as np
+
+        model, processor = self._load()
+        arrays = [self._load_audio(path) for path in audio_paths]
+        inputs = processor(
+            arrays,
+            sampling_rate=SAMPLE_RATE_HZ,
+            language=language,
+            return_tensors="pt",
+        )
+        inputs = {
+            key: value.to(model.device) if hasattr(value, "to") else value
+            for key, value in inputs.items()
+        }
+        import torch
+
+        with torch.inference_mode():
+            outputs = model.generate(**inputs, max_new_tokens=self.max_new_tokens)
+        decoded = processor.batch_decode(outputs, skip_special_tokens=True)
+        return [str(text).strip() for text in decoded]
+
+    @staticmethod
+    def _load_audio(path: str) -> Any:
+        """Load audio as a 16 kHz 1-D float32 numpy array."""
+        import numpy as np
+        import soundfile as sf
+
+        data, sample_rate = sf.read(path, dtype="float32", always_2d=False)
+        if data.ndim > 1:
+            data = data.mean(axis=-1)
+        if sample_rate != SAMPLE_RATE_HZ:
+            import librosa
+
+            data = librosa.resample(
+                data,
+                orig_sr=sample_rate,
+                target_sr=SAMPLE_RATE_HZ,
+            )
+        return np.asarray(data, dtype="float32")
+
 
 
 class TTSSemanticErrorRateProvider:

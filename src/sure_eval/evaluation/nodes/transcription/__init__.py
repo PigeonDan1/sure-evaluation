@@ -1,6 +1,7 @@
 """Audio transcription nodes used before text-based evaluation."""
 
 from sure_eval.evaluation.nodes.transcription.common.providers import (
+    NemotronASR3_5StreamingTranscriber,
     ParaformerZHTranscriber,
     Qwen3ASR17BTranscriber,
     StaticTranscriber,
@@ -12,6 +13,7 @@ from sure_eval.evaluation.nodes.transcription.common.providers import (
 )
 
 __all__ = [
+    "NemotronASR3_5StreamingTranscriber",
     "ParaformerZHTranscriber",
     "Qwen3ASR17BTranscriber",
     "StaticTranscriber",

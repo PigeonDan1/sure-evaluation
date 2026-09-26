@@ -1,0 +1,15 @@
+[project]
+name = "sure-eval-transcription-nemotron-asr-streaming-06b"
+version = "0.1.0"
+description = "Nemotron-3.5-ASR-0.6B streaming transcription node for SURE-EVAL."
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=1.12.0",
+    "numpy>=1.24.0",
+    "torch>=2.6.0",
+    "transformers>=5.13.0",
+    "soundfile>=0.12.1",
+]
+
+[tool.uv]
+package = false

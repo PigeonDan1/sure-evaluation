@@ -1,0 +1,18 @@
+id: transcription/nemotron_asr_streaming_06b
+group: asr-transcription
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: nvidia/nemotron-3.5-asr-streaming-0.6b
+    provider: huggingface
+    target: checkpoints/huggingface/hub/models--nvidia--nemotron-3.5-asr-streaming-0.6b
+    env: NEMOTRON_ASR_STREAMING_06B_CHECKPOINT
+verify:
+  imports:
+    - torch
+    - transformers
+    - numpy
