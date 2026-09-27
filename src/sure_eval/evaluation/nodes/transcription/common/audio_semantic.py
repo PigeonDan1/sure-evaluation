@@ -153,7 +153,7 @@ def transcribe_audio(
             role=role,
         )
         return transcript, (transcription_result,)
-    if selected_node == "transcription/nemotron_asr_streaming_0.6b":
+    if selected_node == "transcription/nemotron_asr_streaming_06b":
         from sure_eval.evaluation.nodes.transcription.nemotron_asr_streaming_06b.node import (
             transcribe_nemotron_asr_streaming_06b,
         )
@@ -205,8 +205,8 @@ def _transcription_components(
         )
     if selected_node == "transcription/whisper_large_v3":
         return (node_component("transcription/whisper_large_v3"),)
-    if selected_node == "transcription/nemotron_asr_streaming_0.6b":
-        return (node_component("transcription/nemotron_asr_streaming_0.6b"),)
+    if selected_node == "transcription/nemotron_asr_streaming_06b":
+        return (node_component("transcription/nemotron_asr_streaming_06b"),)
     raise ValueError(f"Unsupported semantic transcription node: {selected_node}")
 
 

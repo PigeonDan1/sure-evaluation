@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`transcription/nemotron_asr_streaming_0.6b` converts audio into transcript text
+`transcription/nemotron_asr_streaming_06b` converts audio into transcript text
 with the Hugging Face transformers model
 [`nvidia/nemotron-3.5-asr-streaming-0.6b`](https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b).
 
@@ -16,9 +16,9 @@ after transcription and normalization.
 ## Task Scenarios
 
 - TTS English semantic WER alternative route:
-  `tts.en.wer.nemotron_asr_streaming_0.6b_v1.whisper_norm_english_v1.wenet_wer_v1`
+  `tts.en.wer.nemotron_asr_streaming_06b_v1.whisper_norm_english_v1.wenet_wer_v1`
 - TTS English semantic CER alternative route:
-  `tts.en.cer.nemotron_asr_streaming_0.6b_v1.whisper_norm_english_v1.wenet_cer_v1`
+  `tts.en.cer.nemotron_asr_streaming_06b_v1.whisper_norm_english_v1.wenet_cer_v1`
 
 ## Input
 

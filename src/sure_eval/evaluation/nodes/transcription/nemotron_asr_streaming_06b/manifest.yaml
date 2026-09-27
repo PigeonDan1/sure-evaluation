@@ -5,8 +5,8 @@ language_sensitive: true
 languages: [auto, en-US, es-ES, es-US, fr-FR, it-IT, pt-BR, pt-PT, de-DE, hi-IN]
 input_schema: audio_path
 output_schema: transcript_text
-implementation: sure-evaluation.nodes.transcription.nemotron_asr_streaming_06b.node
-default_runner: sure-evaluation.nodes.transcription.NemotronASRStreamingTranscriber
+implementation: sure_eval.evaluation.nodes.transcription.nemotron_asr_streaming_06b.node
+default_runner: sure_eval.evaluation.nodes.transcription.NemotronASR3_5StreamingTranscriber
 runtime:
   package: transformers
   package_version: "5.13.0"
