@@ -74,6 +74,10 @@ def _transcribe_batched(
             for key, value in inputs.items()
         }
     outputs = model.generate(**inputs)
+    if hasattr(outputs, "sequences"):
+        outputs = outputs.sequences
+    if hasattr(outputs, "shape") and outputs.ndim == 3:
+        outputs = outputs.squeeze(0)
     texts = processor.batch_decode(outputs, skip_special_tokens=True)
     if isinstance(texts, str):
         texts = [texts]
