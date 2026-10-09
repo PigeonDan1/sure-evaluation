@@ -1,0 +1,37 @@
+id: normalization/xnorm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.xnorm.node
+runtime: node_local_optional
+package:
+  name: xnorm
+  version: 1.5.0
+  source: bundled
+  license: Apache-2.0
+profiles:
+  ar: {language: ar, direction: tn}
+  de: {language: de, direction: tn}
+  en: {language: en, direction: tn}
+  es: {language: es, direction: tn}
+  fr: {language: fr, direction: tn}
+  he: {language: he, direction: tn}
+  hi: {language: hi, direction: tn}
+  hu: {language: hu, direction: tn}
+  hy: {language: hy, direction: tn}
+  id: {language: id, direction: tn}
+  it: {language: it, direction: tn}
+  ja: {language: ja, direction: tn}
+  ko: {language: ko, direction: tn}
+  mr: {language: mr, direction: tn}
+  pt: {language: pt, direction: tn}
+  ru: {language: ru, direction: tn}
+  sv: {language: sv, direction: tn}
+  th: {language: th, direction: tn}
+  vi: {language: vi, direction: tn}
+  zh: {language: zh, direction: tn}
+notes:
+  - XNorm source is bundled unchanged under xnorm_vendor; this node only adapts SURE key-text files.
+  - The default direct backend requires opencc-python-reimplemented==0.1.7.

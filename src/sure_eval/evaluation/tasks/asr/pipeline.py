@@ -38,6 +38,10 @@ from sure_eval.evaluation.nodes.normalization.wetext_norm import (
     normalize_wetext_key_text_files,
 )
 from sure_eval.evaluation.nodes.normalization.whisper_norm import normalize_whisper_asr_files
+from sure_eval.evaluation.nodes.normalization.xnorm import (
+    SUPPORTED_PROFILES as XNORM_PROFILES,
+    normalize_xnorm_key_text_files,
+)
 from sure_eval.evaluation.nodes.scoring.sctk_sclite import (
     score_sctk_sclite_cer,
     score_sctk_sclite_wer,
@@ -309,6 +313,13 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         if language != "ar":
             raise ValueError("nemo_norm currently supports only Arabic ASR")
         return "nemo:ar_tn"
+    if normalized in {"xnorm", "xnorm_norm", "normalization/xnorm"}:
+        _validate_xnorm_profile_for_language(language=language, profile=language)
+        return f"xnorm:{language}"
+    if normalized.startswith("xnorm:"):
+        profile = normalized.split(":", 1)[1]
+        _validate_xnorm_profile_for_language(language=language, profile=profile)
+        return f"xnorm:{profile}"
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -385,6 +396,12 @@ def _normalization_node(*, language: str, normalizer: str):
             lambda files: normalize_nemo_key_text_files(files),
             "nemo_norm",
         )
+    if normalizer.startswith("xnorm:"):
+        profile = normalizer.split(":", 1)[1]
+        return (
+            lambda files: normalize_xnorm_key_text_files(files, language=profile),
+            f"xnorm_{profile}",
+        )
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -435,6 +452,11 @@ def _normalizer_component(*, language: str, normalizer_label: str):
         return node_component("normalization/punctuation_strip_norm")
     if normalizer_label == "nemo_norm":
         return node_component("normalization/nemo_norm", profile="ar_tn")
+    if normalizer_label.startswith("xnorm_"):
+        return node_component(
+            "normalization/xnorm",
+            profile=normalizer_label.removeprefix("xnorm_"),
+        )
     raise ValueError(f"Unsupported ASR normalizer label: {normalizer_label}")
 
 
@@ -490,6 +512,14 @@ def _validate_funasr_profile_for_language(*, language: str, profile: str) -> Non
         raise ValueError(f"Unsupported funasr_itn profile {profile!r}; supported: {supported}")
     if FUNASR_PROFILES[profile].language != language:
         raise ValueError(f"funasr_itn profile {profile!r} does not match ASR language {language!r}")
+
+
+def _validate_xnorm_profile_for_language(*, language: str, profile: str) -> None:
+    if profile not in XNORM_PROFILES:
+        supported = ", ".join(sorted(XNORM_PROFILES))
+        raise ValueError(f"Unsupported xnorm profile {profile!r}; supported: {supported}")
+    if profile != language:
+        raise ValueError(f"xnorm profile {profile!r} does not match ASR language {language!r}")
 
 
 def _cleanup_trace_temp_files(trace: tuple[PipelineNodeResult, ...]) -> None:

@@ -15,6 +15,14 @@ default_metrics:
   pt: wer
   vi: wer
   id: wer
+  he: wer
+  hi: wer
+  hu: wer
+  hy: wer
+  it: wer
+  mr: wer
+  sv: wer
+  th: cer
   tl: wer
   th: cer
   ms: wer

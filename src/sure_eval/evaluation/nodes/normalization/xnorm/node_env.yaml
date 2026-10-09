@@ -1,0 +1,19 @@
+id: normalization/xnorm
+group: normalization-extra
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  frozen: false
+  optional: true
+  gpu: false
+packages:
+  - name: opencc-python-reimplemented
+    version: "==0.1.7"
+  - name: nemo-text-processing
+    version: "==1.2.0"
+verify:
+  imports:
+    - text_normalization
+  files:
+    - xnorm_vendor/text_normalization/__init__.py
