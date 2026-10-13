@@ -8,6 +8,30 @@ from sure_eval.evaluation.tasks.rir.types import RIRSample
 
 
 def _load(path: str) -> tuple[np.ndarray, int]:
+    suffix = path.lower().rsplit(".", 1)[-1] if "." in path else ""
+    if suffix in {"npy", "npz"}:
+        loaded = np.load(path)
+        if suffix == "npz":
+            if "rir" in loaded:
+                data = loaded["rir"]
+            elif loaded.files:
+                data = loaded[loaded.files[0]]
+            else:
+                raise ValueError(f"RIR archive is empty: {path}")
+        else:
+            data = loaded
+        data = np.asarray(data, dtype="float64")
+        if data.ndim == 1:
+            data = data[:, None]
+        elif data.ndim == 2 and data.shape[0] <= data.shape[1]:
+            # Dataset RIR arrays are commonly stored as (channels, samples),
+            # while soundfile returns (samples, channels).
+            data = data.T
+        if data.ndim != 2:
+            raise ValueError(f"RIR array must be 1-D or 2-D: {path}")
+        if data.size == 0 or not np.isfinite(data).all():
+            raise ValueError(f"RIR audio is empty or non-finite: {path}")
+        return data, 0
     try:
         import soundfile as sf
     except ImportError as exc:
@@ -22,7 +46,12 @@ def _pair(sample: RIRSample) -> tuple[np.ndarray, np.ndarray, int]:
     prediction, prediction_rate = _load(sample.prediction_rir)
     reference, reference_rate = _load(sample.reference_rir)
     rate = int(sample.sample_rate or reference_rate)
-    if prediction_rate != reference_rate or prediction_rate != rate:
+    if rate <= 0:
+        raise ValueError(f"sample_rate is required for RIR arrays without embedded rate: {sample.sample_id}")
+    if prediction_rate and prediction_rate != rate:
+        raise ValueError(f"sample rates differ for {sample.sample_id}: {prediction_rate}, {rate}")
+    if reference_rate and reference_rate != rate:
+        raise ValueError(f"sample rates differ for {sample.sample_id}: {reference_rate}, {rate}")
         raise ValueError(f"sample rates differ for {sample.sample_id}: {prediction_rate}, {reference_rate}, {rate}")
     if prediction.shape[1] != reference.shape[1]:
         raise ValueError(f"channel counts differ for {sample.sample_id}")

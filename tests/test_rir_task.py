@@ -143,6 +143,24 @@ def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
     assert set(report.details["results"]) == {"rir_nmse", "rir_corr", "rir_drr_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
 
 
+def test_rir_metrics_accept_reference_npy_in_channel_first_layout(tmp_path: Path) -> None:
+    prediction = tmp_path / "prediction.wav"
+    reference = tmp_path / "reference.npy"
+    signal = np.zeros((2, 256), dtype=np.float64)
+    signal[0, 8] = 1.0
+    signal[1, 8] = 0.8
+    np.save(reference, signal)
+    sf.write(prediction, signal.T * 0.9, 16000)
+    sample = RIRSample(
+        prediction_rir=str(prediction),
+        reference_rir=str(reference),
+        sample_id="rir-npy-001",
+        sample_rate=16000,
+    )
+    result = evaluate_rir_samples([sample], metrics=("rir_nmse",))
+    assert result.details["results"]["rir_nmse"]["score"] > 0
+
+
 def test_rir_samples_jsonl_contract_rejects_missing_reference(tmp_path: Path) -> None:
     fixture = tmp_path / "samples.jsonl"
     fixture.write_text(json.dumps({"sample_id": "rir-001", "prediction_rir": "prediction.wav"}) + "\n", encoding="utf-8")

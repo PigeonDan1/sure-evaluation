@@ -2,7 +2,9 @@
 
 The RIR task evaluates predicted room impulse responses against reference RIRs.
 Rows use `prediction_rir` and `reference_rir` paths and align by `sample_id`.
-The audio files must have matching sample rates and channel counts; spatial
+The audio files may be WAV/FLAC or NumPy `.npy`/`.npz` arrays. NumPy arrays
+must provide `sample_rate` in the row because they do not carry an embedded
+rate. The files must have matching sample rates and channel counts; spatial
 metrics require at least two channels. Each pair is truncated to the shorter
 file before scoring; no peak or time-shift alignment is applied. Rows must
 already refer to the same source, room, microphone positions, channel order,
