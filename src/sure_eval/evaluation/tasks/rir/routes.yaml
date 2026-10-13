@@ -1,0 +1,66 @@
+task: RIR
+language_sensitive: false
+routes:
+  -
+    metric: rir_nmse
+    family: rir_signal_error
+    pipeline_id: rir.any.rir_nmse.rir_nmse_v1
+    nodes: [scoring/rir_nmse]
+    input_contract: scoring/rir_nmse
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_corr
+    family: rir_signal_similarity
+    pipeline_id: rir.any.rir_corr.rir_corr_v1
+    nodes: [scoring/rir_corr]
+    input_contract: scoring/rir_corr
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rt60_mae
+    family: room_acoustics
+    pipeline_id: rir.any.rt60_mae.rt60_mae_v1
+    nodes: [scoring/rt60_mae]
+    input_contract: scoring/rt60_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_drr_mae
+    family: spatial_room_acoustics
+    pipeline_id: rir.any.rir_drr_mae.rir_drr_mae_v1
+    nodes: [scoring/rir_drr_mae]
+    input_contract: scoring/rir_drr_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_c50_mae
+    family: spatial_room_acoustics
+    pipeline_id: rir.any.rir_c50_mae.rir_c50_mae_v1
+    nodes: [scoring/rir_c50_mae]
+    input_contract: scoring/rir_c50_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_c80_mae
+    family: spatial_room_acoustics
+    pipeline_id: rir.any.rir_c80_mae.rir_c80_mae_v1
+    nodes: [scoring/rir_c80_mae]
+    input_contract: scoring/rir_c80_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_ild_mae
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_ild_mae.rir_ild_mae_v1
+    nodes: [scoring/rir_ild_mae]
+    input_contract: scoring/rir_ild_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_ipd_mae
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_ipd_mae.rir_ipd_mae_v1
+    nodes: [scoring/rir_ipd_mae]
+    input_contract: scoring/rir_ipd_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_doa_mae
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_doa_mae.rir_doa_mae_v1
+    nodes: [scoring/rir_doa_mae]
+    input_contract: scoring/rir_doa_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples

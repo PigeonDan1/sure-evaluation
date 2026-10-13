@@ -23,6 +23,7 @@ _TASK_MODULES = {
     "tts": "sure_eval.evaluation.scripts.tts",
     "vc": "sure_eval.evaluation.scripts.vc",
     "tse": "sure_eval.evaluation.scripts.tse",
+    "rir": "sure_eval.evaluation.scripts.rir",
 }
 
 

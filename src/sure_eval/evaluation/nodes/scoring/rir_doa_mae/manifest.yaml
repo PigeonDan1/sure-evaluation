@@ -1,0 +1,12 @@
+id: scoring/rir_doa_mae
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: binaural_rir_samples_jsonl
+output_schema: rir_doa_mae_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rir_doa_mae
+metric: rir_doa_mae
+backend: numpy-rir
+internal_stages: [audio_load, binaural_channel_check, tdoa_estimation, doa_projection, mean_aggregation]
+used_by: [RIR binaural spatial error]
+notes: [Lower is better. Unit is degrees. Requires microphone_spacing_m metadata.]

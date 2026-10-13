@@ -1,0 +1,12 @@
+id: scoring/rt60_mae
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: rir_samples_jsonl
+output_schema: rt60_mae_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rt60_mae
+metric: rt60_mae
+backend: numpy-rir
+internal_stages: [audio_load, schroeder_decay, rt60_fit, mean_aggregation]
+used_by: [RIR room acoustics]
+notes: [Lower is better. Unit is seconds.]

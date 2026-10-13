@@ -169,7 +169,7 @@ def run_metric_pipeline(
         0, "--macro-recall-false-alarms", help="False alarm count budget for KWS macro-recall"
     ),
     samples_jsonl: Optional[str] = typer.Option(
-        None, "--samples-jsonl", help="TTS/VC/SE/TSE samples JSONL file"
+        None, "--samples-jsonl", help="TTS/VC/SE/TSE/RIR samples JSONL file"
     ),
     device: str = typer.Option(
         "cuda", "--device", help="Device passed to audio model runtime builders"

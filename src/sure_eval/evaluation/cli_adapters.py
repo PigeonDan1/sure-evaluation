@@ -42,7 +42,7 @@ ENVIRONMENT_NOTE = (
     "Check selected node directories for pyproject.toml or uv.lock when preparing a run."
 )
 
-AUDIO_SAMPLE_TASKS = {"tts", "vc", "se", "speech_enhancement", "tse"}
+AUDIO_SAMPLE_TASKS = {"tts", "vc", "se", "speech_enhancement", "tse", "rir"}
 SE_TASKS = {"se", "speech_enhancement"}
 SE_DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
 SV_DEFAULT_METRICS = ("eer", "min_dcf")
@@ -573,6 +573,13 @@ def _describe_kwargs(
         if pipeline_id:
             kwargs["pipeline_id"] = pipeline_id
         return kwargs
+    if task == "rir":
+        kwargs = {}
+        if metric:
+            kwargs["metrics"] = split_metric_csv(metric)
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
     return {}
 
 
@@ -817,6 +824,11 @@ def _audio_sample_kwargs(
             cache_dir=cache_dir,
             transcription_node_id=_semantic_transcription_node_from_pipeline(pipeline),
         )
+    elif task == "rir":
+        from sure_eval.evaluation.audio_samples import load_rir_samples_jsonl
+
+        samples = load_rir_samples_jsonl(samples_jsonl, metrics=metrics)
+        runtime = {}
     else:
         return {}
     payload = {"samples": samples}

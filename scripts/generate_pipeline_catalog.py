@@ -31,6 +31,7 @@ DISCOVERY_TASKS = (
     "vad",
     "lid",
     "sv",
+    "rir",
 )
 
 # Multi pipelines are curated presets. Atomic pipelines are always discovered
@@ -56,6 +57,7 @@ BUNDLE_COMBINATIONS = (
     ("se", {"metrics": ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")}),
     ("tse", {"language": "zh", "metrics": ("si_sdr", "sim/wavlm-large", "dnsmos")}),
     ("sv", {"metrics": ("eer", "min_dcf")}),
+    ("rir", {"metrics": ("rir_nmse", "rir_corr", "rt60_mae")}),
 )
 
 

@@ -192,6 +192,7 @@ node-local 虚拟环境只保留在本地，不会进入安装包或 Git。
 | TTS | CER、WER、说话人相似度、DNSMOS、WV-MOS、UTMOS | [TTS](docs/tasks/tts.md) |
 | VC | CER、WER、说话人相似度、DNSMOS、WV-MOS、UTMOS | [VC](docs/tasks/vc.md) |
 | SE | SI-SDR、STOI、PESQ、DNSMOS、WV-MOS、UTMOS | [SE](docs/tasks/se.md) |
+| RIR | RIR-NMSE、RIR 相关系数、RT60 MAE、DRR/C50/C80、ILD/IPD/DOA 误差 | [RIR](docs/tasks/rir.md) |
 | TSE | SI-SDR、说话人相似度、DNSMOS、WV-MOS、UTMOS、CER、WER | [TSE](docs/tasks/tse.md) |
 | Classification / SER / GR | Accuracy | [Classification](docs/tasks/classification.md) |
 | SLU | Accuracy | [SLU](docs/tasks/slu.md) |
