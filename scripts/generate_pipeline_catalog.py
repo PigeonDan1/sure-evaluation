@@ -83,6 +83,19 @@ BUNDLE_COMBINATIONS = (
             )
         },
     ),
+    (
+        "rir",
+        {
+            "metrics": (
+                "rir_npm",
+                "rt60_mae",
+                "rir_itd_mae",
+                "rir_ild_mae",
+                "rir_ipd_mae",
+                "rir_doa_mae",
+            )
+        },
+    ),
 )
 
 

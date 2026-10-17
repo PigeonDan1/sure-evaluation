@@ -54,6 +54,17 @@ the shared base metrics. The existing atomic routes remain available for
 single-metric evaluation. Add the spatial bundle separately when the samples
 meet the IACC two-channel contract.
 
+For multi-channel spatial evaluation with more than two channels, use the
+registered spatial bundle without IACC:
+
+```text
+rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1__rir_itd_mae.rir_itd_mae_v1__rir_ild_mae.rir_ild_mae_v1__rir_ipd_mae.rir_ipd_mae_v1__rir_doa_mae.rir_doa_mae_v1
+```
+
+This bundle reports the remaining spatial metrics as channel-0-relative pairs;
+IACC is intentionally absent because it is defined only for an exact binaural
+pair.
+
 For the multi-channel spatial chain, start with the same NPM and RT60 base
 metrics, then select the registered bundle containing
 `rir_iacc_mae`, `rir_itd_mae`, `rir_ild_mae`, and `rir_ipd_mae` together with
