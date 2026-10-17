@@ -19,29 +19,29 @@ from sure_eval.evaluation.pipeline_identity import (
 from sure_eval.evaluation.tasks.rir.metrics import (
     rir_c50_mae,
     rir_c80_mae,
-    rir_corr,
     rir_doa_mae,
     rir_drr_mae,
     rir_iacc_mae,
     rir_ild_mae,
     rir_ipd_mae,
     rir_itd_mae,
-    rir_nmse,
+    rir_npm,
     rt60_mae,
     validate_rir_samples,
 )
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
-DEFAULT_METRICS = ("rir_nmse", "rir_corr", "rt60_mae")
+DEFAULT_METRICS = ("rir_npm", "rt60_mae")
 METRIC_ALIASES = {
+    "npm": "rir_npm",
+    "rir_npm": "rir_npm",
     "iacc": "rir_iacc_mae",
     "rir_iacc": "rir_iacc_mae",
     "itd": "rir_itd_mae",
     "rir_itd": "rir_itd_mae",
 }
 METRICS = {
-    "rir_nmse": ("scoring/rir_nmse", rir_nmse),
-    "rir_corr": ("scoring/rir_corr", rir_corr),
+    "rir_npm": ("scoring/rir_npm", rir_npm),
     "rt60_mae": ("scoring/rt60_mae", rt60_mae),
     "rir_drr_mae": ("scoring/rir_drr_mae", rir_drr_mae),
     "rir_c50_mae": ("scoring/rir_c50_mae", rir_c50_mae),

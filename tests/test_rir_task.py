@@ -40,9 +40,16 @@ def _write_delayed_binaural_rir(path: Path, right_delay: int) -> None:
 
 
 def test_rir_pipeline_describes_registered_route() -> None:
-    description = describe_pipeline("rir", metric="rir_nmse")
-    assert description.pipeline_id == "rir.any.rir_nmse.rir_nmse_v1"
+    description = describe_pipeline("rir", metric="rir_npm")
+    assert description.pipeline_id == "rir.any.rir_npm.rir_npm_v1"
     assert description.required_roles == ("prediction_rir", "reference_rir")
+
+    npm = describe_pipeline("rir", metric="npm")
+    assert npm.pipeline_id == "rir.any.rir_npm.rir_npm_v1"
+    assert npm.metric == "rir_npm"
+
+    default = describe_pipeline("rir")
+    assert default.pipeline_id == "rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1"
 
     iacc = describe_pipeline("rir", metric="iacc")
     assert iacc.pipeline_id == "rir.any.rir_iacc_mae.rir_iacc_mae_v1"
@@ -61,17 +68,17 @@ def test_rir_script_describe_and_run_writes_report(tmp_path: Path) -> None:
         sample_rate=16000,
     )
 
-    description = describe_pipeline("rir", metric="rir_nmse")
+    description = describe_pipeline("rir", metric="rir_npm")
     report = run_task(
         "rir",
         samples=[sample],
-        metrics=("rir_nmse",),
+        metrics=("rir_npm",),
         output_dir=str(tmp_path / "script_run"),
     )
 
     assert description.pipeline_id == report.pipeline_id
     assert json.loads((tmp_path / "script_run" / "report.json").read_text())["pipeline_id"] == (
-        "rir.any.rir_nmse.rir_nmse_v1"
+        "rir.any.rir_npm.rir_npm_v1"
     )
 
 
@@ -96,10 +103,10 @@ def test_rir_cli_routes_describe_and_run_preserve_pipeline_id(tmp_path: Path) ->
     pipeline_json = tmp_path / "pipeline.json"
     runner = CliRunner()
 
-    routes = runner.invoke(app, ["metric", "routes", "rir", "--metric", "rir_nmse", "--json"])
+    routes = runner.invoke(app, ["metric", "routes", "rir", "--metric", "rir_npm", "--json"])
     assert routes.exit_code == 0, routes.stdout
     routes_payload = json.loads(routes.stdout)
-    assert routes_payload["default_pipeline_id"] == "rir.any.rir_nmse.rir_nmse_v1"
+    assert routes_payload["default_pipeline_id"] == "rir.any.rir_npm.rir_npm_v1"
 
     described = runner.invoke(
         app,
@@ -108,7 +115,7 @@ def test_rir_cli_routes_describe_and_run_preserve_pipeline_id(tmp_path: Path) ->
             "describe",
             "rir",
             "--metric",
-            "rir_nmse",
+            "rir_npm",
             "--output",
             str(pipeline_json),
             "--json",
@@ -116,7 +123,7 @@ def test_rir_cli_routes_describe_and_run_preserve_pipeline_id(tmp_path: Path) ->
     )
     assert described.exit_code == 0, described.stdout
     assert json.loads(pipeline_json.read_text())["pipeline_id"] == (
-        "rir.any.rir_nmse.rir_nmse_v1"
+        "rir.any.rir_npm.rir_npm_v1"
     )
 
     run = runner.invoke(
@@ -135,13 +142,13 @@ def test_rir_cli_routes_describe_and_run_preserve_pipeline_id(tmp_path: Path) ->
         ],
     )
     assert run.exit_code == 0, run.stdout
-    assert json.loads(run.stdout)["pipeline_id"] == "rir.any.rir_nmse.rir_nmse_v1"
+    assert json.loads(run.stdout)["pipeline_id"] == "rir.any.rir_npm.rir_npm_v1"
     report = json.loads((tmp_path / "cli_run" / "report.json").read_text())
     description = json.loads(
         (tmp_path / "cli_run" / "pipeline_description.json").read_text()
     )
     assert report["pipeline_id"] == description["pipeline_id"]
-    assert report["details"]["results"]["rir_nmse"]["score"] > 0
+    assert report["details"]["results"]["rir_npm"]["score"] < 0
 
 
 def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
@@ -157,10 +164,10 @@ def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
         channel_layout="binaural_lr",
         metadata={"microphone_spacing_m": 0.18},
     )
-    report = evaluate_rir_samples([sample], metrics=("rir_nmse", "rir_corr", "rir_drr_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"))
+    report = evaluate_rir_samples([sample], metrics=("rir_npm", "rir_drr_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"))
     assert report.pipeline_kind == "bundle"
     assert report.score is not None
-    assert set(report.details["results"]) == {"rir_nmse", "rir_corr", "rir_drr_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
+    assert set(report.details["results"]) == {"rir_npm", "rir_drr_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
 
 
 def test_rir_metrics_accept_reference_npy_in_channel_first_layout(tmp_path: Path) -> None:
@@ -177,8 +184,25 @@ def test_rir_metrics_accept_reference_npy_in_channel_first_layout(tmp_path: Path
         sample_id="rir-npy-001",
         sample_rate=16000,
     )
-    result = evaluate_rir_samples([sample], metrics=("rir_nmse",))
-    assert result.details["results"]["rir_nmse"]["score"] > 0
+    result = evaluate_rir_samples([sample], metrics=("rir_npm",))
+    assert result.details["results"]["rir_npm"]["score"] < 0
+
+
+def test_rir_npm_is_scale_invariant_and_reports_db(tmp_path: Path) -> None:
+    reference = tmp_path / "reference.wav"
+    prediction = tmp_path / "prediction.wav"
+    _write_rir(reference)
+    _write_rir(prediction, 0.9)
+    sample = RIRSample(
+        prediction_rir=str(prediction),
+        reference_rir=str(reference),
+        sample_id="rir-npm-001",
+        sample_rate=16000,
+    )
+    report = evaluate_rir_samples([sample], metrics=("npm",))
+    result = report.details["results"]["rir_npm"]
+    assert result["score"] < -100
+    assert result["unit"] == "dB"
 
 
 def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
@@ -192,10 +216,10 @@ def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
         sample_id="rir-mono-001",
         channel_layout="mono",
     )
-    single_report = evaluate_rir_samples([mono], metrics=("rir_nmse",), channel_mode="single")
+    single_report = evaluate_rir_samples([mono], metrics=("rir_npm",), channel_mode="single")
     assert single_report.details["channel_mode"] == "single"
     try:
-        evaluate_rir_samples([mono], metrics=("rir_nmse",), channel_mode="multi")
+        evaluate_rir_samples([mono], metrics=("rir_npm",), channel_mode="multi")
     except ValueError as exc:
         assert "multi-channel" in str(exc)
     else:
@@ -296,8 +320,7 @@ def test_rir_nodes_are_in_process_environment_checks() -> None:
 
     checker = NodeEnvChecker()
     for metric in (
-        "rir_nmse",
-        "rir_corr",
+        "rir_npm",
         "rt60_mae",
         "rir_drr_mae",
         "rir_c50_mae",

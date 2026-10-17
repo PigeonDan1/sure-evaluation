@@ -11,10 +11,10 @@ already refer to the same source, room, microphone positions, channel order,
 and time origin. Each metric averages its per-sample scores with equal weight.
 
 The evaluator has two channel branches. The single-channel branch accepts one
-channel and is intended for waveform, correlation, RT60, DRR, C50, and C80
-metrics. The multi-channel branch accepts two or more channels for the same
-channel-wise metrics. Spatial metrics use only a strict binaural pair (exactly
-two channels); a row labelled `multi_channel` with three or more channels is
+channel and computes the base NPM, RT60, DRR, C50, and C80 metrics. The
+multi-channel branch computes the same base metrics before adding spatial
+metrics. Spatial metrics use only a strict binaural pair (exactly two
+channels); a row labelled `multi_channel` with three or more channels is
 rejected for those metrics. Set `channel_layout` to `mono`, `multi_channel`, or
 `binaural_lr` when the layout is known; `auto` is used when it is omitted.
 
@@ -22,8 +22,7 @@ rejected for those metrics. Set `channel_layout` to `mono`, `multi_channel`, or
 
 | Metric | Meaning | Direction |
 |---|---|---|
-| `rir_nmse` | normalized mean squared RIR error | lower is better |
-| `rir_corr` | channel-wise waveform correlation | higher is better |
+| `rir_npm` | normalized projection misalignment in dB | lower is better |
 | `rt60_mae` | absolute RT60 error in seconds | lower is better |
 | `rir_drr_mae` | direct-to-reverberant ratio error in dB | lower is better |
 | `rir_c50_mae` | C50 error in dB | lower is better |
@@ -37,15 +36,16 @@ rejected for those metrics. Set `channel_layout` to `mono`, `multi_channel`, or
 The default bundle is:
 
 ```text
-rir.any.multi.rir_nmse.rir_nmse_v1__rir_corr.rir_corr_v1__rt60_mae.rt60_mae_v1
+rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1
 ```
 
-The bundle's top-level `score` is `rir_nmse`; all three metric scores are in
+The bundle's top-level `score` is `rir_npm`; both metric scores are in
 `details.results`. This is a reporting convention, not a combined score.
 
-For the multi-channel binaural chain, select the registered bundle containing
+For the multi-channel binaural chain, start with the same NPM and RT60 base
+metrics, then select the registered bundle containing
 `rir_iacc_mae`, `rir_itd_mae`, `rir_ild_mae`, and `rir_ipd_mae` together with
-the channel-wise metrics. Its top-level score is still `rir_nmse`; spatial
+the channel-wise metrics. Its top-level score is `rir_npm`; spatial
 scores remain separate entries in `details.results`.
 
 Example row:
@@ -68,8 +68,8 @@ only consumes the resulting audio files.
 ## CLI
 
 ```bash
-sure-eval metric routes rir --metric rir_nmse --json
+sure-eval metric routes rir --metric npm --json
 sure-eval metric routes rir --metric iacc --json
-sure-eval metric describe rir --metric rir_nmse --output rir_pipeline.json --json
+sure-eval metric describe rir --metric npm --output rir_pipeline.json --json
 sure-eval metric run --pipeline rir_pipeline.json --samples-jsonl rir_samples.jsonl --output-dir /tmp/rir_eval --json
 ```

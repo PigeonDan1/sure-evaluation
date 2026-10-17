@@ -142,51 +142,78 @@ def _mean(values: list[float]) -> float:
     return float(np.mean(values))
 
 
-def rir_nmse(samples: list[RIRSample]) -> MetricResult:
+def rir_npm(samples: list[RIRSample]) -> MetricResult:
+    """Compute scale-invariant normalized projection misalignment in dB."""
     values = []
     per_sample = []
     for sample in samples:
         prediction, reference, _ = _pair(sample)
-        denominator = float(np.mean(reference**2))
-        score = float(np.mean((prediction - reference) ** 2) / max(denominator, _EPSILON))
+        predicted_vec = prediction.reshape(-1)
+        reference_vec = reference.reshape(-1)
+        numerator = float(np.dot(reference_vec, predicted_vec))
+        denominator = float(np.dot(predicted_vec, predicted_vec)) + _EPSILON
+        alpha = numerator / denominator
+        residual = reference_vec - alpha * predicted_vec
+        ratio = float(np.linalg.norm(residual) / (np.linalg.norm(reference_vec) + _EPSILON))
+        score = float(20.0 * np.log10(max(ratio, _EPSILON)))
         values.append(score)
-        per_sample.append({"sample_id": sample.sample_id, "score": score})
+        per_sample.append({"sample_id": sample.sample_id, "score": score, "unit": "dB"})
     return MetricResult(
-        "rir_nmse", _mean(values), {"per_sample": per_sample, "higher_is_better": False}
+        "rir_npm", _mean(values),
+        {"per_sample": per_sample, "higher_is_better": False, "unit": "dB"},
     )
 
 
-def rir_corr(samples: list[RIRSample]) -> MetricResult:
-    values = []
-    per_sample = []
-    for sample in samples:
-        prediction, reference, _ = _pair(sample)
-        channel_scores = []
-        for channel in range(reference.shape[1]):
-            left = prediction[:, channel] - np.mean(prediction[:, channel])
-            right = reference[:, channel] - np.mean(reference[:, channel])
-            denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
-            if denominator == 0:
-                channel_scores.append(1.0 if np.allclose(left, right) else 0.0)
-            else:
-                channel_scores.append(float(np.dot(left, right) / denominator))
-        score = _mean(channel_scores)
-        values.append(score)
-        per_sample.append({"sample_id": sample.sample_id, "score": score, "channels": channel_scores})
-    return MetricResult(
-        "rir_corr", _mean(values), {"per_sample": per_sample, "higher_is_better": True}
-    )
+def _preprocess_acoustic_signal(signal: np.ndarray, sample_rate: int) -> np.ndarray:
+    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
+    if x.size == 0:
+        return x
+    peak = int(np.argmax(np.abs(x)))
+    start = max(0, peak - int(round(sample_rate * 2.5 / 1000.0)))
+    x = x[start:]
+    peak_value = float(np.max(np.abs(x)))
+    if peak_value > 1.0:
+        x = x / peak_value
+    return x
+
+
+def _acoustic_pair(prediction: np.ndarray, reference: np.ndarray, sample_rate: int) -> tuple[np.ndarray, np.ndarray]:
+    predicted = _preprocess_acoustic_signal(prediction, sample_rate)
+    target = _preprocess_acoustic_signal(reference, sample_rate)
+    length = min(predicted.size, target.size)
+    predicted = predicted[:length]
+    target = target[:length]
+    if length and float(np.dot(predicted, target)) < 0.0:
+        predicted = -predicted
+    return predicted, target
+
+
+def _fit_rt60(edc_db: np.ndarray, sample_rate: int, decay_db: float) -> float:
+    upper_db = -5.0
+    lower_db = -(5.0 + decay_db)
+    below_upper = np.flatnonzero(edc_db <= upper_db)
+    below_lower = np.flatnonzero(edc_db <= lower_db)
+    if below_upper.size == 0 or below_lower.size == 0:
+        return float("nan")
+    start = int(below_upper[0])
+    end = int(below_lower[0])
+    if end - start < 4:
+        return float("nan")
+    times = np.arange(start, end + 1, dtype="float64") / sample_rate
+    slope, _ = np.polyfit(times, edc_db[start : end + 1], 1)
+    return float(-60.0 / slope) if slope < 0.0 else float("nan")
 
 
 def _rt60(signal: np.ndarray, sample_rate: int) -> float:
-    energy = np.maximum(np.cumsum(signal[::-1] ** 2)[::-1], _EPSILON)
-    decay = 10.0 * np.log10(energy / energy[0])
-    mask = (decay <= -5.0) & (decay >= -35.0)
-    if int(mask.sum()) < 2:
+    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
+    if x.size < 4:
         return float("nan")
-    times = np.flatnonzero(mask) / sample_rate
-    slope, _ = np.polyfit(times, decay[mask], 1)
-    return float(-60.0 / slope) if slope < 0 else float("nan")
+    energy = np.cumsum((x**2)[::-1])[::-1]
+    edc_db = 10.0 * np.log10(energy / (energy[0] + _EPSILON) + _EPSILON)
+    return next(
+        (value for value in (_fit_rt60(edc_db, sample_rate, 30.0), _fit_rt60(edc_db, sample_rate, 20.0)) if np.isfinite(value)),
+        float("nan"),
+    )
 
 
 def rt60_mae(samples: list[RIRSample]) -> MetricResult:
@@ -194,18 +221,28 @@ def rt60_mae(samples: list[RIRSample]) -> MetricResult:
     per_sample = []
     for sample in samples:
         prediction, reference, rate = _pair(sample)
-        pred = np.nanmean([_rt60(prediction[:, c], rate) for c in range(prediction.shape[1])])
-        ref = np.nanmean([_rt60(reference[:, c], rate) for c in range(reference.shape[1])])
-        if not np.isfinite(pred) or not np.isfinite(ref):
+        errors = []
+        predictions = []
+        references = []
+        for channel in range(prediction.shape[1]):
+            predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
+            pred = _rt60(predicted, rate)
+            ref = _rt60(target, rate)
+            if np.isfinite(pred) and np.isfinite(ref):
+                errors.append(abs(pred - ref))
+                predictions.append(pred)
+                references.append(ref)
+        if not errors:
             raise ValueError(f"RT60 could not be estimated for {sample.sample_id}")
-        score = float(abs(pred - ref))
+        score = float(np.mean(errors))
         values.append(score)
         per_sample.append(
             {
                 "sample_id": sample.sample_id,
                 "score": score,
-                "prediction_rt60": float(pred),
-                "reference_rt60": float(ref),
+                "prediction_rt60": float(np.mean(predictions)),
+                "reference_rt60": float(np.mean(references)),
+                "unit": "seconds",
             }
         )
     return MetricResult(
@@ -216,12 +253,17 @@ def rt60_mae(samples: list[RIRSample]) -> MetricResult:
 
 
 def _early_late(signal: np.ndarray, rate: int, window_ms: float) -> tuple[float, float]:
-    peak = int(np.argmax(np.max(np.abs(signal), axis=1)))
-    window = max(1, int(rate * window_ms / 1000.0))
-    end = min(signal.shape[0], peak + window)
-    early = float(np.sum(signal[max(0, peak - window // 4) : end] ** 2))
-    late = float(np.sum(signal[end:] ** 2))
-    return early, max(late, _EPSILON)
+    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
+    peak = int(np.argmax(np.abs(x)))
+    window = max(1, int(round(rate * window_ms / 1000.0)))
+    end = min(x.size, peak + window + 1)
+    if end >= x.size:
+        return float("nan"), float("nan")
+    early = float(np.sum(x[peak:end] ** 2))
+    late = float(np.sum(x[end:] ** 2))
+    if early <= _EPSILON or late <= _EPSILON:
+        return float("nan"), float("nan")
+    return early, late
 
 
 def _clarity_mae(samples: list[RIRSample], window_ms: float) -> MetricResult:
@@ -229,11 +271,18 @@ def _clarity_mae(samples: list[RIRSample], window_ms: float) -> MetricResult:
     per_sample = []
     for sample in samples:
         prediction, reference, rate = _pair(sample)
-        pred_early, pred_late = _early_late(prediction, rate, window_ms)
-        ref_early, ref_late = _early_late(reference, rate, window_ms)
-        prediction_value = 10.0 * np.log10(pred_early / pred_late)
-        reference_value = 10.0 * np.log10(ref_early / ref_late)
-        score = float(abs(prediction_value - reference_value))
+        channel_errors = []
+        for channel in range(prediction.shape[1]):
+            predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
+            pred_early, pred_late = _early_late(predicted, rate, window_ms)
+            ref_early, ref_late = _early_late(target, rate, window_ms)
+            if np.isfinite(pred_early + pred_late + ref_early + ref_late):
+                prediction_value = 10.0 * np.log10(pred_early / pred_late)
+                reference_value = 10.0 * np.log10(ref_early / ref_late)
+                channel_errors.append(abs(prediction_value - reference_value))
+        if not channel_errors:
+            raise ValueError(f"C{int(window_ms)} could not be estimated for {sample.sample_id}")
+        score = float(np.mean(channel_errors))
         values.append(score)
         per_sample.append({"sample_id": sample.sample_id, "score": score, "unit": "dB"})
     name = f"rir_c{int(window_ms)}_mae"
@@ -247,11 +296,18 @@ def rir_drr_mae(samples: list[RIRSample]) -> MetricResult:
     rows = []
     for sample in samples:
         prediction, reference, rate = _pair(sample)
-        pred_early, pred_late = _early_late(prediction, rate, 2.5)
-        ref_early, ref_late = _early_late(reference, rate, 2.5)
-        pred_drr = 10.0 * np.log10(pred_early / pred_late)
-        ref_drr = 10.0 * np.log10(ref_early / ref_late)
-        score = float(abs(pred_drr - ref_drr))
+        channel_errors = []
+        for channel in range(prediction.shape[1]):
+            predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
+            pred_early, pred_late = _early_late(predicted, rate, 2.5)
+            ref_early, ref_late = _early_late(target, rate, 2.5)
+            if np.isfinite(pred_early + pred_late + ref_early + ref_late):
+                pred_drr = 10.0 * np.log10(pred_early / pred_late)
+                ref_drr = 10.0 * np.log10(ref_early / ref_late)
+                channel_errors.append(abs(pred_drr - ref_drr))
+        if not channel_errors:
+            raise ValueError(f"DRR could not be estimated for {sample.sample_id}")
+        score = float(np.mean(channel_errors))
         values.append(score)
         rows.append({"sample_id": sample.sample_id, "score": score, "unit": "dB"})
     return MetricResult(
@@ -415,14 +471,13 @@ itd = rir_itd_mae
 __all__ = [
     "rir_c50_mae",
     "rir_c80_mae",
-    "rir_corr",
     "rir_doa_mae",
     "rir_drr_mae",
     "rir_iacc_mae",
     "rir_ild_mae",
     "rir_ipd_mae",
     "rir_itd_mae",
-    "rir_nmse",
+    "rir_npm",
     "rt60_mae",
     "iacc",
     "itd",

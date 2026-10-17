@@ -13,5 +13,5 @@ one channel; the multi-channel branch validates two or more channels. Binaural
 metrics require exactly two channels and use them as left/right. IACC and ITD
 are measured from normalized cross-correlation in a +/-1 ms lag window; ILD
 and IPD are frequency-domain interaural errors.
-The default bundle reports `rir_nmse` as its top-level score and keeps every
-metric in `details.results`.
+The default bundle reports `rir_npm` as its top-level score and keeps the
+NPM and RT60 scores in `details.results`.

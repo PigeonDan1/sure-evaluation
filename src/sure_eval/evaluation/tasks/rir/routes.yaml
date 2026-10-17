@@ -2,18 +2,12 @@ task: RIR
 language_sensitive: false
 routes:
   -
-    metric: rir_nmse
+    metric: rir_npm
+    aliases: [npm]
     family: rir_signal_error
-    pipeline_id: rir.any.rir_nmse.rir_nmse_v1
-    nodes: [scoring/rir_nmse]
-    input_contract: scoring/rir_nmse
-    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
-  -
-    metric: rir_corr
-    family: rir_signal_similarity
-    pipeline_id: rir.any.rir_corr.rir_corr_v1
-    nodes: [scoring/rir_corr]
-    input_contract: scoring/rir_corr
+    pipeline_id: rir.any.rir_npm.rir_npm_v1
+    nodes: [scoring/rir_npm]
+    input_contract: scoring/rir_npm
     executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
   -
     metric: rt60_mae
