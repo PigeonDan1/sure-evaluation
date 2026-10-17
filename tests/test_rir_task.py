@@ -51,6 +51,15 @@ def test_rir_pipeline_describes_registered_route() -> None:
     default = describe_pipeline("rir")
     assert default.pipeline_id == "rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1"
 
+    base_bundle = describe_pipeline(
+        "rir",
+        metrics=("rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae"),
+    )
+    assert base_bundle.pipeline_kind == "bundle"
+    assert base_bundle.execution_metrics == (
+        "rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae"
+    )
+
     iacc = describe_pipeline("rir", metric="iacc")
     assert iacc.pipeline_id == "rir.any.rir_iacc_mae.rir_iacc_mae_v1"
     assert iacc.metric == "rir_iacc_mae"

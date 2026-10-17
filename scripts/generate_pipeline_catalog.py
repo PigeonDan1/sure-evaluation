@@ -64,6 +64,18 @@ BUNDLE_COMBINATIONS = (
             "metrics": (
                 "rir_npm",
                 "rt60_mae",
+                "rir_drr_mae",
+                "rir_c50_mae",
+                "rir_c80_mae",
+            )
+        },
+    ),
+    (
+        "rir",
+        {
+            "metrics": (
+                "rir_npm",
+                "rt60_mae",
                 "rir_iacc_mae",
                 "rir_itd_mae",
                 "rir_ild_mae",

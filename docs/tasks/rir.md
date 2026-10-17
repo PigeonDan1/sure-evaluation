@@ -43,6 +43,17 @@ rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1
 The bundle's top-level `score` is `rir_npm`; both metric scores are in
 `details.results`. This is a reporting convention, not a combined score.
 
+For cross-channel base evaluation, the curated bundle is:
+
+```text
+rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1
+```
+
+It accepts the monaural and multi-channel branches because it contains only
+the shared base metrics. The existing atomic routes remain available for
+single-metric evaluation. Add the spatial bundle separately when the samples
+meet the IACC two-channel contract.
+
 For the multi-channel spatial chain, start with the same NPM and RT60 base
 metrics, then select the registered bundle containing
 `rir_iacc_mae`, `rir_itd_mae`, `rir_ild_mae`, and `rir_ipd_mae` together with
