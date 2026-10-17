@@ -143,19 +143,25 @@ def _mean(values: list[float]) -> float:
 
 
 def rir_npm(samples: list[RIRSample]) -> MetricResult:
-    """Compute scale-invariant normalized projection misalignment in dB."""
+    """Compute Rec-BIR's scale/lag-invariant normalized projection misalignment."""
     values = []
     per_sample = []
     for sample in samples:
         prediction, reference, _ = _pair(sample)
-        predicted_vec = prediction.reshape(-1)
-        reference_vec = reference.reshape(-1)
-        numerator = float(np.dot(reference_vec, predicted_vec))
-        denominator = float(np.dot(predicted_vec, predicted_vec)) + _EPSILON
-        alpha = numerator / denominator
-        residual = reference_vec - alpha * predicted_vec
-        ratio = float(np.linalg.norm(residual) / (np.linalg.norm(reference_vec) + _EPSILON))
-        score = float(20.0 * np.log10(max(ratio, _EPSILON)))
+        reference_energy = float(np.sum(reference * reference))
+        prediction_energy = float(np.sum(prediction * prediction))
+        if reference_energy <= _EPSILON or prediction_energy <= _EPSILON:
+            score = float("nan")
+        else:
+            cross = sum(
+                np.correlate(reference[:, channel], prediction[:, channel], mode="full")
+                for channel in range(reference.shape[1])
+            )
+            lags = np.arange(-prediction.shape[0] + 1, reference.shape[0])
+            valid = np.abs(lags) <= 256
+            correlation_max = float(np.max(np.abs(cross[valid])))
+            cosine_sq = min(1.0, correlation_max * correlation_max / (reference_energy * prediction_energy))
+            score = float(10.0 * np.log10(max(1.0 - cosine_sq, 1e-20)))
         values.append(score)
         per_sample.append({"sample_id": sample.sample_id, "score": score, "unit": "dB"})
     return MetricResult(
