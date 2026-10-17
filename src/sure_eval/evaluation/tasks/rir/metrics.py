@@ -401,8 +401,8 @@ def rir_itd_mae(samples: list[RIRSample]) -> MetricResult:
         pair_rows = []
         for channel, prediction_pair in _channel_pairs(prediction):
             reference_pair = reference[:, [0, channel]]
-            prediction_itd = _itd(prediction_pair, rate)
-            reference_itd = _itd(reference_pair, rate)
+            prediction_itd = _itd(prediction_pair, rate) * 1000.0
+            reference_itd = _itd(reference_pair, rate) * 1000.0
             score = float(abs(prediction_itd - reference_itd))
             values.append(score)
             pair_rows.append({
@@ -410,19 +410,19 @@ def rir_itd_mae(samples: list[RIRSample]) -> MetricResult:
                 "score": score,
                 "prediction_itd": prediction_itd,
                 "reference_itd": reference_itd,
-                "unit": "seconds",
+                "unit": "ms",
             })
         rows.append({
             "sample_id": sample.sample_id,
             "score": float(np.mean([row["score"] for row in pair_rows])),
             "pair_count": len(pair_rows),
             "pairs": pair_rows,
-            "unit": "seconds",
+            "unit": "ms",
         })
     return MetricResult(
         "rir_itd_mae",
         _mean(values),
-        {"per_sample": rows, "higher_is_better": False, "unit": "seconds"},
+        {"per_sample": rows, "higher_is_better": False, "unit": "ms"},
     )
 
 

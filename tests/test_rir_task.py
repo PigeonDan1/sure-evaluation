@@ -249,6 +249,7 @@ def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
     }
     assert report.details["results"]["rir_iacc_mae"]["per_sample"][0]["prediction_iacc"] >= 0
     assert report.details["results"]["rir_itd_mae"]["score"] > 0
+    assert report.details["results"]["rir_itd_mae"]["unit"] == "ms"
 
 
 def test_binaural_metric_rejects_three_channel_rir(tmp_path: Path) -> None:

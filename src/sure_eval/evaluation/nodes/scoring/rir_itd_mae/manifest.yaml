@@ -9,4 +9,4 @@ metric: rir_itd_mae
 backend: numpy-rir
 internal_stages: [audio_load, multichannel_channel_check, ch0_relative_pairs, cross_correlation, mean_aggregation]
 used_by: [RIR multichannel spatial error]
-notes: [Lower is better. Unit is seconds.]
+notes: [Lower is better. Unit is milliseconds.]

@@ -29,7 +29,7 @@ used when it is omitted.
 | `rir_c50_mae` | C50 error in dB | lower is better |
 | `rir_c80_mae` | C80 error in dB | lower is better |
 | `rir_iacc_mae` | interaural cross-correlation coefficient error in a +/-1 ms window | lower is better |
-| `rir_itd_mae` | interaural time difference error in seconds in a +/-1 ms window | lower is better |
+| `rir_itd_mae` | interaural time difference error in ms in a +/-1 ms window | lower is better |
 | `rir_ild_mae` | ch0-relative interchannel level error in dB | lower is better |
 | `rir_ipd_mae` | ch0-relative interchannel phase error in radians | lower is better |
 | `rir_doa_mae` | ch0-relative TDOA-derived DOA error in degrees | lower is better |
