@@ -8,6 +8,8 @@ implemented_metrics:
   - rir_drr_mae
   - rir_c50_mae
   - rir_c80_mae
+  - rir_iacc_mae
+  - rir_itd_mae
   - rir_ild_mae
   - rir_ipd_mae
   - rir_doa_mae
@@ -76,6 +78,22 @@ input_contracts:
     main_report: true
   scoring/rir_ild_mae:
     purpose: binaural_interaural_level_difference_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_mae:
+    purpose: binaural_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_itd_mae:
+    purpose: binaural_interaural_time_difference_error
     required_roles: [prediction_rir, reference_rir]
     optional_roles: [metadata]
     row_format: binaural_rir_samples_jsonl

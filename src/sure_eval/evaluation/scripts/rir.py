@@ -5,7 +5,20 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from sure_eval.evaluation.pipeline_identity import build_bundle_pipeline_id, canonical_metric
-from sure_eval.evaluation.scripts.contracts import call_executor_path, contract_from_manifest, describe_from_contracts, find_metric_route, find_pipeline_route, load_task_manifest, load_task_routes, normalize_metric_list, route_computation_node_ids, route_execution_metrics, route_member_pipeline_ids, write_route_run_outputs
+from sure_eval.evaluation.scripts.contracts import (
+    call_executor_path,
+    contract_from_manifest,
+    describe_from_contracts,
+    find_metric_route,
+    find_pipeline_route,
+    load_task_manifest,
+    load_task_routes,
+    normalize_metric_list,
+    route_computation_node_ids,
+    route_execution_metrics,
+    route_member_pipeline_ids,
+    write_route_run_outputs,
+)
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
 DEFAULT_METRICS = ("rir_nmse", "rir_corr", "rt60_mae")
@@ -26,6 +39,7 @@ def describe_pipeline(*, metrics: str | list[str] | tuple[str, ...] | None = Non
             metrics = tuple(item.strip() for item in metrics.split(",") if item.strip())
         requested = normalize_metric_list(metrics, DEFAULT_METRICS)
         selected = tuple(find_metric_route(routes, metric=metric) for metric in requested)
+        requested = route_execution_metrics(selected)
     contracts = tuple(contract_from_manifest(manifest, route["input_contract"]) for route in selected)
     members = route_member_pipeline_ids(selected)
     bundle = len(members) > 1
@@ -44,6 +58,10 @@ def run(samples: list[RIRSample], *, output_dir: str, metrics: Iterable[str] | N
             metrics = tuple(item.strip() for item in metrics.split(",") if item.strip())
         requested = normalize_metric_list(metrics, DEFAULT_METRICS)
         selected = tuple(find_metric_route(routes, metric=metric) for metric in requested)
-    description = describe_pipeline(metrics=requested)
+        requested = route_execution_metrics(selected)
+    description = describe_pipeline(
+        pipeline_id=pipeline_id if pipeline_id else None,
+        metrics=None if pipeline_id else requested,
+    )
     report = call_executor_path(str(selected[0]["executor"]), samples=samples, metrics=requested)
     return write_route_run_outputs(report=report, description=description, output_dir=output_dir)

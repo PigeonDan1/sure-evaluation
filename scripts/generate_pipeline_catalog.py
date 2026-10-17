@@ -58,6 +58,20 @@ BUNDLE_COMBINATIONS = (
     ("tse", {"language": "zh", "metrics": ("si_sdr", "sim/wavlm-large", "dnsmos")}),
     ("sv", {"metrics": ("eer", "min_dcf")}),
     ("rir", {"metrics": ("rir_nmse", "rir_corr", "rt60_mae")}),
+    (
+        "rir",
+        {
+            "metrics": (
+                "rir_nmse",
+                "rir_corr",
+                "rt60_mae",
+                "rir_iacc_mae",
+                "rir_itd_mae",
+                "rir_ild_mae",
+                "rir_ipd_mae",
+            )
+        },
+    ),
 )
 
 

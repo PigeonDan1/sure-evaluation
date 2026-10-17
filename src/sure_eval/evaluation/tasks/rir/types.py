@@ -15,7 +15,9 @@ class RIRSample:
     observed_audio: str = ""
     reference_audio: str = ""
     sample_rate: int | None = None
-    channel_layout: str = "mono"
+    # ``auto`` preserves rows that do not declare a layout while still allowing
+    # explicit mono, multi-channel, and binaural contracts to be validated.
+    channel_layout: str = "auto"
     sample_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 

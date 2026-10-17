@@ -192,7 +192,7 @@ def load_rir_samples_jsonl(
                 observed_audio=_resolve_optional_path(row.get("observed_audio"), path, line_no, "observed_audio"),
                 reference_audio=_resolve_optional_path(row.get("reference_audio"), path, line_no, "reference_audio"),
                 sample_rate=sample_rate,
-                channel_layout=str(row.get("channel_layout", metadata.get("channel_layout", "mono"))),
+                channel_layout=str(row.get("channel_layout", metadata.get("channel_layout", "auto"))),
                 sample_id=str(row["sample_id"]),
                 metadata=metadata,
             )

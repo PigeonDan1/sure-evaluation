@@ -44,6 +44,22 @@ routes:
     input_contract: scoring/rir_c80_mae
     executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
   -
+    metric: rir_iacc_mae
+    aliases: [iacc, rir_iacc]
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_iacc_mae.rir_iacc_mae_v1
+    nodes: [scoring/rir_iacc_mae]
+    input_contract: scoring/rir_iacc_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_itd_mae
+    aliases: [itd, rir_itd]
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_itd_mae.rir_itd_mae_v1
+    nodes: [scoring/rir_itd_mae]
+    input_contract: scoring/rir_itd_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
     metric: rir_ild_mae
     family: binaural_spatial_error
     pipeline_id: rir.any.rir_ild_mae.rir_ild_mae_v1

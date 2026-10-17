@@ -1,0 +1,12 @@
+id: scoring/rir_iacc_mae
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: binaural_rir_samples_jsonl
+output_schema: rir_iacc_mae_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rir_iacc_mae
+metric: rir_iacc_mae
+backend: numpy-rir
+internal_stages: [audio_load, binaural_channel_check, cross_correlation, mean_aggregation]
+used_by: [RIR binaural spatial error]
+notes: [Lower is better. Unit is a correlation coefficient error.]

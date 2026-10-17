@@ -8,7 +8,10 @@ JSONL file and aggregated by arithmetic mean over samples. WAV/FLAC and NumPy
 Each pair is
 truncated to its shorter file; samples must already share a time origin.
 
-The task is language-independent. Binaural metrics use the first two channels
-as left/right and require matching sample rates and channel counts.
+The task is language-independent. The single-channel branch validates exactly
+one channel; the multi-channel branch validates two or more channels. Binaural
+metrics require exactly two channels and use them as left/right. IACC and ITD
+are measured from normalized cross-correlation in a +/-1 ms lag window; ILD
+and IPD are frequency-domain interaural errors.
 The default bundle reports `rir_nmse` as its top-level score and keeps every
 metric in `details.results`.
