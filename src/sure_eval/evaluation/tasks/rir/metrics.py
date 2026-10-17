@@ -406,6 +406,12 @@ def rir_doa_mae(samples: list[RIRSample]) -> MetricResult:
     )
 
 
+# Short aliases keep direct task-level callers aligned with the public metric
+# selectors while reports retain the explicit ``*_mae`` names.
+iacc = rir_iacc_mae
+itd = rir_itd_mae
+
+
 __all__ = [
     "rir_c50_mae",
     "rir_c80_mae",
@@ -418,5 +424,7 @@ __all__ = [
     "rir_itd_mae",
     "rir_nmse",
     "rt60_mae",
+    "iacc",
+    "itd",
     "validate_rir_samples",
 ]
