@@ -1,4 +1,4 @@
-"""RIR task script route descriptors."""
+"""RIR estimation task script route descriptors."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def describe_pipeline(*, metrics: str | list[str] | tuple[str, ...] | None = Non
     bundle = len(members) > 1
     pipeline = members[0] if not bundle else build_bundle_pipeline_id("rir", "any", members)
     nodes = tuple(dict.fromkeys(node for route in selected for node in route["nodes"]))
-    return describe_from_contracts(task="RIR", pipeline_id=pipeline, metric=canonical_metric(requested[0]) if not bundle else "multi", language="n/a", node_ids=nodes, contracts=contracts, task_config_path=manifest_path, route_config_path=routes_path, pipeline_kind="bundle" if bundle else "atomic", member_pipeline_ids=members if bundle else (), computation_node_ids=route_computation_node_ids(selected), execution_metrics=requested, script_module=__name__, executor=str(selected[0]["executor"]))
+    return describe_from_contracts(task="RIR estimation", pipeline_id=pipeline, metric=canonical_metric(requested[0]) if not bundle else "multi", language="n/a", node_ids=nodes, contracts=contracts, task_config_path=manifest_path, route_config_path=routes_path, pipeline_kind="bundle" if bundle else "atomic", member_pipeline_ids=members if bundle else (), computation_node_ids=route_computation_node_ids(selected), execution_metrics=requested, script_module=__name__, executor=str(selected[0]["executor"]))
 
 
 def run(samples: list[RIRSample], *, output_dir: str, metrics: Iterable[str] | None = None, pipeline_id: str | None = None):

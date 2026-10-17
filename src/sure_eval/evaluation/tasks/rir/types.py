@@ -1,4 +1,4 @@
-"""RIR task sample types."""
+"""RIR estimation sample types."""
 
 from __future__ import annotations
 

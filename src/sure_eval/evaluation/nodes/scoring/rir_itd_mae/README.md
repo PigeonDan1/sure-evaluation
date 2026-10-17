@@ -6,14 +6,14 @@ Reports binaural interaural time-difference error.
 
 ## Contract and computation
 
-Input is `binaural_rir_samples_jsonl` with exactly two channels; output is a
-lower-is-better mean in seconds. Version `v1` selects the peak normalized
-cross-correlation lag within plus-or-minus 1 ms and compares predicted and
-reference ITD values.
+Input is `multichannel_rir_samples_jsonl` with at least two channels; output
+is a lower-is-better mean in seconds. Version `v1` selects the peak normalized
+cross-correlation lag within plus-or-minus 1 ms for every `chN` against `ch0`
+and compares predicted and reference ITD values.
 
 ## Runtime and limitations
 
 The node is in-process with no checkpoint or node-local environment. It is not
-defined for mono or three-channel input and reports broadband lag only.
+defined for mono input and reports broadband lag pairs for each extra channel.
 
 Source: SURE RIR task implementation in `tasks/rir/metrics.py`.

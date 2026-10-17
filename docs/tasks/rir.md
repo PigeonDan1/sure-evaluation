@@ -1,6 +1,6 @@
 # RIR Estimation and Spatial Audio
 
-The RIR task evaluates predicted room impulse responses against reference RIRs.
+The RIR estimation task evaluates predicted room impulse responses against reference RIRs.
 Rows use `prediction_rir` and `reference_rir` paths and align by `sample_id`.
 The audio files may be WAV/FLAC or NumPy `.npy`/`.npz` arrays. NumPy arrays
 must provide `sample_rate` in the row because they do not carry an embedded
@@ -13,10 +13,11 @@ and time origin. Each metric averages its per-sample scores with equal weight.
 The evaluator has two channel branches. The single-channel branch accepts one
 channel and computes the base NPM, RT60, DRR, C50, and C80 metrics. The
 multi-channel branch computes the same base metrics before adding spatial
-metrics. Spatial metrics use only a strict binaural pair (exactly two
-channels); a row labelled `multi_channel` with three or more channels is
-rejected for those metrics. Set `channel_layout` to `mono`, `multi_channel`, or
-`binaural_lr` when the layout is known; `auto` is used when it is omitted.
+metrics. IACC is restricted to an exact binaural pair. ITD, ILD, IPD, and DOA
+accept two or more channels and report one pair for every `chN` relative to
+`ch0`; the metric score is the mean over those pairs. Set `channel_layout` to
+`mono`, `multi_channel`, or `binaural_lr` when the layout is known; `auto` is
+used when it is omitted.
 
 ## Metrics
 
@@ -29,9 +30,9 @@ rejected for those metrics. Set `channel_layout` to `mono`, `multi_channel`, or
 | `rir_c80_mae` | C80 error in dB | lower is better |
 | `rir_iacc_mae` | interaural cross-correlation coefficient error in a +/-1 ms window | lower is better |
 | `rir_itd_mae` | interaural time difference error in seconds in a +/-1 ms window | lower is better |
-| `rir_ild_mae` | binaural ILD error in dB | lower is better |
-| `rir_ipd_mae` | binaural IPD error in radians | lower is better |
-| `rir_doa_mae` | binaural TDOA-derived DOA error in degrees | lower is better |
+| `rir_ild_mae` | ch0-relative interchannel level error in dB | lower is better |
+| `rir_ipd_mae` | ch0-relative interchannel phase error in radians | lower is better |
+| `rir_doa_mae` | ch0-relative TDOA-derived DOA error in degrees | lower is better |
 
 The default bundle is:
 
@@ -42,7 +43,7 @@ rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1
 The bundle's top-level `score` is `rir_npm`; both metric scores are in
 `details.results`. This is a reporting convention, not a combined score.
 
-For the multi-channel binaural chain, start with the same NPM and RT60 base
+For the multi-channel spatial chain, start with the same NPM and RT60 base
 metrics, then select the registered bundle containing
 `rir_iacc_mae`, `rir_itd_mae`, `rir_ild_mae`, and `rir_ipd_mae` together with
 the channel-wise metrics. Its top-level score is `rir_npm`; spatial
@@ -54,10 +55,12 @@ Example row:
 {"sample_id":"room001_utt001","prediction_rir":"pred.wav","reference_rir":"ref.wav","sample_rate":16000,"channel_layout":"mono"}
 ```
 
-`rir_iacc_mae`, `rir_itd_mae`, `rir_ild_mae`, `rir_ipd_mae`, and `rir_doa_mae`
-require exactly two channels and use them as left/right. IACC and ITD use a
-normalized cross-correlation search over +/-1 ms. `rir_doa_mae` additionally
-requires `metadata.microphone_spacing_m`; its optional `sound_speed_mps`
+`rir_iacc_mae` requires exactly two channels. The other spatial metrics use
+channel 0 as the reference channel and report `pair_count` plus per-channel
+pair details. ITD uses a normalized cross-correlation search over +/-1 ms.
+`rir_doa_mae` additionally requires `metadata.microphone_spacing_m`; for
+channel `N` the default spacing is `N * microphone_spacing_m`, or an explicit
+`channel_spacings_m` list can be supplied. Its optional `sound_speed_mps`
 defaults to 343 m/s.
 
 The scoring nodes run in-process with the package's `audio` extra. They do

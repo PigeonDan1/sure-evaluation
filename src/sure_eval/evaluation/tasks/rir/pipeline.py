@@ -52,7 +52,8 @@ METRICS = {
     "rir_ipd_mae": ("scoring/rir_ipd_mae", rir_ipd_mae),
     "rir_doa_mae": ("scoring/rir_doa_mae", rir_doa_mae),
 }
-BINAURAL_METRICS = frozenset(
+IACC_METRICS = frozenset({"rir_iacc_mae"})
+SPATIAL_METRICS = frozenset(
     {"rir_iacc_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
 )
 
@@ -71,8 +72,8 @@ def evaluate_rir_samples(
     unsupported = [metric for metric in requested if metric not in METRICS]
     if unsupported:
         raise ValueError(f"Unsupported RIR metric(s): {', '.join(unsupported)}")
-    if any(metric in BINAURAL_METRICS for metric in requested):
-        _validate_binaural_mode(channel_mode)
+    if any(metric in SPATIAL_METRICS for metric in requested):
+        _validate_spatial_mode(channel_mode)
     validate_rir_samples(samples, channel_mode=channel_mode)
 
     results = {}
@@ -93,7 +94,9 @@ def evaluate_rir_samples(
     bundle = len(members) > 1
     pipeline_id = members[0] if not bundle else build_bundle_pipeline_id("rir", "any", members)
     row_format = "binaural_rir_samples_jsonl" if any(
-        metric in BINAURAL_METRICS for metric in requested
+        metric in IACC_METRICS for metric in requested
+    ) else "multichannel_rir_samples_jsonl" if any(
+        metric in SPATIAL_METRICS for metric in requested
     ) else "rir_samples_jsonl"
     contract = MetricInputContract(
         metric_id="rir_samples_jsonl",
@@ -105,7 +108,7 @@ def evaluate_rir_samples(
         purpose="rir_estimation_and_spatial_audio_quality",
     )
     return EvaluationReport(
-        task="RIR",
+        task="RIR estimation",
         language="n/a",
         metric=canonical_metric(requested[0]) if not bundle else "multi",
         score=float(results[requested[0]]["score"]),
@@ -142,10 +145,10 @@ def _normalize_channel_mode(channel_mode: str) -> str:
     }.get(normalized, normalized)
 
 
-def _validate_binaural_mode(channel_mode: str) -> None:
+def _validate_spatial_mode(channel_mode: str) -> None:
     normalized = _normalize_channel_mode(channel_mode)
     if normalized not in {"auto", "multi", "binaural"}:
-        raise ValueError("IACC/ITD/ILD/IPD/DOA metrics require the multi-channel chain")
+        raise ValueError("spatial RIR metrics require the multi-channel chain")
 
 
 def _pipeline_id(metric: str) -> str:

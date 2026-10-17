@@ -136,6 +136,20 @@ def _binaural_pair(sample: RIRSample) -> tuple[np.ndarray, np.ndarray, int]:
     return prediction, reference, rate
 
 
+def _spatial_pair(sample: RIRSample) -> tuple[np.ndarray, np.ndarray, int]:
+    """Return a multi-channel RIR for ch0-relative spatial scoring."""
+    prediction, reference, rate = _pair(sample)
+    if prediction.shape[1] < 2:
+        raise ValueError(f"{sample.sample_id} requires at least two spatial channels")
+    return prediction, reference, rate
+
+
+def _channel_pairs(signal: np.ndarray) -> Iterable[tuple[int, np.ndarray]]:
+    """Yield each channel paired with channel 0 as the spatial reference."""
+    for channel in range(1, signal.shape[1]):
+        yield channel, signal[:, [0, channel]]
+
+
 def _mean(values: list[float]) -> float:
     if not values:
         raise ValueError("no RIR metric values were produced")
@@ -383,20 +397,28 @@ def rir_itd_mae(samples: list[RIRSample]) -> MetricResult:
     values = []
     rows = []
     for sample in samples:
-        prediction, reference, rate = _binaural_pair(sample)
-        prediction_itd = _itd(prediction, rate)
-        reference_itd = _itd(reference, rate)
-        score = float(abs(prediction_itd - reference_itd))
-        values.append(score)
-        rows.append(
-            {
-                "sample_id": sample.sample_id,
+        prediction, reference, rate = _spatial_pair(sample)
+        pair_rows = []
+        for channel, prediction_pair in _channel_pairs(prediction):
+            reference_pair = reference[:, [0, channel]]
+            prediction_itd = _itd(prediction_pair, rate)
+            reference_itd = _itd(reference_pair, rate)
+            score = float(abs(prediction_itd - reference_itd))
+            values.append(score)
+            pair_rows.append({
+                "channel": channel,
                 "score": score,
                 "prediction_itd": prediction_itd,
                 "reference_itd": reference_itd,
                 "unit": "seconds",
-            }
-        )
+            })
+        rows.append({
+            "sample_id": sample.sample_id,
+            "score": float(np.mean([row["score"] for row in pair_rows])),
+            "pair_count": len(pair_rows),
+            "pairs": pair_rows,
+            "unit": "seconds",
+        })
     return MetricResult(
         "rir_itd_mae",
         _mean(values),
@@ -408,32 +430,42 @@ def _spectral_pair_error(samples: list[RIRSample], phase: bool) -> MetricResult:
     values = []
     rows = []
     for sample in samples:
-        prediction, reference, _ = _binaural_pair(sample)
-        pred_fft = np.fft.rfft(prediction[:, :2], axis=0)
-        ref_fft = np.fft.rfft(reference[:, :2], axis=0)
-        pred_magnitude = np.abs(pred_fft)
-        ref_magnitude = np.abs(ref_fft)
-        mask = (
-            (pred_magnitude[:, 0] > _EPSILON)
-            & (pred_magnitude[:, 1] > _EPSILON)
-            & (ref_magnitude[:, 0] > _EPSILON)
-            & (ref_magnitude[:, 1] > _EPSILON)
-        )
-        if not np.any(mask):
-            score = 0.0
-        elif phase:
-            pred_value = np.angle(pred_fft[mask, 0] / pred_fft[mask, 1])
-            ref_value = np.angle(ref_fft[mask, 0] / ref_fft[mask, 1])
-            delta = np.angle(np.exp(1j * (pred_value - ref_value)))
-            score = float(np.mean(np.abs(delta)))
-        else:
-            pred_value = 20.0 * np.log10(pred_magnitude[mask, 0] / pred_magnitude[mask, 1])
-            ref_value = 20.0 * np.log10(ref_magnitude[mask, 0] / ref_magnitude[mask, 1])
-            score = float(np.mean(np.abs(pred_value - ref_value)))
+        prediction, reference, _ = _spatial_pair(sample)
+        pair_rows = []
+        for channel, prediction_pair in _channel_pairs(prediction):
+            reference_pair = reference[:, [0, channel]]
+            pred_fft = np.fft.rfft(prediction_pair, axis=0)
+            ref_fft = np.fft.rfft(reference_pair, axis=0)
+            pred_magnitude = np.abs(pred_fft)
+            ref_magnitude = np.abs(ref_fft)
+            mask = (
+                (pred_magnitude[:, 0] > _EPSILON)
+                & (pred_magnitude[:, 1] > _EPSILON)
+                & (ref_magnitude[:, 0] > _EPSILON)
+                & (ref_magnitude[:, 1] > _EPSILON)
+            )
+            if not np.any(mask):
+                score = 0.0
+            elif phase:
+                pred_value = np.angle(pred_fft[mask, 0] / pred_fft[mask, 1])
+                ref_value = np.angle(ref_fft[mask, 0] / ref_fft[mask, 1])
+                delta = np.angle(np.exp(1j * (pred_value - ref_value)))
+                score = float(np.mean(np.abs(delta)))
+            else:
+                pred_value = 20.0 * np.log10(pred_magnitude[mask, 0] / pred_magnitude[mask, 1])
+                ref_value = 20.0 * np.log10(ref_magnitude[mask, 0] / ref_magnitude[mask, 1])
+                score = float(np.mean(np.abs(pred_value - ref_value)))
+            values.append(score)
+            pair_rows.append({"channel": channel, "score": score})
         unit = "radians" if phase else "dB"
         name = "rir_ipd_mae" if phase else "rir_ild_mae"
-        values.append(score)
-        rows.append({"sample_id": sample.sample_id, "score": score, "unit": unit})
+        rows.append({
+            "sample_id": sample.sample_id,
+            "score": float(np.mean([row["score"] for row in pair_rows])),
+            "pair_count": len(pair_rows),
+            "pairs": pair_rows,
+            "unit": unit,
+        })
     return MetricResult(
         name, _mean(values), {"per_sample": rows, "higher_is_better": False, "unit": unit}
     )
@@ -455,14 +487,28 @@ def rir_doa_mae(samples: list[RIRSample]) -> MetricResult:
         if spacing <= 0:
             raise ValueError(f"microphone_spacing_m is required for {sample.sample_id}")
         sound_speed = float(sample.metadata.get("sound_speed_mps", 343.0))
-        prediction, reference, rate = _binaural_pair(sample)
-        pred_lag = _itd(prediction, rate)
-        ref_lag = _itd(reference, rate)
-        pred_angle = np.degrees(np.arcsin(np.clip(pred_lag * sound_speed / spacing, -1.0, 1.0)))
-        ref_angle = np.degrees(np.arcsin(np.clip(ref_lag * sound_speed / spacing, -1.0, 1.0)))
-        score = float(abs(pred_angle - ref_angle))
-        values.append(score)
-        rows.append({"sample_id": sample.sample_id, "score": score, "unit": "degrees"})
+        prediction, reference, rate = _spatial_pair(sample)
+        pair_rows = []
+        pair_spacings = sample.metadata.get("channel_spacings_m")
+        for channel, prediction_pair in _channel_pairs(prediction):
+            reference_pair = reference[:, [0, channel]]
+            pair_spacing = float(pair_spacings[channel - 1]) if pair_spacings else spacing * channel
+            if pair_spacing <= 0:
+                raise ValueError(f"invalid channel spacing for {sample.sample_id}, channel {channel}")
+            pred_lag = _itd(prediction_pair, rate)
+            ref_lag = _itd(reference_pair, rate)
+            pred_angle = np.degrees(np.arcsin(np.clip(pred_lag * sound_speed / pair_spacing, -1.0, 1.0)))
+            ref_angle = np.degrees(np.arcsin(np.clip(ref_lag * sound_speed / pair_spacing, -1.0, 1.0)))
+            score = float(abs(pred_angle - ref_angle))
+            values.append(score)
+            pair_rows.append({"channel": channel, "score": score, "unit": "degrees"})
+        rows.append({
+            "sample_id": sample.sample_id,
+            "score": float(np.mean([row["score"] for row in pair_rows])),
+            "pair_count": len(pair_rows),
+            "pairs": pair_rows,
+            "unit": "degrees",
+        })
     return MetricResult(
         "rir_doa_mae", _mean(values), {"per_sample": rows, "higher_is_better": False, "unit": "degrees"}
     )

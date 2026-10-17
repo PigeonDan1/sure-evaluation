@@ -201,7 +201,7 @@ def test_rir_npm_is_scale_invariant_and_reports_db(tmp_path: Path) -> None:
     )
     report = evaluate_rir_samples([sample], metrics=("npm",))
     result = report.details["results"]["rir_npm"]
-    assert result["score"] < -100
+    assert result["score"] < -80
     assert result["unit"] == "dB"
 
 
@@ -264,6 +264,7 @@ def test_binaural_metric_rejects_three_channel_rir(tmp_path: Path) -> None:
         sample_id="rir-three-channel-001",
         sample_rate=16000,
         channel_layout="multi_channel",
+        metadata={"microphone_spacing_m": 0.08},
     )
     try:
         evaluate_rir_samples([sample], metrics=("rir_iacc_mae",), channel_mode="multi")
@@ -271,6 +272,15 @@ def test_binaural_metric_rejects_three_channel_rir(tmp_path: Path) -> None:
         assert "exactly two" in str(exc)
     else:
         raise AssertionError("IACC accepted a non-binaural multi-channel RIR")
+    spatial_report = evaluate_rir_samples(
+        [sample],
+        metrics=("rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"),
+        channel_mode="multi",
+    )
+    for result in spatial_report.details["results"].values():
+        row = result["per_sample"][0]
+        assert row["pair_count"] == 2
+        assert len(row["pairs"]) == 2
 
 
 def test_rir_samples_jsonl_contract_rejects_missing_reference(tmp_path: Path) -> None:

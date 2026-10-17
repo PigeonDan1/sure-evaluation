@@ -1,4 +1,4 @@
-task: RIR
+task: RIR estimation
 language_sensitive: false
 canonical_entry: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
 implemented_metrics:
@@ -67,10 +67,10 @@ input_contracts:
     aggregation: mean
     main_report: true
   scoring/rir_ild_mae:
-    purpose: binaural_interaural_level_difference_error
+    purpose: multichannel_interchannel_level_difference_error
     required_roles: [prediction_rir, reference_rir]
     optional_roles: [metadata]
-    row_format: binaural_rir_samples_jsonl
+    row_format: multichannel_rir_samples_jsonl
     alignment_key: sample_id
     aggregation: mean
     main_report: true
@@ -83,26 +83,26 @@ input_contracts:
     aggregation: mean
     main_report: true
   scoring/rir_itd_mae:
-    purpose: binaural_interaural_time_difference_error
+    purpose: multichannel_interchannel_time_difference_error
     required_roles: [prediction_rir, reference_rir]
     optional_roles: [metadata]
-    row_format: binaural_rir_samples_jsonl
+    row_format: multichannel_rir_samples_jsonl
     alignment_key: sample_id
     aggregation: mean
     main_report: true
   scoring/rir_ipd_mae:
-    purpose: binaural_interaural_phase_difference_error
+    purpose: multichannel_interchannel_phase_difference_error
     required_roles: [prediction_rir, reference_rir]
     optional_roles: [metadata]
-    row_format: binaural_rir_samples_jsonl
+    row_format: multichannel_rir_samples_jsonl
     alignment_key: sample_id
     aggregation: mean
     main_report: true
   scoring/rir_doa_mae:
-    purpose: binaural_time_difference_of_arrival_angle_error
+    purpose: multichannel_time_difference_of_arrival_angle_error
     required_roles: [prediction_rir, reference_rir]
     optional_roles: [metadata]
-    row_format: binaural_rir_samples_jsonl
+    row_format: multichannel_rir_samples_jsonl
     alignment_key: sample_id
     aggregation: mean
     main_report: true
