@@ -2,19 +2,47 @@
 
 ## Purpose
 
-Reports absolute reverberation-time error for predicted/reference RIR pairs.
+Reports absolute reverberation-time error for predicted and reference RIRs.
+It does not estimate a room-independent quality score.
 
-## Contract and computation
+## Task Scenarios
 
-Input is `rir_samples_jsonl`; output is a lower-is-better mean in seconds.
-Version `v1` fits the -5 to -35 dB Schroeder decay interval per channel,
-averages valid channel RT60 values, and computes absolute prediction/reference
-error with equal-weight sample aggregation.
+The `RIR estimation` monaural and multichannel base routes select
+`scoring/rt60_mae`. It is part of the default NPM + RT60 bundle and can run
+as an atomic metric.
 
-## Runtime and limitations
+## Input
 
-The node is in-process with no checkpoint or node-local environment. RIRs must
-contain a usable decay interval; no onset alignment or decay-window search is
-performed outside the declared interval.
+The `rir_samples_jsonl` row contains `sample_id`, `prediction_rir`, and
+`reference_rir`; alignment is by `sample_id`. Both files need matching
+sample rates and channel counts. NumPy arrays require `sample_rate`.
 
-Source: SURE RIR task implementation in `tasks/rir/metrics.py`.
+## Output
+
+The `rt60_mae_score` trace has a lower-is-better score in seconds. Each
+`per_sample` entry records predicted and reference RT60, their absolute
+error, and per-channel values. The metric score averages sample errors
+equally, after averaging valid channel errors within each sample.
+
+## Versioned Computation
+
+Node `scoring/rt60_mae`, version `v1`, starts each channel 2.5 ms before its
+strongest impulse, then fits the Schroeder energy decay from -5 to -35 dB.
+If that interval is unavailable, it tries -5 to -25 dB. The fit slope is
+extrapolated to 60 dB; predicted and reference RT60 values are compared per
+channel before aggregation.
+
+## Runtime and Assets
+
+The node runs in-process with NumPy and the optional audio loader. It has no
+checkpoint, binary, or node-local environment.
+
+## Source and References
+
+Local SURE RIR implementation in `tasks/rir/metrics.py`.
+
+## Limitations
+
+If no channel has a valid decay interval, scoring fails for that sample.
+The estimator uses the recorded RIR decay and does not infer an external
+noise floor or a different time origin.

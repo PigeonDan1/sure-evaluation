@@ -2,18 +2,45 @@
 
 ## Purpose
 
-Reports binaural interaural time-difference error.
+Reports channel-0-relative interchannel time-difference (ITD) error. It does
+not estimate a complete source trajectory.
 
-## Contract and computation
+## Task Scenarios
 
-Input is `multichannel_rir_samples_jsonl` with at least two channels; output
-is a lower-is-better mean in milliseconds. Version `v1` selects the peak normalized
-cross-correlation lag within plus-or-minus 1 ms for every `chN` against `ch0`
-and compares predicted and reference ITD values. The output unit is ms.
+The `RIR estimation` two-channel and larger multichannel spatial routes
+select `scoring/rir_itd_mae`, atomically or in a spatial bundle.
 
-## Runtime and limitations
+## Input
 
-The node is in-process with no checkpoint or node-local environment. It is not
-defined for mono input and reports broadband lag pairs for each extra channel.
+The `multichannel_rir_samples_jsonl` row contains `sample_id`,
+`prediction_rir`, and `reference_rir`; alignment is by `sample_id`. Both
+files need at least two channels with matching order and sample rate. NumPy
+arrays require `sample_rate`.
 
-Source: SURE RIR task implementation in `tasks/rir/metrics.py`.
+## Output
+
+The `rir_itd_mae_score` trace reports lower-is-better error in ms. Each
+`per_sample` entry includes `pair_count` and predicted ITD, reference ITD,
+and absolute error for every `chN` against `ch0`. Pair errors are averaged
+within each sample; sample scores are then averaged equally.
+
+## Versioned Computation
+
+Node `scoring/rir_itd_mae`, version `v1`, selects the largest absolute
+normalized broadband cross-correlation lag within +/-1 ms for each pair.
+The lag is converted to milliseconds before comparing prediction and
+reference.
+
+## Runtime and Assets
+
+The node runs in-process with NumPy and the optional audio loader. It has no
+checkpoint, binary, or node-local environment.
+
+## Source and References
+
+Local SURE RIR implementation in `tasks/rir/metrics.py`.
+
+## Limitations
+
+Mono input is unsupported. The +/-1 ms search bounds measurable delay, and
+the output is a broadband pairwise lag rather than a frequency-specific ITD.

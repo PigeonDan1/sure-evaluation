@@ -197,8 +197,10 @@ def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
     assert c50_row["channels"][0]["reference_c"] is not None
     ild_row = report.details["results"]["rir_ild_mae"]["per_sample"][0]
     assert "reference_ild" in ild_row["pairs"][0]
+    assert np.isclose(ild_row["pairs"][0]["score"], ild_row["pairs"][0]["absolute_error_sum"] / ild_row["pairs"][0]["valid_bin_count"])
     ipd_row = report.details["results"]["rir_ipd_mae"]["per_sample"][0]
     assert "reference_ipd" in ipd_row["pairs"][0]
+    assert np.isclose(ipd_row["pairs"][0]["score"], ipd_row["pairs"][0]["absolute_error_sum"] / ipd_row["pairs"][0]["valid_bin_count"])
     doa_row = report.details["results"]["rir_doa_mae"]["per_sample"][0]
     assert "reference_doa" in doa_row["pairs"][0]
 
@@ -315,6 +317,76 @@ def test_binaural_metric_rejects_three_channel_rir(tmp_path: Path) -> None:
         row = result["per_sample"][0]
         assert row["pair_count"] == 2
         assert len(row["pairs"]) == 2
+
+
+def test_multichannel_spatial_scores_weight_samples_equally(tmp_path: Path) -> None:
+    two_reference = np.zeros((64, 2), dtype=np.float64)
+    two_prediction = np.zeros((64, 2), dtype=np.float64)
+    two_reference[10, :] = 1.0
+    two_prediction[10, 0] = 1.0
+    two_prediction[12, 1] = 0.7
+    three_reference = np.zeros((64, 3), dtype=np.float64)
+    three_reference[10, :] = 1.0
+    for name, array in (
+        ("two_reference", two_reference),
+        ("two_prediction", two_prediction),
+        ("three_reference", three_reference),
+        ("three_prediction", three_reference),
+    ):
+        np.save(tmp_path / f"{name}.npy", array)
+    samples = [
+        RIRSample(
+            prediction_rir=str(tmp_path / "two_prediction.npy"),
+            reference_rir=str(tmp_path / "two_reference.npy"),
+            sample_id="two-channel",
+            sample_rate=16000,
+            channel_layout="multi_channel",
+            metadata={"microphone_spacing_m": 0.18},
+        ),
+        RIRSample(
+            prediction_rir=str(tmp_path / "three_prediction.npy"),
+            reference_rir=str(tmp_path / "three_reference.npy"),
+            sample_id="three-channel",
+            sample_rate=16000,
+            channel_layout="multi_channel",
+            metadata={"microphone_spacing_m": 0.18},
+        ),
+    ]
+    report = evaluate_rir_samples(
+        samples,
+        metrics=("rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"),
+        channel_mode="multi",
+    )
+    for result in report.details["results"].values():
+        first, second = result["per_sample"]
+        assert first["pair_count"] == 1
+        assert second["pair_count"] == 2
+        assert first["score"] > 0
+        assert second["score"] == 0
+        assert np.isclose(result["score"], first["score"] / 2)
+
+
+def test_rir_rejects_unscorable_silent_pairs(tmp_path: Path) -> None:
+    silence = np.zeros((64, 2), dtype=np.float64)
+    np.save(tmp_path / "silence.npy", silence)
+    sample = RIRSample(
+        prediction_rir=str(tmp_path / "silence.npy"),
+        reference_rir=str(tmp_path / "silence.npy"),
+        sample_id="silent-pair",
+        sample_rate=16000,
+        channel_layout="binaural_lr",
+    )
+    for metric, message in (
+        ("rir_npm", "nonzero RIR energy"),
+        ("rir_ild_mae", "no valid spectral bins"),
+        ("rir_ipd_mae", "no valid spectral bins"),
+    ):
+        try:
+            evaluate_rir_samples([sample], metrics=(metric,))
+        except ValueError as exc:
+            assert message in str(exc)
+        else:
+            raise AssertionError(f"{metric} accepted a silent RIR as valid")
 
 
 def test_rir_samples_jsonl_contract_rejects_missing_reference(tmp_path: Path) -> None:

@@ -164,23 +164,20 @@ def rir_npm(samples: list[RIRSample]) -> MetricResult:
         prediction, reference, _ = _pair(sample)
         reference_energy = float(np.sum(reference * reference))
         prediction_energy = float(np.sum(prediction * prediction))
-        best_lag = None
-        cosine_sq = float("nan")
         if reference_energy <= _EPSILON or prediction_energy <= _EPSILON:
-            score = float("nan")
-        else:
-            cross = sum(
-                np.correlate(reference[:, channel], prediction[:, channel], mode="full")
-                for channel in range(reference.shape[1])
-            )
-            lags = np.arange(-prediction.shape[0] + 1, reference.shape[0])
-            valid = np.abs(lags) <= 256
-            valid_indices = np.flatnonzero(valid)
-            best_index = int(valid_indices[int(np.argmax(np.abs(cross[valid])))])
-            correlation_max = float(abs(cross[best_index]))
-            best_lag = int(lags[best_index])
-            cosine_sq = min(1.0, correlation_max * correlation_max / (reference_energy * prediction_energy))
-            score = float(10.0 * np.log10(max(1.0 - cosine_sq, 1e-20)))
+            raise ValueError(f"NPM requires nonzero RIR energy for {sample.sample_id}")
+        cross = sum(
+            np.correlate(reference[:, channel], prediction[:, channel], mode="full")
+            for channel in range(reference.shape[1])
+        )
+        lags = np.arange(-prediction.shape[0] + 1, reference.shape[0])
+        valid = np.abs(lags) <= 256
+        valid_indices = np.flatnonzero(valid)
+        best_index = int(valid_indices[int(np.argmax(np.abs(cross[valid])))])
+        correlation_max = float(abs(cross[best_index]))
+        best_lag = int(lags[best_index])
+        cosine_sq = min(1.0, correlation_max * correlation_max / (reference_energy * prediction_energy))
+        score = float(10.0 * np.log10(max(1.0 - cosine_sq, 1e-20)))
         values.append(score)
         per_sample.append({
             "sample_id": sample.sample_id,
@@ -424,7 +421,6 @@ def rir_itd_mae(samples: list[RIRSample]) -> MetricResult:
             prediction_itd = _itd(prediction_pair, rate) * 1000.0
             reference_itd = _itd(reference_pair, rate) * 1000.0
             score = float(abs(prediction_itd - reference_itd))
-            values.append(score)
             pair_rows.append({
                 "channel": channel,
                 "score": score,
@@ -432,9 +428,11 @@ def rir_itd_mae(samples: list[RIRSample]) -> MetricResult:
                 "reference_itd": reference_itd,
                 "unit": "ms",
             })
+        sample_score = float(np.mean([row["score"] for row in pair_rows]))
+        values.append(sample_score)
         rows.append({
             "sample_id": sample.sample_id,
-            "score": float(np.mean([row["score"] for row in pair_rows])),
+            "score": sample_score,
             "pair_count": len(pair_rows),
             "pairs": pair_rows,
             "unit": "ms",
@@ -449,6 +447,7 @@ def rir_itd_mae(samples: list[RIRSample]) -> MetricResult:
 def _spectral_pair_error(samples: list[RIRSample], phase: bool) -> MetricResult:
     values = []
     rows = []
+    unit = "radians" if phase else "dB"
     for sample in samples:
         prediction, reference, _ = _spatial_pair(sample)
         pair_rows = []
@@ -465,34 +464,38 @@ def _spectral_pair_error(samples: list[RIRSample], phase: bool) -> MetricResult:
                 & (ref_magnitude[:, 1] > _EPSILON)
             )
             if not np.any(mask):
-                score = 0.0
-                prediction_value = float("nan")
-                reference_value = float("nan")
-            elif phase:
+                raise ValueError(f"no valid spectral bins for {sample.sample_id}, channel {channel}")
+            if phase:
                 pred_value = np.angle(pred_fft[mask, 0] / pred_fft[mask, 1])
                 ref_value = np.angle(ref_fft[mask, 0] / ref_fft[mask, 1])
                 delta = np.angle(np.exp(1j * (pred_value - ref_value)))
-                score = float(np.mean(np.abs(delta)))
+                absolute_errors = np.abs(delta)
                 prediction_value = float(np.mean(pred_value))
                 reference_value = float(np.mean(ref_value))
             else:
                 pred_value = 20.0 * np.log10(pred_magnitude[mask, 0] / pred_magnitude[mask, 1])
                 ref_value = 20.0 * np.log10(ref_magnitude[mask, 0] / ref_magnitude[mask, 1])
-                score = float(np.mean(np.abs(pred_value - ref_value)))
+                absolute_errors = np.abs(pred_value - ref_value)
                 prediction_value = float(np.mean(pred_value))
                 reference_value = float(np.mean(ref_value))
-            values.append(score)
+            absolute_error_sum = float(np.sum(absolute_errors))
+            valid_bin_count = int(mask.sum())
+            score = absolute_error_sum / valid_bin_count
             pair_rows.append({
                 "channel": channel,
                 "score": score,
                 "prediction_ild" if not phase else "prediction_ipd": prediction_value,
                 "reference_ild" if not phase else "reference_ipd": reference_value,
+                "absolute_error_sum": absolute_error_sum,
+                "valid_bin_count": valid_bin_count,
+                "unit": unit,
             })
-        unit = "radians" if phase else "dB"
         name = "rir_ipd_mae" if phase else "rir_ild_mae"
+        sample_score = float(np.mean([row["score"] for row in pair_rows]))
+        values.append(sample_score)
         rows.append({
             "sample_id": sample.sample_id,
-            "score": float(np.mean([row["score"] for row in pair_rows])),
+            "score": sample_score,
             "pair_count": len(pair_rows),
             "pairs": pair_rows,
             "unit": unit,
@@ -531,7 +534,6 @@ def rir_doa_mae(samples: list[RIRSample]) -> MetricResult:
             pred_angle = np.degrees(np.arcsin(np.clip(pred_lag * sound_speed / pair_spacing, -1.0, 1.0)))
             ref_angle = np.degrees(np.arcsin(np.clip(ref_lag * sound_speed / pair_spacing, -1.0, 1.0)))
             score = float(abs(pred_angle - ref_angle))
-            values.append(score)
             pair_rows.append({
                 "channel": channel,
                 "score": score,
@@ -541,9 +543,11 @@ def rir_doa_mae(samples: list[RIRSample]) -> MetricResult:
                 "reference_itd_ms": float(ref_lag * 1000.0),
                 "unit": "degrees",
             })
+        sample_score = float(np.mean([row["score"] for row in pair_rows]))
+        values.append(sample_score)
         rows.append({
             "sample_id": sample.sample_id,
-            "score": float(np.mean([row["score"] for row in pair_rows])),
+            "score": sample_score,
             "pair_count": len(pair_rows),
             "pairs": pair_rows,
             "unit": "degrees",

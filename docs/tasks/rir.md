@@ -6,13 +6,14 @@ The audio files may be WAV/FLAC or NumPy `.npy`/`.npz` arrays. NumPy arrays
 must provide `sample_rate` in the row because they do not carry an embedded
 rate. The files must have matching sample rates and channel counts; spatial
 metrics require at least two channels. Each pair is truncated to the shorter
-file before scoring; no peak or time-shift alignment is applied. Rows must
-already refer to the same source, room, microphone positions, channel order,
-and time origin. Each metric averages its per-sample scores with equal weight.
-Every `per_sample` entry records the reference-side and prediction-side values
-used to derive the error, together with the unit. Multi-channel spatial entries
-also include each channel-0-relative pair, making every reported MAE auditable
-from the report itself.
+file before scoring. NPM searches one common lag within +/-256 samples;
+acoustic metrics begin each channel near its own strongest impulse; spatial
+metrics use the channel signals as provided. Rows must refer to the same
+source, room, microphone positions, and channel order. Each metric averages
+its per-sample scores with equal weight. Every `per_sample` entry records
+reference-side and prediction-side values with the unit. Multi-channel
+spatial entries include each channel-0-relative pair; ILD/IPD additionally
+report the valid frequency-bin count and absolute-error sum used for the mean.
 
 The evaluator has two channel branches. The single-channel branch accepts one
 channel and computes the base NPM, RT60, DRR, C50, and C80 metrics. The

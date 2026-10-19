@@ -2,18 +2,44 @@
 
 ## Purpose
 
-Reports binaural interaural cross-correlation coefficient error.
+Reports interaural cross-correlation coefficient (IACC) error for a binaural
+RIR pair. It does not describe arrays with more than two channels.
 
-## Contract and computation
+## Task Scenarios
 
-Input is `binaural_rir_samples_jsonl` with exactly two channels; output is a
-lower-is-better coefficient error. Version `v1` searches normalized absolute
-cross-correlation over the plus-or-minus 1 ms lag window and compares predicted
-and reference IACC values.
+The `RIR estimation` two-channel spatial route selects
+`scoring/rir_iacc_mae`, atomically or in the binaural bundle. It is not in
+the multichannel bundle for larger arrays.
 
-## Runtime and limitations
+## Input
 
-The node is in-process with no checkpoint or node-local environment. It is not
-defined for mono or three-channel input and does not use microphone spacing.
+The `binaural_rir_samples_jsonl` row contains `sample_id`, `prediction_rir`,
+and `reference_rir`; alignment is by `sample_id`. Both files must have
+exactly two channels and matching sample rates. NumPy arrays require
+`sample_rate`.
 
-Source: SURE RIR task implementation in `tasks/rir/metrics.py`.
+## Output
+
+The `rir_iacc_mae_score` trace reports lower-is-better coefficient error.
+Each `per_sample` entry includes predicted IACC, reference IACC, and their
+absolute difference. The metric averages sample errors equally.
+
+## Versioned Computation
+
+Node `scoring/rir_iacc_mae`, version `v1`, takes the largest absolute
+normalized cross-correlation of the two channels within +/-1 ms. It
+compares that coefficient between prediction and reference.
+
+## Runtime and Assets
+
+The node runs in-process with NumPy and the optional audio loader. It has no
+checkpoint, binary, or node-local environment.
+
+## Source and References
+
+Local SURE RIR implementation in `tasks/rir/metrics.py`.
+
+## Limitations
+
+Only exactly two channels are accepted. The search is broadband and does
+not use microphone spacing or frequency-dependent weighting.
