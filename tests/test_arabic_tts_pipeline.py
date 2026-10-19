@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -44,6 +48,43 @@ def test_arabic_tts_default_route_uses_cohere_nemo_and_cer() -> None:
         "transcription/cohere_transcribe_arabic_07_2026",
         "normalization/nemo_norm",
         "scoring/wenet_cer",
+    )
+
+
+def test_arabic_tts_description_does_not_require_numpy() -> None:
+    """Route discovery must work in the lightweight Harness Runtime."""
+
+    source_root = Path(__file__).resolve().parents[1] / "src"
+    code = """
+import importlib.abc
+import json
+import sys
+
+class BlockNumpy(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "numpy" or fullname.startswith("numpy."):
+            raise ModuleNotFoundError("blocked for route-description probe")
+        return None
+
+sys.meta_path.insert(0, BlockNumpy())
+from sure_eval.evaluation.scripts.tts import describe_pipeline
+
+print(json.dumps({"pipeline_id": describe_pipeline(language="ar").pipeline_id}))
+"""
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(source_root)
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["pipeline_id"] == (
+        "tts.ar.cer.cohere_transcribe_arabic_07_2026_v1."
+        "nemo_norm_ar_tn_v1.wenet_cer_v1"
     )
 
 

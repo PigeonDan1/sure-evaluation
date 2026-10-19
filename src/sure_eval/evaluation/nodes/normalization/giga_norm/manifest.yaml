@@ -1,0 +1,90 @@
+id: normalization/giga_norm
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.giga_norm.node
+upstream:
+  project: GigaSpeechBench
+  url: https://github.com/SpeechColab/GigaSpeechBench
+  subpath: text_norm
+  commit: ca782bf
+  vendored: true
+  license: MIT
+  license_file: normalization_impl/LICENSE.gigaspeechbench
+  third_party:
+    - project: speechio/chinese_text_normalization
+      url: https://github.com/speechio/chinese_text_normalization
+      license: MIT
+      affects: [CHN, USA]
+    - project: Zhon
+      url: https://github.com/tsroten/zhon
+      license: MIT
+      affects: [CHN, USA]
+    - project: Open Universal Arabic ASR Leaderboard
+      url: https://github.com/Natural-Language-Processing-Elm/open_universal_arabic_asr_leaderboard
+      affects: [DZA]
+internal_stages:
+  - key_text_parse
+  - giga_text_normalize
+profiles:
+  CHN:
+    language: zh
+    metric: cer
+    notes: Also backs the Chinese dialect and vertical-domain aliases.
+  USA:
+    language: en
+    metric: wer
+    notes: Also backs the English accent and vertical-domain aliases.
+  JPN:
+    language: ja
+    metric: cer
+  KOR:
+    language: ko
+    metric: cer
+  THA:
+    language: th
+    metric: cer
+  IDN:
+    language: id
+    metric: wer
+  MYS:
+    language: ms
+    metric: wer
+  PHL:
+    language: fil
+    metric: wer
+  VNM:
+    language: vi
+    metric: wer
+  AR:
+    language: ar
+    metric: wer
+  ARE:
+    language: ar-ae
+    metric: wer
+  DZA:
+    language: ar-dz
+    metric: wer
+  EGY:
+    language: ar-eg
+    metric: wer
+  IRQ:
+    language: ar-iq
+    metric: wer
+  MAR:
+    language: ar-ma
+    metric: wer
+  SAU:
+    language: ar-sa
+    metric: wer
+  SYR:
+    language: ar-sy
+    metric: wer
+notes:
+  - Profiles are GigaSpeechBench three-letter codes; dialect, accent, and
+    vertical-domain codes resolve to CHN or USA through the upstream alias table.
+  - Scores depend on the installed whisper_normalizer, zhconv, num2words, and
+    underthesea versions; each run records them in the node trace.
+  - The node normalizes text only. It does not compute WER or CER.

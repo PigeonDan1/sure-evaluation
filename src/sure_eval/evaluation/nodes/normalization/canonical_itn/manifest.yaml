@@ -1,5 +1,5 @@
 id: normalization/canonical_itn
-version: v1
+version: v2
 stage: normalization
 language_sensitive: true
 input_schema: key_text_files
@@ -18,8 +18,8 @@ notes:
     no silent fallback.
   - Punctuation is replaced by spaces (never deleted); % $ ¥ ° and
     digit-context . / - are preserved as semantic symbols.
-  - Currently supports language zh. Pair with scoring/token_cer, which applies
-    the matching CJK-char / latin-word / digit-per-char tokenization.
+  - Supports zh, en, and cs. English and code-switch profiles collapse
+    apostrophe-s case-insensitively before Whisper span normalization.
 internal_stages:
   - nfkc_lowercase
   - idiom_unit_masking

@@ -13,7 +13,7 @@ from sure_eval.evaluation.nodes.normalization.aispeech_norm.node import (
 from sure_eval.evaluation.nodes.normalization.canonical_itn import chain
 
 NODE_ID = "normalization/canonical_itn"
-NODE_VERSION = "v1"
+NODE_VERSION = "v2"
 INTERNAL_STAGES = (
     "nfkc_lowercase",
     "idiom_unit_masking",

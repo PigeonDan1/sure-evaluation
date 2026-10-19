@@ -198,6 +198,7 @@ node-local 虚拟环境只保留在本地，不会进入安装包或 Git。
 | SLU | Accuracy | [SLU](docs/tasks/slu.md) |
 | KWS | Accuracy、macro recall、precision、recall、F1、FRR、FAR | [KWS](docs/tasks/kws.md) |
 | VAD | F1、false alarm、miss、NIST DCF、ROC AUC | [VAD](docs/tasks/vad.md) |
+| DOA | MAE、RMSE、阈值准确率、定位 precision/recall/F1 | [DOA](docs/tasks/doa.md) |
 | LID | 语种标签准确率 | [LID](docs/tasks/lid.md) |
 
 每份任务指南都会说明输入 contract、已注册 metric、精确 pipeline ID、节点和

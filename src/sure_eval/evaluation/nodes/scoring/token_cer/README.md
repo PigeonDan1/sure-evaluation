@@ -9,7 +9,7 @@ token-level edit distance. It is designed to pair with
 ## Task Scenarios
 
 - ASR Chinese canonical CER:
-  `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1`.
+  `asr.zh.cer.canonical_itn_zh_v2.token_cer_v1`.
 
 ## Input
 

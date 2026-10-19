@@ -209,6 +209,7 @@ packages and Git.
 | SLU | Accuracy | [SLU](docs/tasks/slu.md) |
 | KWS | Accuracy, macro recall, precision, recall, F1, FRR, FAR | [KWS](docs/tasks/kws.md) |
 | VAD | F1, false alarm, miss, NIST DCF, ROC AUC | [VAD](docs/tasks/vad.md) |
+| DOA | MAE, RMSE, threshold accuracy, localization precision/recall/F1 | [DOA](docs/tasks/doa.md) |
 | LID | Spoken-language label accuracy | [LID](docs/tasks/lid.md) |
 
 Each task guide defines its input contract, registered metrics, exact pipeline

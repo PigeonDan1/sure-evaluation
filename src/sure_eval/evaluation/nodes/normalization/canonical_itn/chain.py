@@ -375,7 +375,7 @@ _BARE_CONTRACTION_RE = re.compile(
     r"\b(" + "|".join(sorted(_BARE_CONTRACTIONS, key=len, reverse=True)) + r")\b",
     re.IGNORECASE,
 )
-_S_COLLAPSE_RE = re.compile(r"([A-Za-z])'s\b")
+_S_COLLAPSE_RE = re.compile(r"([A-Za-z])'s\b", re.IGNORECASE)
 _whisper_english = None
 
 

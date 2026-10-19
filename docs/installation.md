@@ -56,6 +56,7 @@ python -m pip install -e ".[audio]"        # local audio helpers
 python -m pip install -e ".[download]"     # Hugging Face / ModelScope downloads
 python -m pip install -e ".[diarization]"  # MeetEval for SD and SA-ASR
 python -m pip install -e ".[canonical]"    # canonical ASR normalization routes
+python -m pip install -e ".[giga]"         # GigaSpeechBench ASR normalization routes
 ```
 
 The `wetext` extra is retained as a compatibility no-op. The actual

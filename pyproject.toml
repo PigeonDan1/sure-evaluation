@@ -57,6 +57,12 @@ canonical = [
     "cn2an>=0.5.24,<0.6",
     "rapidfuzz>=3.0,<4",
 ]
+giga = [
+    "whisper_normalizer>=0.0.10",
+    "zhconv>=1.4.3",
+    "num2words>=0.5.13",
+    "underthesea>=6.8.0",
+]
 
 [project.scripts]
 sure-eval = "sure_eval.cli:app"
@@ -88,6 +94,8 @@ sure_eval = [
     "evaluation/nodes/*/*/README.md",
     "evaluation/nodes/normalization/whisper_norm/normalization_impl/*.json",
     "evaluation/nodes/normalization/whisper_norm/normalization_impl/LICENSE.*",
+    "evaluation/nodes/*/*/normalization_impl/LICENSE*",
+    "evaluation/nodes/normalization/giga_norm/normalization_impl/ref_code/*.tsv",
     "evaluation/nodes/scoring/sctk_sclite/*.sh",
     "evaluation/conversion/*/manifest.yaml",
     "evaluation/conversion/*/*.md",
@@ -114,6 +122,9 @@ target-version = ["py310"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+extend-exclude = [
+    "src/sure_eval/evaluation/nodes/normalization/giga_norm/normalization_impl",
+]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]

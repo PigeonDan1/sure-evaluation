@@ -165,7 +165,7 @@ def _case_asr_canonical_description(variant: str) -> dict[str, Any]:
     from sure_eval.evaluation.scripts import describe_pipeline
 
     if variant == "candidate":
-        description = describe_pipeline("asr", pipeline_id="asr.zh.cer.canonical_itn_zh_v1.token_cer_v1")
+        description = describe_pipeline("asr", pipeline_id="asr.zh.cer.canonical_itn_zh_v2.token_cer_v1")
     else:
         description = describe_pipeline("asr", language="zh", metric="cer_canonical")
     return _description_summary(description)
@@ -330,7 +330,7 @@ def _candidate_identity_checks() -> dict[str, Any]:
     from sure_eval.evaluation.cli_adapters import build_pipeline_spec
     from sure_eval.evaluation.scripts import describe_pipeline
 
-    pipeline_id = "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    pipeline_id = "asr.cs.mer.canonical_itn_cs_v2.token_mer_v1"
     description = describe_pipeline("asr", pipeline_id=pipeline_id)
     payload = build_pipeline_spec("asr", pipeline_id=pipeline_id)
     old_selector_rejected = False

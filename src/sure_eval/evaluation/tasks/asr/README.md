@@ -12,7 +12,7 @@ chains.
   `normalization/wetext_norm` (`zh_itn`) -> `scoring/wenet_cer`
 - `asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1`:
   `normalization/aispeech_norm` -> `scoring/wenet_cer`
-- `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1`:
+- `asr.zh.cer.canonical_itn_zh_v2.token_cer_v1`:
   `normalization/canonical_itn` -> `scoring/token_cer`
 - `asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1` and
   `asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1`:
@@ -26,7 +26,7 @@ chains.
   `normalization/whisper_norm` -> `scoring/wenet_wer`
 - `asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1`:
   `normalization/aispeech_norm` -> `scoring/wenet_wer`
-- `asr.en.wer.canonical_itn_en_v1.token_mer_v1`:
+- `asr.en.wer.canonical_itn_en_v2.token_mer_v1`:
   `normalization/canonical_itn` -> `scoring/token_mer`
 - `asr.<lang>.wer.funasr_itn_<lang>_v1.wenet_wer_v1` for `es`, `fr`, `de`,
   `ru`, `pt`, `vi`, `id`, and `tl`:
@@ -36,7 +36,7 @@ chains.
 
 - `asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1`:
   `normalization/aispeech_norm` -> `scoring/wenet_mer`
-- `asr.cs.mer.canonical_itn_cs_v1.token_mer_v1`:
+- `asr.cs.mer.canonical_itn_cs_v2.token_mer_v1`:
   `normalization/canonical_itn` -> `scoring/token_mer`
 
 The script entrypoint is `sure_eval.evaluation.scripts.asr.run`; the task

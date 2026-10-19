@@ -1,0 +1,2 @@
+{"recording_id":"demo","frame_index":0,"timestamp":0.0,"num_channels":4,"coordinate_system":"array_local_spherical","angle_unit":"degree","sources":[{"source_id":"x","azimuth":32.0,"activity":true},{"source_id":"y","azimuth":98.0,"activity":true}]}
+{"recording_id":"demo","frame_index":1,"timestamp":0.01,"num_channels":4,"coordinate_system":"array_local_spherical","angle_unit":"degree","sources":[{"source_id":"x","azimuth":-179.0,"activity":true}]}

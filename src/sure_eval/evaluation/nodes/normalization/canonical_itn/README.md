@@ -13,11 +13,11 @@ The node normalizes text only. It does not compute edit distance.
 ## Task Scenarios
 
 - ASR Chinese canonical CER:
-  `asr.zh.cer.canonical_itn_zh_v1.token_cer_v1`.
+  `asr.zh.cer.canonical_itn_zh_v2.token_cer_v1`.
 - ASR English canonical WER:
-  `asr.en.wer.canonical_itn_en_v1.token_mer_v1`.
+  `asr.en.wer.canonical_itn_en_v2.token_mer_v1`.
 - ASR code-switch canonical MER:
-  `asr.cs.mer.canonical_itn_cs_v1.token_mer_v1`.
+  `asr.cs.mer.canonical_itn_cs_v2.token_mer_v1`.
 
 ## Input
 
@@ -37,7 +37,7 @@ Empty-text rows are preserved and files with no parseable key-text rows raise.
 ## Versioned Computation
 
 - Node id: `normalization/canonical_itn`.
-- Version: `v1`.
+- Version: `v2`.
 - Internal stages:
   - `nfkc_lowercase`
   - `idiom_unit_masking`
@@ -51,6 +51,11 @@ Punctuation is replaced by spaces rather than deleted. `%`, `$`, `¥`, `°`, and
 digit-context `.`, `/`, `-` are preserved as semantic symbols. English and
 code-switch paths additionally use the vendored Whisper English normalizer for
 Latin spans before the shared token scorer.
+
+Version `v2` folds apostrophe-s without regard to case before the Whisper
+normalizer. English WER and code-switch MER can differ from `v1` for all-caps
+text such as `THAT'S`; the Chinese normalization result is unchanged, although
+its route ID also advances because this is one shared versioned node.
 
 ## Runtime and Assets
 

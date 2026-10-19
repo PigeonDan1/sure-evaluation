@@ -1,0 +1,109 @@
+MIT License
+
+Copyright (c) 2026 SpeechColab
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD-PARTY NOTICES
+
+This project includes code derived from the following open-source projects.
+Their original copyright notices and license terms are reproduced below and
+continue to apply to the derived portions.
+
+-------------------------------------------------------------------------------
+1. speechio/chinese_text_normalization  (MIT License)
+   https://github.com/speechio/chinese_text_normalization
+
+   Affects: text_norm/CHN.py, text_norm/USA.py
+   Derived portions: the NSW normalization machinery, including the
+   ChineseChar / ChineseNumberUnit / ChineseNumberDigit / ChineseMath /
+   NumberSystem / MathSymbol classes, create_system, chn2num, num2chn, the
+   Cardinal / Digit / TelePhone / Fraction / Date / Money / Percentage
+   normalizers, normalize_nsw, and TextNorm.
+
+   That project in turn credits atomicoo/chn_text_norm
+   (https://github.com/atomicoo/chn_text_norm) for the NSW normalizers.
+
+   MIT License
+
+   Copyright (c) 2019 speechio
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+-------------------------------------------------------------------------------
+2. Zhon  (MIT License)
+   https://github.com/tsroten/zhon
+
+   Affects: text_norm/CHN.py, text_norm/USA.py
+   Derived portions: the Chinese punctuation constants (CN_PUNCS_STOP,
+   CN_PUNCS_NONSTOP).
+
+   MIT License
+
+   Copyright (c) 2013-2023 Thomas Roten
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+-------------------------------------------------------------------------------
+3. Open Universal Arabic ASR Leaderboard
+   https://github.com/Natural-Language-Processing-Elm/open_universal_arabic_asr_leaderboard
+
+   Affects: text_norm/DZA.py
+   Derived portions: the Arabic punctuation, diacritic, and numeral
+   normalization steps in normalize(), following that project's eval.py.
+
+-------------------------------------------------------------------------------
+
+Note on pinyin data: text_norm/CHN.py references the character inventory of
+mozillazg/pinyin-data (https://github.com/mozillazg/pinyin-data) in a comment
+only; no data from that project is redistributed here.

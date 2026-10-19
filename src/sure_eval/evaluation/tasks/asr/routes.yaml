@@ -52,7 +52,7 @@ routes:
     language: zh
     metric: cer
     internal_executor_metric: cer_canonical
-    pipeline_id: asr.zh.cer.canonical_itn_zh_v1.token_cer_v1
+    pipeline_id: asr.zh.cer.canonical_itn_zh_v2.token_cer_v1
     nodes:
       - normalization/canonical_itn
       - scoring/token_cer
@@ -71,7 +71,7 @@ routes:
     language: cs
     metric: mer
     internal_executor_metric: mer_canonical
-    pipeline_id: asr.cs.mer.canonical_itn_cs_v1.token_mer_v1
+    pipeline_id: asr.cs.mer.canonical_itn_cs_v2.token_mer_v1
     nodes:
       - normalization/canonical_itn
       - scoring/token_mer
@@ -81,7 +81,7 @@ routes:
     language: en
     metric: wer
     internal_executor_metric: wer_canonical
-    pipeline_id: asr.en.wer.canonical_itn_en_v1.token_mer_v1
+    pipeline_id: asr.en.wer.canonical_itn_en_v2.token_mer_v1
     nodes:
       - normalization/canonical_itn
       - scoring/token_mer
@@ -174,6 +174,161 @@ routes:
     pipeline_id: asr.tl.wer.funasr_itn_tl_v1.wenet_wer_v1
     nodes:
       - normalization/funasr_itn
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  # GigaSpeechBench normalization routes. Existing defaults remain unchanged
+  # unless the language had no prior route in SURE-EVAL.
+  -
+    language: zh
+    metric: cer
+    pipeline_id: asr.zh.cer.giga_norm_chn_v1.wenet_cer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_cer
+    input_contract: scoring/wenet_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: en
+    metric: wer
+    pipeline_id: asr.en.wer.giga_norm_usa_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ja
+    metric: cer
+    pipeline_id: asr.ja.cer.giga_norm_jpn_v1.wenet_cer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_cer
+    input_contract: scoring/wenet_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ko
+    metric: cer
+    pipeline_id: asr.ko.cer.giga_norm_kor_v1.wenet_cer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_cer
+    input_contract: scoring/wenet_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: th
+    metric: cer
+    pipeline_id: asr.th.cer.giga_norm_tha_v1.wenet_cer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_cer
+    input_contract: scoring/wenet_cer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: id
+    metric: wer
+    pipeline_id: asr.id.wer.giga_norm_idn_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ms
+    metric: wer
+    pipeline_id: asr.ms.wer.giga_norm_mys_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: fil
+    metric: wer
+    pipeline_id: asr.fil.wer.giga_norm_phl_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: vi
+    metric: wer
+    pipeline_id: asr.vi.wer.giga_norm_vnm_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar
+    metric: wer
+    pipeline_id: asr.ar.wer.giga_norm_ar_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar-ae
+    metric: wer
+    pipeline_id: asr.ar_ae.wer.giga_norm_are_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar-dz
+    metric: wer
+    pipeline_id: asr.ar_dz.wer.giga_norm_dza_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar-eg
+    metric: wer
+    pipeline_id: asr.ar_eg.wer.giga_norm_egy_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar-iq
+    metric: wer
+    pipeline_id: asr.ar_iq.wer.giga_norm_irq_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar-ma
+    metric: wer
+    pipeline_id: asr.ar_ma.wer.giga_norm_mar_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar-sa
+    metric: wer
+    pipeline_id: asr.ar_sa.wer.giga_norm_sau_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
+      - scoring/wenet_wer
+    input_contract: scoring/wenet_wer
+    executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files
+  -
+    language: ar-sy
+    metric: wer
+    pipeline_id: asr.ar_sy.wer.giga_norm_syr_v1.wenet_wer_v1
+    nodes:
+      - normalization/giga_norm
       - scoring/wenet_wer
     input_contract: scoring/wenet_wer
     executor: sure_eval.evaluation.tasks.asr.pipeline.evaluate_asr_files

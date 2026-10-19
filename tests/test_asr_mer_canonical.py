@@ -88,6 +88,7 @@ EQUIVALENT_PAIRS = [
     ("I'm sure you're right", "im sure youre right"),
     ("it's fine", "its fine"),                       # 's collapsed, not expanded
     ("john's report is ready", "johns report is ready"),
+    ("THAT'S THE STORY'S END", "That's the story's end"),  # 's collapse is case-insensitive
     ("we need to produce it", "we needto produce it"),   # spacing repair (hyp glue)
     ("something great happened", "some thing great happened"),  # reverse split
     ("um okay that works", "okay that works"),       # spoken filler dropped
@@ -116,6 +117,20 @@ def test_english_normalization_equivalents(tmp_path: Path, ref: str, hyp: str) -
     assert report.score == 0.0
 
 
+def test_case_insensitive_s_collapse_uses_v2_route(tmp_path: Path) -> None:
+    from sure_eval.evaluation.scripts import describe_pipeline
+
+    pipeline_id = "asr.en.wer.canonical_itn_en_v2.token_mer_v1"
+    report = _evaluate(
+        tmp_path, "THAT'S THE STORY'S END", "That's the story's end",
+        language="en", metric="wer_canonical",
+    )
+    assert report.score == 0.0
+    assert report.pipeline_id == pipeline_id
+    assert report.pipeline_trace[0].version == "v2"
+    assert describe_pipeline("asr", pipeline_id=pipeline_id).pipeline_id == pipeline_id
+
+
 @pytest.mark.parametrize("ref,hyp", ERROR_PAIRS)
 def test_english_normalization_keeps_real_errors(tmp_path: Path, ref: str, hyp: str) -> None:
     report = _evaluate(tmp_path, ref, hyp, language="en", metric="wer_canonical")
@@ -131,7 +146,7 @@ def test_mixed_text_scores_both_scripts(tmp_path: Path) -> None:
         metric="mer_canonical",
     )
     assert report.score == 0.0
-    assert report.pipeline_id == "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    assert report.pipeline_id == "asr.cs.mer.canonical_itn_cs_v2.token_mer_v1"
 
 
 # --------------------------------------------------------------------------- #
@@ -140,9 +155,9 @@ def test_mixed_text_scores_both_scripts(tmp_path: Path) -> None:
 def test_mer_canonical_pipeline_id_describe_and_run(tmp_path: Path) -> None:
     from sure_eval.evaluation.scripts import describe_pipeline, run_task
 
-    pipeline_id = "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    pipeline_id = "asr.cs.mer.canonical_itn_cs_v2.token_mer_v1"
     description = describe_pipeline("asr", pipeline_id=pipeline_id)
-    assert description.pipeline_id == "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    assert description.pipeline_id == "asr.cs.mer.canonical_itn_cs_v2.token_mer_v1"
     assert description.metric == "mer"
     assert description.execution_metrics == ("mer",)
     assert description.node_ids == ("normalization/canonical_itn", "scoring/token_mer")
@@ -159,6 +174,7 @@ def test_mer_canonical_pipeline_id_describe_and_run(tmp_path: Path) -> None:
         output_dir=str(tmp_path / "eval"),
     )
     assert report.score == 0.0
+    assert report.pipeline_trace[0].version == "v2"
     norm_details = report.pipeline_trace[0].details
     assert norm_details["engine"]["en_span_normalizer"] == "whisper_english"
     assert (tmp_path / "eval" / "report.json").exists()

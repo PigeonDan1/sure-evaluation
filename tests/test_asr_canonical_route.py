@@ -60,9 +60,9 @@ def test_canonical_cer_keeps_real_errors(tmp_path: Path, ref: str, hyp: str) -> 
 def test_canonical_route_describe_and_run(tmp_path: Path) -> None:
     from sure_eval.evaluation.scripts import describe_pipeline, run_task
 
-    pipeline_id = "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1"
+    pipeline_id = "asr.zh.cer.canonical_itn_zh_v2.token_cer_v1"
     description = describe_pipeline("asr", pipeline_id=pipeline_id)
-    assert description.pipeline_id == "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1"
+    assert description.pipeline_id == "asr.zh.cer.canonical_itn_zh_v2.token_cer_v1"
     assert description.metric == "cer"
     assert description.execution_metrics == ("cer",)
     assert description.node_ids == ("normalization/canonical_itn", "scoring/token_cer")
@@ -78,7 +78,7 @@ def test_canonical_route_describe_and_run(tmp_path: Path) -> None:
         pipeline_id=pipeline_id,
         output_dir=str(tmp_path / "eval"),
     )
-    assert report.pipeline_id == "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1"
+    assert report.pipeline_id == "asr.zh.cer.canonical_itn_zh_v2.token_cer_v1"
     assert report.score == 0.0
     assert (tmp_path / "eval" / "report.json").exists()
     assert (tmp_path / "eval" / "pipeline_description.json").exists()

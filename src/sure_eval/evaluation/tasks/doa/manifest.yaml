@@ -1,0 +1,56 @@
+id: task/doa
+version: v1
+task: DOA
+default_metric: mae
+language_sensitive: false
+routes:
+  mae:
+    pipeline_id: doa.any.mae.doa_jsonl_v1.doa_localization_v1
+  rmse:
+    pipeline_id: doa.any.rmse.doa_jsonl_v1.doa_localization_v1
+  acc_10:
+    pipeline_id: doa.any.acc_10.doa_jsonl_v1.doa_localization_v1
+  acc_15:
+    pipeline_id: doa.any.acc_15.doa_jsonl_v1.doa_localization_v1
+  acc_30:
+    pipeline_id: doa.any.acc_30.doa_jsonl_v1.doa_localization_v1
+  localization_recall:
+    pipeline_id: doa.any.localization_recall.doa_jsonl_v1.doa_localization_v1
+  localization_precision:
+    pipeline_id: doa.any.localization_precision.doa_jsonl_v1.doa_localization_v1
+  localization_f1:
+    pipeline_id: doa.any.localization_f1.doa_jsonl_v1.doa_localization_v1
+input_contracts:
+  doa_jsonl:
+    required_roles: [reference_jsonl, sample_output]
+    optional_roles: [dimension, threshold_deg, aggregation, timestamp_tolerance_sec, prediction_activity_policy]
+    row_format: doa_frame_sources_jsonl
+    alignment_key: recording_id_frame_index
+    aggregation: micro_matched_pair_or_macro_recording
+    purpose: canonical_direction_of_arrival_localization
+metrics:
+  - mae
+  - rmse
+  - acc_10
+  - acc_15
+  - acc_30
+  - localization_recall
+  - localization_precision
+  - localization_f1
+reported_fields:
+  - score
+  - raw_errors_deg
+  - assigned_pairs
+  - active_reference_sources
+  - active_prediction_sources
+  - true_positive
+  - true_positive_10
+  - true_positive_15
+  - true_positive_30
+  - counts_by_threshold_deg
+  - missed_reference_sources
+  - false_prediction_sources
+  - aggregation_summary
+  - input_sha256
+compatibility:
+  legacy_entry: []

@@ -1,0 +1,99 @@
+task: DOA
+language_sensitive: false
+routes:
+  -
+    metric: mae
+    pipeline_id: doa.any.mae.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 10.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files
+  -
+    metric: rmse
+    pipeline_id: doa.any.rmse.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 10.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files
+  -
+    metric: acc_10
+    pipeline_id: doa.any.acc_10.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 10.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files
+  -
+    metric: acc_15
+    pipeline_id: doa.any.acc_15.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 15.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files
+  -
+    metric: acc_30
+    pipeline_id: doa.any.acc_30.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 30.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files
+  -
+    metric: localization_recall
+    pipeline_id: doa.any.localization_recall.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 10.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files
+  -
+    metric: localization_precision
+    pipeline_id: doa.any.localization_precision.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 10.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files
+  -
+    metric: localization_f1
+    pipeline_id: doa.any.localization_f1.doa_jsonl_v1.doa_localization_v1
+    nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    computation_nodes: [normalization/doa_jsonl, scoring/doa_localization]
+    input_contract: doa_jsonl
+    dimension: 2d
+    threshold_deg: 10.0
+    aggregation: micro
+    timestamp_tolerance_sec: 0.000001
+    prediction_activity_policy: presence
+    executor: sure_eval.evaluation.tasks.doa.pipeline.evaluate_doa_files

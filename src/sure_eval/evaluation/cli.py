@@ -44,7 +44,9 @@ console = Console()
 
 @metric_app.command("describe")
 def describe_metric_pipeline(
-    task: str = typer.Argument(..., help="Task name, e.g. asr, lid, s2tt, kws, classification, slu"),
+    task: str = typer.Argument(
+        ..., help="Task name, e.g. asr, lid, s2tt, kws, classification, slu"
+    ),
     language: Optional[str] = typer.Option(None, "--language", "-l", help="Task language/profile"),
     metric: Optional[str] = typer.Option(None, "--metric", "-m", help="Metric name"),
     metrics: Optional[str] = typer.Option(
@@ -147,10 +149,25 @@ def run_metric_pipeline(
         None, "--label-spec", help="Classification label spec path or id"
     ),
     reference_jsonl: Optional[str] = typer.Option(
-        None, "--reference-jsonl", help="KWS/VAD reference JSONL"
+        None, "--reference-jsonl", help="KWS/VAD/DOA reference JSONL"
     ),
     sample_output: Optional[str] = typer.Option(
-        None, "--sample-output", help="KWS/VAD/SV model output JSONL"
+        None, "--sample-output", help="KWS/VAD/SV/DOA model output JSONL"
+    ),
+    dimension: Optional[str] = typer.Option(
+        None, "--dimension", help="Canonical DOA dimension: 2d or 3d"
+    ),
+    threshold_deg: Optional[float] = typer.Option(
+        None, "--threshold-deg", help="DOA angular gating threshold"
+    ),
+    aggregation: Optional[str] = typer.Option(
+        None, "--aggregation", help="DOA aggregation: macro_recording or micro"
+    ),
+    timestamp_tolerance_sec: Optional[float] = typer.Option(
+        None, "--timestamp-tolerance-sec", help="Canonical timestamp tolerance"
+    ),
+    prediction_activity_policy: Optional[str] = typer.Option(
+        None, "--prediction-activity-policy", help="Canonical prediction activity policy"
     ),
     trial_manifest: Optional[str] = typer.Option(
         None, "--trial-manifest", help="SV evaluator-owned trial manifest"
@@ -201,6 +218,11 @@ def run_metric_pipeline(
             label_spec=label_spec,
             reference_jsonl=reference_jsonl,
             sample_output=sample_output,
+            dimension=dimension,
+            threshold_deg=threshold_deg,
+            aggregation=aggregation,
+            timestamp_tolerance_sec=timestamp_tolerance_sec,
+            prediction_activity_policy=prediction_activity_policy,
             trial_manifest=trial_manifest,
             wekws_label_file=wekws_label_file,
             wekws_score_file=wekws_score_file,

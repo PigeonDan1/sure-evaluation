@@ -82,5 +82,5 @@ def test_pipeline_catalog_asr_canonical_rows_use_canonical_public_metrics() -> N
     assert {
         row["pipeline_id"]
         for row in asr_rows
-        if row["pipeline_id"].endswith("canonical_itn_cs_v1.token_mer_v1")
-    } == {"asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"}
+        if row["pipeline_id"].endswith("canonical_itn_cs_v2.token_mer_v1")
+    } == {"asr.cs.mer.canonical_itn_cs_v2.token_mer_v1"}

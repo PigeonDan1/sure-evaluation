@@ -16,6 +16,16 @@ default_metrics:
   vi: wer
   id: wer
   tl: wer
+  th: cer
+  ms: wer
+  fil: wer
+  ar-ae: wer
+  ar-dz: wer
+  ar-eg: wer
+  ar-iq: wer
+  ar-ma: wer
+  ar-sa: wer
+  ar-sy: wer
 default_pipelines:
   ar:
     cer:
@@ -28,25 +38,28 @@ default_pipelines:
       variants:
         wetext_norm_zh_itn: asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1
         aispeech_norm_zh: asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1
-        canonical_itn_zh: asr.zh.cer.canonical_itn_zh_v1.token_cer_v1
+        canonical_itn_zh: asr.zh.cer.canonical_itn_zh_v2.token_cer_v1
+        giga_norm_chn: asr.zh.cer.giga_norm_chn_v1.wenet_cer_v1
   en:
     wer:
       default: asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
       variants:
         whisper_norm_english: asr.en.wer.whisper_norm_english_v1.wenet_wer_v1
         aispeech_norm_en: asr.en.wer.aispeech_norm_en_v1.wenet_wer_v1
-        canonical_itn_en: asr.en.wer.canonical_itn_en_v1.token_mer_v1
+        canonical_itn_en: asr.en.wer.canonical_itn_en_v2.token_mer_v1
+        giga_norm_usa: asr.en.wer.giga_norm_usa_v1.wenet_wer_v1
   cs:
     mer:
       default: asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1
       variants:
         aispeech_norm_cs: asr.cs.mer.aispeech_norm_cs_v1.wenet_mer_v1
-        canonical_itn_cs: asr.cs.mer.canonical_itn_cs_v1.token_mer_v1
+        canonical_itn_cs: asr.cs.mer.canonical_itn_cs_v2.token_mer_v1
   ja:
     cer:
       default: asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1
       variants:
         funasr_itn_ja: asr.ja.cer.funasr_itn_ja_v1.wenet_cer_v1
+        giga_norm_jpn: asr.ja.cer.giga_norm_jpn_v1.wenet_cer_v1
   es:
     wer:
       default: asr.es.wer.funasr_itn_es_v1.wenet_wer_v1
@@ -67,6 +80,7 @@ default_pipelines:
       default: asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1
       variants:
         funasr_itn_ko: asr.ko.cer.funasr_itn_ko_v1.wenet_cer_v1
+        giga_norm_kor: asr.ko.cer.giga_norm_kor_v1.wenet_cer_v1
   ru:
     wer:
       default: asr.ru.wer.funasr_itn_ru_v1.wenet_wer_v1
@@ -82,16 +96,68 @@ default_pipelines:
       default: asr.vi.wer.funasr_itn_vi_v1.wenet_wer_v1
       variants:
         funasr_itn_vi: asr.vi.wer.funasr_itn_vi_v1.wenet_wer_v1
+        giga_norm_vnm: asr.vi.wer.giga_norm_vnm_v1.wenet_wer_v1
   id:
     wer:
       default: asr.id.wer.funasr_itn_id_v1.wenet_wer_v1
       variants:
         funasr_itn_id: asr.id.wer.funasr_itn_id_v1.wenet_wer_v1
+        giga_norm_idn: asr.id.wer.giga_norm_idn_v1.wenet_wer_v1
   tl:
     wer:
       default: asr.tl.wer.funasr_itn_tl_v1.wenet_wer_v1
       variants:
         funasr_itn_tl: asr.tl.wer.funasr_itn_tl_v1.wenet_wer_v1
+  th:
+    cer:
+      default: asr.th.cer.giga_norm_tha_v1.wenet_cer_v1
+      variants:
+        giga_norm_tha: asr.th.cer.giga_norm_tha_v1.wenet_cer_v1
+  ms:
+    wer:
+      default: asr.ms.wer.giga_norm_mys_v1.wenet_wer_v1
+      variants:
+        giga_norm_mys: asr.ms.wer.giga_norm_mys_v1.wenet_wer_v1
+  fil:
+    wer:
+      default: asr.fil.wer.giga_norm_phl_v1.wenet_wer_v1
+      variants:
+        giga_norm_phl: asr.fil.wer.giga_norm_phl_v1.wenet_wer_v1
+  ar-ae:
+    wer:
+      default: asr.ar_ae.wer.giga_norm_are_v1.wenet_wer_v1
+      variants:
+        giga_norm_are: asr.ar_ae.wer.giga_norm_are_v1.wenet_wer_v1
+  ar-dz:
+    wer:
+      default: asr.ar_dz.wer.giga_norm_dza_v1.wenet_wer_v1
+      variants:
+        giga_norm_dza: asr.ar_dz.wer.giga_norm_dza_v1.wenet_wer_v1
+  ar-eg:
+    wer:
+      default: asr.ar_eg.wer.giga_norm_egy_v1.wenet_wer_v1
+      variants:
+        giga_norm_egy: asr.ar_eg.wer.giga_norm_egy_v1.wenet_wer_v1
+  ar-iq:
+    wer:
+      default: asr.ar_iq.wer.giga_norm_irq_v1.wenet_wer_v1
+      variants:
+        giga_norm_irq: asr.ar_iq.wer.giga_norm_irq_v1.wenet_wer_v1
+  ar-ma:
+    wer:
+      default: asr.ar_ma.wer.giga_norm_mar_v1.wenet_wer_v1
+      variants:
+        giga_norm_mar: asr.ar_ma.wer.giga_norm_mar_v1.wenet_wer_v1
+  ar-sa:
+    wer:
+      default: asr.ar_sa.wer.giga_norm_sau_v1.wenet_wer_v1
+      variants:
+        giga_norm_sau: asr.ar_sa.wer.giga_norm_sau_v1.wenet_wer_v1
+  ar-sy:
+    wer:
+      default: asr.ar_sy.wer.giga_norm_syr_v1.wenet_wer_v1
+      variants:
+        giga_norm_syr: asr.ar_sy.wer.giga_norm_syr_v1.wenet_wer_v1
 input_contracts:
   scoring/wenet_cer:
     purpose: character_error_rate
@@ -144,3 +210,5 @@ notes:
   - NIST SCTK sclite scoring is available only through explicit scorer arguments such as scorer="sctk_sclite"; no default route uses sctk_sclite.
   - Canonical ITN routes are selected by pipeline_id and keep the reported metric as cer, wer, or mer. They require the [canonical] extra (cn2an + rapidfuzz), and identical scores require an identical cn2an version (recorded in each run's node trace).
   - Canonical MER/WER routes share the token_mer scorer. Text without latin letters degenerates to the zh canonical CER tokenization, and text without CJK degenerates to the en canonical WER tokenization. For en/cs the normalization stage additionally whisper-normalizes latin spans (contraction expansion, spoken numbers to digits, spoken-filler removal, British-to-American spelling) using the vendored Whisper English normalizer; spans without latin letters pass through unchanged.
+  - GigaSpeechBench normalization (normalization/giga_norm) adds explicit alternative routes for existing ASR languages and default routes for languages introduced by the benchmark. It requires the [giga] extra; score-affecting package versions are recorded in each run's node trace.
+  - GigaSpeechBench Chinese dialect, English accent, and vertical-domain subsets reuse the CHN and USA profiles; select them with the zh or en route.

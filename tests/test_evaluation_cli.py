@@ -120,14 +120,15 @@ def test_metric_routes_lists_exact_language_and_metric_variants() -> None:
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
     assert payload["schema"] == "sure.metric.routes.v1"
-    assert payload["count"] == 3
+    assert payload["count"] == 4
     assert payload["default_pipeline_id"] == (
         "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     )
     assert {route["pipeline_id"] for route in payload["routes"]} == {
         "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1",
         "asr.zh.cer.aispeech_norm_zh_v1.wenet_cer_v1",
-        "asr.zh.cer.canonical_itn_zh_v1.token_cer_v1",
+        "asr.zh.cer.canonical_itn_zh_v2.token_cer_v1",
+        "asr.zh.cer.giga_norm_chn_v1.wenet_cer_v1",
     }
     assert all(route["language"] == "zh" for route in payload["routes"])
     assert all(route["metric"] == "cer" for route in payload["routes"])
@@ -172,7 +173,7 @@ def test_metric_describe_can_select_asr_pipeline_id(tmp_path: Path) -> None:
             "describe",
             "asr",
             "--pipeline-id",
-            "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1",
+            "asr.cs.mer.canonical_itn_cs_v2.token_mer_v1",
             "--output",
             str(pipeline_path),
             "--json",
@@ -184,7 +185,7 @@ def test_metric_describe_can_select_asr_pipeline_id(tmp_path: Path) -> None:
     assert payload["metric"] == "mer"
     assert payload["requested_metric"] == "mer"
     assert payload["metrics"] == ["mer"]
-    assert payload["pipeline_id"] == "asr.cs.mer.canonical_itn_cs_v1.token_mer_v1"
+    assert payload["pipeline_id"] == "asr.cs.mer.canonical_itn_cs_v2.token_mer_v1"
     assert payload["computation_node_ids"] == ["normalization/canonical_itn", "scoring/token_mer"]
     assert payload["route_config_path"] == "src/sure_eval/evaluation/tasks/asr/routes.yaml"
     assert "internal_executor_metric" not in json.dumps(payload, ensure_ascii=False)

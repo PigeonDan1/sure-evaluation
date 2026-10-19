@@ -1,0 +1,31 @@
+id: scoring/doa_localization
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: doa_normalized_bundle
+output_schema: doa_localization_report
+implementation: sure_eval.evaluation.nodes.scoring.doa_localization.node
+notes:
+  - Assignment minimizes total angular cost before strict angular gating.
+  - This assignment objective does not maximize the number of pairs inside the gate.
+  - The pure-Python rectangular Hungarian implementation is O(n^3) in source count.
+  - MAE/RMSE use assigned pairs; detection metrics expose unmatched-source counts.
+  - Macro recording scores average only recordings where the requested metric is defined.
+metrics:
+  - mae
+  - rmse
+  - acc_10
+  - acc_15
+  - acc_30
+  - localization_recall
+  - localization_precision
+  - localization_f1
+internal_stages:
+  - active_source_selection
+  - cost_matrix_angular_distance
+  - one_to_one_assignment
+  - raw_error_accumulation
+  - angular_gating
+  - miss_false_accounting
+  - recording_aggregation
+  - dataset_aggregation

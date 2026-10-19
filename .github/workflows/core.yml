@@ -56,6 +56,7 @@ jobs:
             --extra dev \
             --extra audio \
             --extra canonical \
+            --extra giga \
             pytest -q --ignore=tests/test_evaluation_env_check.py
       - name: Environment metadata tests
         run: |
@@ -64,6 +65,7 @@ jobs:
             --extra dev \
             --extra audio \
             --extra canonical \
+            --extra giga \
             pytest tests/test_evaluation_env_check.py -q \
               -k "in_process or pip_runtime or dry_run or doctor or cache_dir or se_pip_runtime_nodes_are_declared"
 

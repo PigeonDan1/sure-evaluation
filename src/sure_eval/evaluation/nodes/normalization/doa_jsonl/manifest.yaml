@@ -1,0 +1,20 @@
+id: normalization/doa_jsonl
+version: v1
+stage: normalization
+language_sensitive: false
+input_schema: doa_jsonl_pair
+output_schema: doa_normalized_bundle
+implementation: sure_eval.evaluation.nodes.normalization.doa_jsonl.node
+internal_stages:
+  - jsonl_parse
+  - row_contract
+  - source_contract
+  - coordinate_and_angle_unit_validation
+  - azimuth_wrap
+  - exact_frame_alignment
+  - activity_policy_validation
+notes:
+  - Canonical input uses degrees and array_local_spherical coordinates.
+  - num_channels is required metadata >= 2; it does not prove model channel usage.
+  - Coordinate conversion is not implemented; reference and prediction must share the convention.
+  - Input validation and alignment are internal stages of normalization, not top-level stages.

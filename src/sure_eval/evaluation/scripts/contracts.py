@@ -364,9 +364,9 @@ def conversion_description(conversion_id: str) -> dict[str, Any]:
 def _display_path(path: Path) -> str:
     resolved = path.resolve()
     try:
-        return str(resolved.relative_to(REPO_ROOT))
+        return resolved.relative_to(REPO_ROOT).as_posix()
     except ValueError:
-        return str(resolved)
+        return resolved.as_posix()
 
 
 def _language_from_pipeline_id(pipeline_id: str) -> str | None:

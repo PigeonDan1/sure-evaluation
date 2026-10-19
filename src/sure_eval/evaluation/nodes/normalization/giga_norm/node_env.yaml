@@ -1,0 +1,25 @@
+id: normalization/giga_norm
+group: normalization-extra
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+packages:
+  - name: whisper_normalizer
+    version: ">=0.0.10"
+  - name: zhconv
+    version: ">=1.4.3"
+  - name: num2words
+    version: ">=0.5.13"
+  - name: underthesea
+    version: ">=6.8.0"
+    notes: Required only by the VNM (Vietnamese) profile.
+verify:
+  imports:
+    - whisper_normalizer
+    - zhconv
+    - num2words
+  files:
+    - normalization_impl/ref_code/currency.tsv
+    - normalization_impl/ref_code/measurements.tsv
+    - normalization_impl/ref_code/timezones.tsv

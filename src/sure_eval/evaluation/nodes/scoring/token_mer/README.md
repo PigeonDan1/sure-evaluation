@@ -11,9 +11,9 @@ comparison unit.
 ## Task Scenarios
 
 - ASR English canonical WER:
-  `asr.en.wer.canonical_itn_en_v1.token_mer_v1`.
+  `asr.en.wer.canonical_itn_en_v2.token_mer_v1`.
 - ASR code-switch canonical MER:
-  `asr.cs.mer.canonical_itn_cs_v1.token_mer_v1`.
+  `asr.cs.mer.canonical_itn_cs_v2.token_mer_v1`.
 
 ## Input
 
