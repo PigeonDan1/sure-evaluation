@@ -9,6 +9,10 @@ metrics require at least two channels. Each pair is truncated to the shorter
 file before scoring; no peak or time-shift alignment is applied. Rows must
 already refer to the same source, room, microphone positions, channel order,
 and time origin. Each metric averages its per-sample scores with equal weight.
+Every `per_sample` entry records the reference-side and prediction-side values
+used to derive the error, together with the unit. Multi-channel spatial entries
+also include each channel-0-relative pair, making every reported MAE auditable
+from the report itself.
 
 The evaluator has two channel branches. The single-channel branch accepts one
 channel and computes the base NPM, RT60, DRR, C50, and C80 metrics. The

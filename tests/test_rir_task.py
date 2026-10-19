@@ -23,6 +23,16 @@ def _write_rir(path: Path, scale: float = 1.0) -> None:
     sf.write(path, signal, 16000)
 
 
+def _write_long_rir(path: Path, scale: float = 1.0) -> None:
+    signal = np.zeros((4096, 2), dtype=np.float64)
+    signal[8, 0] = scale
+    signal[8, 1] = scale * 0.8
+    tail = np.exp(-np.arange(4088) / 600.0)
+    signal[8:, 0] += scale * 0.05 * tail
+    signal[8:, 1] += scale * 0.04 * tail
+    sf.write(path, signal, 16000)
+
+
 def _write_mono_rir(path: Path, scale: float = 1.0) -> None:
     signal = np.zeros(256, dtype=np.float64)
     signal[8] = scale
@@ -68,8 +78,8 @@ def test_rir_pipeline_describes_registered_route() -> None:
 def test_rir_script_describe_and_run_writes_report(tmp_path: Path) -> None:
     reference = tmp_path / "reference.wav"
     prediction = tmp_path / "prediction.wav"
-    _write_rir(reference)
-    _write_rir(prediction, 0.9)
+    _write_long_rir(reference)
+    _write_long_rir(prediction, 0.9)
     sample = RIRSample(
         prediction_rir=str(prediction),
         reference_rir=str(reference),
@@ -163,8 +173,8 @@ def test_rir_cli_routes_describe_and_run_preserve_pipeline_id(tmp_path: Path) ->
 def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
     reference = tmp_path / "reference.wav"
     prediction = tmp_path / "prediction.wav"
-    _write_rir(reference)
-    _write_rir(prediction, 0.9)
+    _write_long_rir(reference)
+    _write_long_rir(prediction, 0.9)
     sample = RIRSample(
         prediction_rir=str(prediction),
         reference_rir=str(reference),
@@ -173,10 +183,24 @@ def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
         channel_layout="binaural_lr",
         metadata={"microphone_spacing_m": 0.18},
     )
-    report = evaluate_rir_samples([sample], metrics=("rir_npm", "rir_drr_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"))
+    report = evaluate_rir_samples([sample], metrics=("rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"))
     assert report.pipeline_kind == "bundle"
     assert report.score is not None
-    assert set(report.details["results"]) == {"rir_npm", "rir_drr_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
+    assert set(report.details["results"]) == {"rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
+    npm_row = report.details["results"]["rir_npm"]["per_sample"][0]
+    assert "reference_energy" in npm_row and "prediction_energy" in npm_row
+    rt60_row = report.details["results"]["rt60_mae"]["per_sample"][0]
+    assert rt60_row["channels"] and "reference_rt60" in rt60_row["channels"][0]
+    drr_row = report.details["results"]["rir_drr_mae"]["per_sample"][0]
+    assert drr_row["channels"][0]["reference_drr"] is not None
+    c50_row = report.details["results"]["rir_c50_mae"]["per_sample"][0]
+    assert c50_row["channels"][0]["reference_c"] is not None
+    ild_row = report.details["results"]["rir_ild_mae"]["per_sample"][0]
+    assert "reference_ild" in ild_row["pairs"][0]
+    ipd_row = report.details["results"]["rir_ipd_mae"]["per_sample"][0]
+    assert "reference_ipd" in ipd_row["pairs"][0]
+    doa_row = report.details["results"]["rir_doa_mae"]["per_sample"][0]
+    assert "reference_doa" in doa_row["pairs"][0]
 
 
 def test_rir_metrics_accept_reference_npy_in_channel_first_layout(tmp_path: Path) -> None:
