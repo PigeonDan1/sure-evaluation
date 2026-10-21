@@ -166,16 +166,28 @@ def rir_npm(samples: list[RIRSample]) -> MetricResult:
         prediction_energy = float(np.sum(prediction * prediction))
         if reference_energy <= _EPSILON or prediction_energy <= _EPSILON:
             raise ValueError(f"NPM requires nonzero RIR energy for {sample.sample_id}")
-        cross = sum(
-            np.correlate(reference[:, channel], prediction[:, channel], mode="full")
-            for channel in range(reference.shape[1])
-        )
-        lags = np.arange(-prediction.shape[0] + 1, reference.shape[0])
-        valid = np.abs(lags) <= 256
-        valid_indices = np.flatnonzero(valid)
-        best_index = int(valid_indices[int(np.argmax(np.abs(cross[valid])))])
-        correlation_max = float(abs(cross[best_index]))
-        best_lag = int(lags[best_index])
+        max_lag = min(256, prediction.shape[0] - 1, reference.shape[0] - 1)
+        lag_values = []
+        for lag in range(-max_lag, max_lag + 1):
+            if lag < 0:
+                value = sum(
+                    np.dot(reference[-lag:, channel], prediction[: prediction.shape[0] + lag, channel])
+                    for channel in range(reference.shape[1])
+                )
+            elif lag > 0:
+                value = sum(
+                    np.dot(reference[: reference.shape[0] - lag, channel], prediction[lag:, channel])
+                    for channel in range(reference.shape[1])
+                )
+            else:
+                value = sum(
+                    np.dot(reference[:, channel], prediction[:, channel])
+                    for channel in range(reference.shape[1])
+                )
+            lag_values.append(float(value))
+        best_index = int(np.argmax(np.abs(lag_values)))
+        correlation_max = float(abs(lag_values[best_index]))
+        best_lag = int(best_index - max_lag)
         cosine_sq = min(1.0, correlation_max * correlation_max / (reference_energy * prediction_energy))
         score = float(10.0 * np.log10(max(1.0 - cosine_sq, 1e-20)))
         values.append(score)
