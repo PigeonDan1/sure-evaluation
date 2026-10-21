@@ -342,7 +342,7 @@ def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
     )
     report = evaluate_rir_samples(
         [binaural],
-        metrics=("iacc_full", "iacc_early", "iacc_late", "itd", "rir_ild_mae", "rir_ipd_mae"),
+        metrics=("iacc_full", "iacc_early", "iacc_late", "itd", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"),
         channel_mode="multi",
     )
     assert set(report.details["results"]) == {
@@ -352,6 +352,7 @@ def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
         "rir_itd_mae",
         "rir_ild_mae",
         "rir_ipd_mae",
+        "rir_doa_mae",
     }
     assert report.details["results"]["rir_iacc_full_mae"]["per_sample"][0]["prediction_iacc"] >= 0
     assert report.details["results"]["rir_itd_mae"]["score"] > 0
