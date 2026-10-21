@@ -35,7 +35,10 @@ used when it is omitted.
 | `rir_c50_mae` | C50 error in dB | lower is better |
 | `rir_c80_mae` | C80 error in dB | lower is better |
 | `rir_edc_mae` | energy decay curve MAE above -40 dB in dB | lower is better |
-| `rir_iacc_mae` | interaural cross-correlation coefficient error in a +/-1 ms window | lower is better |
+| `rir_iacc_mae` | compatibility alias for full-window IACC error | lower is better |
+| `rir_iacc_full_mae` | full-window interaural cross-correlation coefficient error in a +/-1 ms window | lower is better |
+| `rir_iacc_early_mae` | IACC from the ch0 direct peak through 80 ms | lower is better |
+| `rir_iacc_late_mae` | IACC after the ch0 direct peak plus 80 ms | lower is better |
 | `rir_itd_mae` | interaural time difference error in ms in a +/-1 ms window | lower is better |
 | `rir_ild_mae` | ch0-relative interchannel level error in dB | lower is better |
 | `rir_ipd_mae` | ch0-relative interchannel phase error in radians | lower is better |
@@ -72,11 +75,10 @@ This bundle reports the remaining spatial metrics as channel-0-relative pairs;
 IACC is intentionally absent because it is defined only for an exact binaural
 pair.
 
-For the multi-channel spatial chain, start with the same NPM, RT30, RT60, DRR,
-C50, C80, and EDC base
-metrics, then select the registered bundle containing
-`rir_iacc_mae`, `rir_itd_mae`, `rir_ild_mae`, and `rir_ipd_mae` together with
-the channel-wise metrics. Its top-level score is `rir_npm`; spatial
+For the binaural spatial chain, start with the same NPM, RT30, RT60, DRR,
+C50, C80, and EDC base metrics, then select the registered bundle containing
+`rir_iacc_full_mae`, `rir_iacc_early_mae`, `rir_iacc_late_mae`, `rir_itd_mae`,
+`rir_ild_mae`, and `rir_ipd_mae`. Its top-level score is `rir_npm`; spatial
 scores remain separate entries in `details.results`.
 
 Example row:
@@ -85,7 +87,7 @@ Example row:
 {"sample_id":"room001_utt001","prediction_rir":"pred.wav","reference_rir":"ref.wav","sample_rate":16000,"channel_layout":"mono"}
 ```
 
-`rir_iacc_mae` requires exactly two channels. The other spatial metrics use
+All three IACC window metrics require exactly two channels. The other spatial metrics use
 channel 0 as the reference channel and report `pair_count` plus per-channel
 pair details. ITD uses a normalized cross-correlation search over +/-1 ms.
 `rir_doa_mae` additionally requires `metadata.microphone_spacing_m`; for

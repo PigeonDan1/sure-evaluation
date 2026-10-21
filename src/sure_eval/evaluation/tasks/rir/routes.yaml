@@ -60,6 +60,30 @@ routes:
     input_contract: scoring/rir_iacc_mae
     executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
   -
+    metric: rir_iacc_full_mae
+    aliases: [iacc_full, rir_iacc_full]
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_iacc_full_mae.rir_iacc_full_mae_v1
+    nodes: [scoring/rir_iacc_full_mae]
+    input_contract: scoring/rir_iacc_full_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_iacc_early_mae
+    aliases: [iacc_early, rir_iacc_early]
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_iacc_early_mae.rir_iacc_early_mae_v1
+    nodes: [scoring/rir_iacc_early_mae]
+    input_contract: scoring/rir_iacc_early_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_iacc_late_mae
+    aliases: [iacc_late, rir_iacc_late]
+    family: binaural_spatial_error
+    pipeline_id: rir.any.rir_iacc_late_mae.rir_iacc_late_mae_v1
+    nodes: [scoring/rir_iacc_late_mae]
+    input_contract: scoring/rir_iacc_late_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
     metric: rir_itd_mae
     aliases: [itd, rir_itd]
     family: multichannel_spatial_error

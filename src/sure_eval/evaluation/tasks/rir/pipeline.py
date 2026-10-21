@@ -22,6 +22,9 @@ from sure_eval.evaluation.tasks.rir.metrics import (
     rir_doa_mae,
     rir_drr_mae,
     rir_edc_mae,
+    rir_iacc_early_mae,
+    rir_iacc_full_mae,
+    rir_iacc_late_mae,
     rir_iacc_mae,
     rir_ild_mae,
     rir_ipd_mae,
@@ -39,6 +42,9 @@ METRIC_ALIASES = {
     "rir_npm": "rir_npm",
     "iacc": "rir_iacc_mae",
     "rir_iacc": "rir_iacc_mae",
+    "iacc_full": "rir_iacc_full_mae",
+    "iacc_early": "rir_iacc_early_mae",
+    "iacc_late": "rir_iacc_late_mae",
     "itd": "rir_itd_mae",
     "rir_itd": "rir_itd_mae",
 }
@@ -51,14 +57,17 @@ METRICS = {
     "rir_c80_mae": ("scoring/rir_c80_mae", rir_c80_mae),
     "rir_edc_mae": ("scoring/rir_edc_mae", rir_edc_mae),
     "rir_iacc_mae": ("scoring/rir_iacc_mae", rir_iacc_mae),
+    "rir_iacc_full_mae": ("scoring/rir_iacc_full_mae", rir_iacc_full_mae),
+    "rir_iacc_early_mae": ("scoring/rir_iacc_early_mae", rir_iacc_early_mae),
+    "rir_iacc_late_mae": ("scoring/rir_iacc_late_mae", rir_iacc_late_mae),
     "rir_itd_mae": ("scoring/rir_itd_mae", rir_itd_mae),
     "rir_ild_mae": ("scoring/rir_ild_mae", rir_ild_mae),
     "rir_ipd_mae": ("scoring/rir_ipd_mae", rir_ipd_mae),
     "rir_doa_mae": ("scoring/rir_doa_mae", rir_doa_mae),
 }
-IACC_METRICS = frozenset({"rir_iacc_mae"})
+IACC_METRICS = frozenset({"rir_iacc_mae", "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae"})
 SPATIAL_METRICS = frozenset(
-    {"rir_iacc_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
+    {"rir_iacc_mae", "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
 )
 
 

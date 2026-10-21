@@ -10,9 +10,10 @@ truncated to its shorter file; samples must already share a time origin.
 
 The task is language-independent. The single-channel branch validates exactly
 one channel; the multi-channel branch validates two or more channels. IACC
-requires exactly two channels. ITD, ILD, IPD, and DOA use channel 0 as the
-reference and report every `chN` pair. IACC and ITD are measured from
-normalized cross-correlation in a +/-1 ms lag window; ILD and IPD are
-frequency-domain interaural errors.
+requires exactly two channels. Its bundle reports full, early, and late
+windows: full RIR, ch0 direct peak through 80 ms, and the remainder after
+80 ms. Each window uses normalized cross-correlation in a +/-1 ms lag window.
+ITD, ILD, IPD, and DOA use channel 0 as the reference and report every `chN`
+pair. ILD and IPD are frequency-domain interaural errors.
 The default bundle reports `rir_npm` as its top-level score and keeps the
 NPM and RT60 scores in `details.results`.

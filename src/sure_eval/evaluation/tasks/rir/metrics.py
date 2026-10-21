@@ -503,7 +503,21 @@ def rir_c80_mae(samples: list[RIRSample]) -> MetricResult:
 def _cross_correlation(
     left: np.ndarray, right: np.ndarray, sample_rate: int, max_lag_ms: float = 1.0
 ) -> tuple[np.ndarray, np.ndarray]:
-    correlation = np.correlate(left, right, mode="full")
+    left = np.asarray(left, dtype="float64").reshape(-1)
+    right = np.asarray(right, dtype="float64").reshape(-1)
+    length = min(left.size, right.size)
+    if length < 2:
+        return np.array([], dtype="int64"), np.array([], dtype="float64")
+    left = left[:length] - float(np.mean(left[:length]))
+    right = right[:length] - float(np.mean(right[:length]))
+    # FFT correlation keeps the same full-correlation ordering as
+    # ``np.correlate`` while avoiding its quadratic cost on 1-second RIRs.
+    fft_length = left.size + right.size - 1
+    correlation_fft = np.fft.irfft(
+        np.fft.rfft(left, fft_length) * np.conj(np.fft.rfft(right, fft_length)),
+        fft_length,
+    )
+    correlation = np.concatenate((correlation_fft[-(right.size - 1) :], correlation_fft[: left.size]))
     lags = np.arange(-len(left) + 1, len(left))
     max_lag = max(0, int(round(sample_rate * max_lag_ms / 1000.0)))
     mask = np.abs(lags) <= max_lag
@@ -513,10 +527,21 @@ def _cross_correlation(
     return lags[mask], correlation[mask] / denominator
 
 
-def _iacc(signal: np.ndarray, sample_rate: int) -> float:
+def _iacc(signal: np.ndarray, sample_rate: int, window: str = "full") -> float:
     left, right = signal[:, 0], signal[:, 1]
+    length = min(left.size, right.size)
+    if length < 2:
+        return float("nan")
+    left = left[:length]
+    right = right[:length]
+    anchor = int(np.argmax(np.abs(left)))
+    early_end = min(length, anchor + int(round(sample_rate * 80.0 / 1000.0)))
+    if window == "early":
+        left, right = left[anchor:early_end], right[anchor:early_end]
+    elif window == "late":
+        left, right = left[early_end:], right[early_end:]
     _, correlation = _cross_correlation(left, right, sample_rate)
-    return float(np.max(np.abs(correlation))) if correlation.size else 0.0
+    return float(np.max(np.abs(correlation))) if correlation.size else float("nan")
 
 
 def _itd(signal: np.ndarray, sample_rate: int) -> float:
@@ -527,13 +552,13 @@ def _itd(signal: np.ndarray, sample_rate: int) -> float:
     return float(lags[int(np.argmax(np.abs(correlation)))]) / sample_rate
 
 
-def rir_iacc_mae(samples: list[RIRSample]) -> MetricResult:
+def _rir_iacc_mae(samples: list[RIRSample], window: str, metric_name: str) -> MetricResult:
     values = []
     rows = []
     for sample in samples:
         prediction, reference, rate = _binaural_pair(sample)
-        prediction_iacc = _iacc(prediction, rate)
-        reference_iacc = _iacc(reference, rate)
+        prediction_iacc = _iacc(prediction, rate, window)
+        reference_iacc = _iacc(reference, rate, window)
         score = float(abs(prediction_iacc - reference_iacc))
         values.append(score)
         rows.append(
@@ -546,8 +571,26 @@ def rir_iacc_mae(samples: list[RIRSample]) -> MetricResult:
             }
         )
     return MetricResult(
-        "rir_iacc_mae", _mean(values), {"per_sample": rows, "higher_is_better": False}
+        metric_name, _mean(values), {"per_sample": rows, "higher_is_better": False, "unit": "coefficient"}
     )
+
+
+def rir_iacc_full_mae(samples: list[RIRSample]) -> MetricResult:
+    return _rir_iacc_mae(samples, "full", "rir_iacc_full_mae")
+
+
+def rir_iacc_early_mae(samples: list[RIRSample]) -> MetricResult:
+    return _rir_iacc_mae(samples, "early", "rir_iacc_early_mae")
+
+
+def rir_iacc_late_mae(samples: list[RIRSample]) -> MetricResult:
+    return _rir_iacc_mae(samples, "late", "rir_iacc_late_mae")
+
+
+def rir_iacc_mae(samples: list[RIRSample]) -> MetricResult:
+    """Compatibility alias for the full-window IACC error."""
+    result = rir_iacc_full_mae(samples)
+    return MetricResult("rir_iacc_mae", result.score, result.details)
 
 
 def rir_itd_mae(samples: list[RIRSample]) -> MetricResult:

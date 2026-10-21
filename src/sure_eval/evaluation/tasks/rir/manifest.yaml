@@ -10,6 +10,9 @@ implemented_metrics:
   - rir_c80_mae
   - rir_edc_mae
   - rir_iacc_mae
+  - rir_iacc_full_mae
+  - rir_iacc_early_mae
+  - rir_iacc_late_mae
   - rir_itd_mae
   - rir_ild_mae
   - rir_ipd_mae
@@ -99,6 +102,30 @@ input_contracts:
     main_report: true
   scoring/rir_iacc_mae:
     purpose: binaural_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_full_mae:
+    purpose: rir_binaural_full_window_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_early_mae:
+    purpose: rir_binaural_early_window_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_late_mae:
+    purpose: rir_binaural_late_window_interaural_cross_correlation_error
     required_roles: [prediction_rir, reference_rir]
     optional_roles: [metadata]
     row_format: binaural_rir_samples_jsonl

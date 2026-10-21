@@ -73,6 +73,10 @@ def test_rir_pipeline_describes_registered_route() -> None:
     iacc = describe_pipeline("rir", metric="iacc")
     assert iacc.pipeline_id == "rir.any.rir_iacc_mae.rir_iacc_mae_v1"
     assert iacc.metric == "rir_iacc_mae"
+    for metric in ("rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae"):
+        window = describe_pipeline("rir", metric=metric)
+        assert window.metric == metric
+        assert window.pipeline_id == f"rir.any.{metric}.{metric}_v1"
 
     rt30 = describe_pipeline("rir", metric="rt30_mae")
     assert rt30.pipeline_id == "rir.any.rt30_mae.rt30_mae_v1"
@@ -275,7 +279,7 @@ def test_rir_minimal_examples_cover_every_registered_metric(tmp_path: Path) -> N
     )
     mono_report = evaluate_rir_samples([mono], metrics=acoustic_metrics, channel_mode="single")
     binaural_report = evaluate_rir_samples(
-        [binaural], metrics=acoustic_metrics + ("rir_iacc_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae"), channel_mode="binaural"
+        [binaural], metrics=acoustic_metrics + ("rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae"), channel_mode="binaural"
     )
     four_report = evaluate_rir_samples(
         [four], metrics=acoustic_metrics + ("rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="multi"
@@ -283,7 +287,7 @@ def test_rir_minimal_examples_cover_every_registered_metric(tmp_path: Path) -> N
     covered = set(mono_report.details["results"]) | set(binaural_report.details["results"]) | set(four_report.details["results"])
     assert covered == {
         "rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae",
-        "rir_iacc_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae",
+        "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae",
     }
     assert four_report.details["results"]["rir_doa_mae"]["per_sample"][0]["pair_count"] == 3
 
@@ -338,16 +342,18 @@ def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
     )
     report = evaluate_rir_samples(
         [binaural],
-        metrics=("iacc", "itd", "rir_ild_mae", "rir_ipd_mae"),
+        metrics=("iacc_full", "iacc_early", "iacc_late", "itd", "rir_ild_mae", "rir_ipd_mae"),
         channel_mode="multi",
     )
     assert set(report.details["results"]) == {
-        "rir_iacc_mae",
+        "rir_iacc_full_mae",
+        "rir_iacc_early_mae",
+        "rir_iacc_late_mae",
         "rir_itd_mae",
         "rir_ild_mae",
         "rir_ipd_mae",
     }
-    assert report.details["results"]["rir_iacc_mae"]["per_sample"][0]["prediction_iacc"] >= 0
+    assert report.details["results"]["rir_iacc_full_mae"]["per_sample"][0]["prediction_iacc"] >= 0
     assert report.details["results"]["rir_itd_mae"]["score"] > 0
     assert report.details["results"]["rir_itd_mae"]["unit"] == "ms"
 
@@ -509,6 +515,9 @@ def test_rir_nodes_are_in_process_environment_checks() -> None:
         "rir_c80_mae",
         "rir_edc_mae",
         "rir_iacc_mae",
+        "rir_iacc_full_mae",
+        "rir_iacc_early_mae",
+        "rir_iacc_late_mae",
         "rir_itd_mae",
         "rir_ild_mae",
         "rir_ipd_mae",
