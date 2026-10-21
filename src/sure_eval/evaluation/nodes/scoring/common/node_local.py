@@ -26,6 +26,7 @@ def _run_node_json(
     node_dir: Path,
     module_name: str,
     args: list[str],
+    forward_stderr: bool = False,
 ) -> dict[str, Any]:
     repo_root = _repo_root_from_node_dir(node_dir)
     python_runtime = resolve_node_local_python(node_dir, node_id)
@@ -39,13 +40,15 @@ def _run_node_json(
         cwd=repo_root,
         env=env,
         text=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=None if forward_stderr else subprocess.PIPE,
         check=False,
     )
     if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "").strip()
+        suffix = f": {detail}" if detail else ""
         raise RuntimeError(
-            f"{node_id} scoring failed with exit code {completed.returncode}: "
-            f"{completed.stderr.strip() or completed.stdout.strip()}"
+            f"{node_id} scoring failed with exit code {completed.returncode}{suffix}"
         )
     try:
         payload = json.loads(completed.stdout)

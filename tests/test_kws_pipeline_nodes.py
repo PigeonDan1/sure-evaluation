@@ -1,265 +1,151 @@
 from __future__ import annotations
-
 import json
-from pathlib import Path
+import pytest
+
+from sure_eval.evaluation.tasks.kws.loaders import (
+    load_samples_from_jsonl_and_outputs,
+    load_samples_from_wekws_frame_score_file,
+    load_samples_from_wekws_score_file,
+)
+from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_files, evaluate_kws_samples
 
 
-def _samples():
-    from sure_eval.evaluation.tasks.kws import KWSSample
-
-    return [
-        KWSSample(
-            key="pos",
-            expected_detected=True,
-            expected_keyword="嗨小问",
-            duration=1.2,
-            detected=True,
-            predicted_keyword="嗨小问",
-            score=0.9,
-        ),
-        KWSSample(
-            key="neg",
-            expected_detected=False,
-            duration=2.4,
-            detected=False,
-            score=None,
-        ),
-    ]
+def write_rows(path, rows):
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
 
 
-def test_kws_task_route_uses_wekws_det_scoring_node() -> None:
-    from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_samples
-
-    report = evaluate_kws_samples(_samples(), threshold=0.5, thresholds=[0.0, 0.5, 0.95])
-
-    assert report.task == "KWS"
-    assert report.metric == "accuracy"
-    assert report.score == 1.0
-    assert report.pipeline_id == "kws.any.accuracy.wekws_det_v1"
-    assert report.pipeline_trace[0].node_id == "scoring/wekws_det"
-    assert report.pipeline_trace[0].internal_stages == (
-        "keyword_normalization",
-        "threshold_decision",
-        "det_curve",
-        "operating_point_summary",
-    )
-    assert report.details["results"]["accuracy"]["score"] == 1.0
-    assert report.details["summary"]["best_threshold"] == 0.5
-    assert report.input_contract is not None
-    assert report.input_contract.metric_id == "scoring/wekws_det"
-    assert report.input_contract.required_roles == ("samples",)
-
-
-def test_kws_task_route_supports_macro_recall_primary_metric() -> None:
-    from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_samples
-
-    report = evaluate_kws_samples(
-        _samples(),
-        metric="macro-recall",
-        threshold=0.5,
-        thresholds=[0.0, 0.5, 0.95],
-        macro_recall_false_alarms=0,
-    )
-
-    assert report.metric == "macro_recall"
-    assert report.score == report.details["results"]["macro-recall"]["score"]
-    assert report.pipeline_id == "kws.any.macro_recall.wekws_det_v1"
-    assert report.details["summary"]["macro_recall_false_alarm_budget"] == 0
-
-
-def test_kws_routes_cover_accuracy_and_macro_recall_for_each_input_mode() -> None:
-    import yaml
-
-    routes = yaml.safe_load(
-        Path("src/sure_eval/evaluation/tasks/kws/routes.yaml").read_text(encoding="utf-8")
-    )
-    route_keys = {(route["input_mode"], route["metric"]) for route in routes["routes"]}
-
-    assert route_keys == {
-        ("sure_json", "accuracy"),
-        ("sure_json", "macro_recall"),
-        ("wekws_score_ctc", "accuracy"),
-        ("wekws_score_ctc", "macro_recall"),
-        ("wekws_frame_score", "accuracy"),
-        ("wekws_frame_score", "macro_recall"),
-    }
-
-
-def test_legacy_kws_pipeline_matches_task_route() -> None:
-    from sure_eval.evaluation.tasks.kws import KWSMetricPipeline
-    from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_samples
-
-    samples = _samples()
-    legacy = KWSMetricPipeline(threshold=0.5, thresholds=[0.0, 0.5, 0.95]).evaluate(samples)
-    routed = evaluate_kws_samples(samples, threshold=0.5, thresholds=[0.0, 0.5, 0.95])
-
-    assert legacy.results["accuracy"].score == routed.details["results"]["accuracy"]["score"]
-    assert legacy.results["false_alarm_per_hour"].score == (
-        routed.details["results"]["false_alarm_per_hour"]["score"]
-    )
-    assert (
-        legacy.results["macro-recall"].score == routed.details["results"]["macro-recall"]["score"]
-    )
-    assert legacy.rows == routed.details["rows"]
-    assert legacy.summary == routed.details["summary"]
-
-
-def test_kws_file_route_declares_sure_json_input_contract(tmp_path: Path) -> None:
-    from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_files
-
-    gt = tmp_path / "gt.jsonl"
-    gt.write_text(
-        "\n".join(
-            [
-                json.dumps(
-                    {
-                        "key": "pos",
-                        "expected": "detect",
-                        "text": "嗨小问",
-                        "duration": 1.0,
-                    },
-                    ensure_ascii=False,
-                ),
-                json.dumps(
-                    {
-                        "key": "neg",
-                        "expected": "reject",
-                        "duration": 2.0,
-                    },
-                    ensure_ascii=False,
-                ),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    outputs = tmp_path / "sample_output.json"
-    outputs.write_text(
-        json.dumps(
-            [
-                {"key": "pos", "result": {"detected": True, "keyword": "嗨小问", "score": 0.91}},
-                {"key": "neg", "result": {"detected": False, "keyword": None, "score": None}},
-            ],
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-
-    report = evaluate_kws_files(
-        reference_jsonl=gt,
-        sample_output=outputs,
-        threshold=0.5,
-        metric="macro-recall",
-        macro_recall_false_alarms=0,
-    )
-
-    assert report.metric == "macro_recall"
-    assert report.score == 1.0
-    assert report.pipeline_id == (
-        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
-    )
-    assert report.details["input_mode"] == "sure_json"
-    assert report.details["input_contract"]["required_roles"] == [
-        "reference_jsonl",
-        "sample_output",
-    ]
-    assert report.details["input_files"] == {
-        "reference_jsonl": str(gt),
-        "sample_output": str(outputs),
-    }
-
-
-def test_kws_file_route_declares_wekws_score_input_contract(tmp_path: Path) -> None:
-    from sure_eval.evaluation.tasks.kws.pipeline import evaluate_kws_files
-
-    labels = tmp_path / "labels.jsonl"
-    labels.write_text(
-        "\n".join(
-            [
-                json.dumps({"key": "pos", "txt": "嗨小问", "duration": 1.0}, ensure_ascii=False),
-                json.dumps({"key": "neg", "txt": "其他文本", "duration": 2.0}, ensure_ascii=False),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    scores = tmp_path / "score.txt"
-    scores.write_text("pos detected 嗨小问 0.930\nneg rejected\n", encoding="utf-8")
-
-    report = evaluate_kws_files(wekws_label_file=labels, wekws_score_file=scores, keyword="嗨小问")
-
-    assert report.score == 1.0
-    assert report.details["input_mode"] == "wekws_score_ctc"
-    assert report.details["input_contract"]["required_roles"] == [
-        "wekws_label_file",
-        "wekws_score_file",
-        "keyword",
-    ]
-
-
-def test_kws_runner_outputs_pipeline_metadata(tmp_path: Path, capsys) -> None:
-    from scripts.run_kws_metric_pipeline import main
-
-    gt = tmp_path / "gt.jsonl"
-    gt.write_text(
-        "\n".join(
-            [
-                json.dumps(
-                    {
-                        "key": "pos",
-                        "expected": "detect",
-                        "text": "嗨小问",
-                        "duration": 1.0,
-                    },
-                    ensure_ascii=False,
-                ),
-                json.dumps(
-                    {
-                        "key": "neg",
-                        "expected": "reject",
-                        "duration": 2.0,
-                    },
-                    ensure_ascii=False,
-                ),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    sample_output = tmp_path / "sample_output.json"
-    sample_output.write_text(
-        json.dumps(
-            [
-                {"key": "pos", "result": {"detected": True, "keyword": "嗨小问", "score": 0.91}},
-                {"key": "neg", "result": {"detected": False, "keyword": None, "score": None}},
-            ],
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-
-    rc = main(
+def fixture_files(tmp_path):
+    ref, out = tmp_path / "ref.jsonl", tmp_path / "out.json"
+    write_rows(
+        ref,
         [
-            "--reference-jsonl",
-            str(gt),
-            "--sample-output",
-            str(sample_output),
-            "--threshold",
-            "0.5",
-            "--metric",
-            "macro-recall",
-            "--macro-recall-false-alarms",
-            "0",
-        ]
+            {"key": "p", "expected": True, "expected_keyword": "A", "keyword_end_sec": 1},
+            {"key": "n", "expected": False, "duration": 36000},
+        ],
+    )
+    out.write_text(
+        json.dumps(
+            [
+                {"key": "p", "result": {"keyword": "A", "score": 0.7, "trigger_time_sec": 1.2}},
+                {"key": "n", "result": {"keyword": "A", "score": 0.8}},
+            ]
+        )
+    )
+    return ref, out
+
+
+def test_file_route_has_v2_identity_and_new_metrics(tmp_path):
+    ref, out = fixture_files(tmp_path)
+    report = evaluate_kws_files(reference_jsonl=ref, sample_output=out)
+    assert report.metric == "macro_recall"
+    assert (
+        report.pipeline_id
+        == "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2"
+    )
+    assert report.score == 1
+    assert report.pipeline_trace[0].version == "v2"
+    assert report.details["summary"]["false_alarm_per_hour"] == 0.1
+    assert report.details["results"]["trigger_latency"]["score"] == pytest.approx(200)
+    assert set(report.details["results"]) == {
+        "macro_recall",
+        "per_keyword_recall",
+        "trigger_latency",
+    }
+    with pytest.raises(ValueError, match="Unsupported"):
+        evaluate_kws_files(reference_jsonl=ref, sample_output=out, metric="accuracy")
+
+
+@pytest.mark.parametrize("problem", ["missing", "extra", "duplicate_output", "duplicate_reference"])
+def test_loader_requires_exact_one_to_one_key_alignment(tmp_path, problem):
+    ref, out = fixture_files(tmp_path)
+    outputs = json.loads(out.read_text())
+    if problem == "missing":
+        outputs.pop()
+    elif problem == "extra":
+        outputs.append({"key": "extra"})
+    elif problem == "duplicate_output":
+        outputs.append(outputs[0])
+    else:
+        ref.write_text(ref.read_text() + ref.read_text().splitlines()[0] + "\n")
+    out.write_text(json.dumps(outputs))
+    with pytest.raises(ValueError, match="mismatch|Duplicate"):
+        load_samples_from_jsonl_and_outputs(ref, out)
+
+
+def test_jsonl_event_lists_support_multiple_triggers(tmp_path):
+    ref, out = tmp_path / "ref.jsonl", tmp_path / "pred.jsonl"
+    write_rows(
+        ref,
+        [
+            {"key": "p", "events": [{"keyword": "A", "start_sec": 0.5, "end_sec": 1}]},
+            {"key": "n", "events": [], "duration": 72000},
+        ],
+    )
+    write_rows(
+        out,
+        [
+            {"key": "p", "detections": [{"keyword": "A", "score": 0.9, "trigger_time_sec": 1.1}]},
+            {
+                "key": "n",
+                "detections": [{"keyword": "A", "score": 0.8}, {"keyword": "B", "score": 0.8}],
+            },
+        ],
+    )
+    report = evaluate_kws_files(reference_jsonl=ref, sample_output=out, thresholds=[0.5])
+    assert report.score == 1
+    assert report.details["summary"]["false_alarms"] == 2
+    assert report.details["summary"]["false_alarm_per_hour"] == 0.1
+
+
+def test_wekws_frame_input_preserves_below_default_threshold_candidates(tmp_path):
+    ref, scores = tmp_path / "ref.jsonl", tmp_path / "scores.txt"
+    write_rows(
+        ref,
+        [
+            {"key": "p", "txt": "A", "keyword_end_sec": 0.15, "frame_shift_sec": 0.1},
+            {"key": "n", "txt": "noise", "duration": 3600},
+        ],
+    )
+    scores.write_text("p A 0.1 0.4 0.45\nn A 0.1 0.2 0.3\n")
+    samples = load_samples_from_wekws_frame_score_file(ref, scores, keyword="A")
+    report = evaluate_kws_samples(samples, thresholds=[0.4])
+    assert report.score == 1
+    assert report.details["rows"][0]["trigger_time_sec"] == pytest.approx(0.2)
+    assert report.details["results"]["trigger_latency"]["score"] == pytest.approx(50)
+
+
+def test_wekws_ctc_requires_scores_even_on_rejected_rows(tmp_path):
+    ref, scores = tmp_path / "ref.jsonl", tmp_path / "scores.txt"
+    write_rows(ref, [{"key": "p", "txt": "A"}, {"key": "n", "txt": "noise", "duration": 3600}])
+    scores.write_text("p detected A .4\nn rejected\n")
+    with pytest.raises(ValueError, match="uncensored score"):
+        load_samples_from_wekws_score_file(ref, scores, keyword="A")
+    scores.write_text("p rejected A .4\nn rejected A .2\n")
+    assert evaluate_kws_files(wekws_label_file=ref, wekws_score_file=scores, keyword="A").score == 1
+
+
+def test_runner_uses_pipeline_json(tmp_path, capsys):
+    from scripts.run_kws_metric_pipeline import main
+    from sure_eval.evaluation.cli_adapters import build_pipeline_spec, write_json
+
+    ref, out = fixture_files(tmp_path)
+    pipeline = tmp_path / "pipeline.json"
+    write_json(pipeline, build_pipeline_spec("kws"))
+    assert (
+        main(
+            [
+                "--pipeline",
+                str(pipeline),
+                "--reference-jsonl",
+                str(ref),
+                "--sample-output",
+                str(out),
+                "--output-dir",
+                str(tmp_path / "result"),
+            ]
+        )
+        == 0
     )
     payload = json.loads(capsys.readouterr().out)
-
-    assert rc == 0
-    assert payload["ok"] is True
     assert payload["metric"] == "macro_recall"
-    assert payload["pipeline_id"] == (
-        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
-    )
-    assert "macro-recall" in payload["metrics"]
-    assert payload["input_contract"]["metric_id"] == "scoring/wekws_det"
-    assert payload["pipeline_trace"][0]["node_id"] == "scoring/wekws_det"
+    assert payload["score"] == 1

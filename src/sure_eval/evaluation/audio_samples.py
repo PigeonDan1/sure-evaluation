@@ -10,6 +10,7 @@ from sure_eval.evaluation.tasks.tts.types import TTSSample
 from sure_eval.evaluation.tasks.tse.types import TSESample
 from sure_eval.evaluation.tasks.vc.types import VCSample
 from sure_eval.evaluation.tasks.se.types import SESample
+from sure_eval.evaluation.tasks.tta.types import TTASample
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
 
@@ -169,6 +170,38 @@ def load_tse_samples_jsonl(
     return samples
 
 
+def load_tta_samples_jsonl(
+    path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None
+) -> list[TTASample]:
+    rows = _read_rows(Path(path))
+    _validate_common(rows)
+    requested = {_normalize_tta_metric(metric) for metric in _normalize_metrics(metrics)}
+    need_reference = bool(requested & {"fad", "fd", "kl", "is"})
+    need_caption = "clap_score" in requested
+    samples: list[TTASample] = []
+    for row in rows:
+        line_no = row["_line_no"]
+        _require_fields(row, line_no, ("sample_id", "prediction_audio"))
+        if need_reference and not row.get("reference_audio"):
+            _fail(line_no, "reference_audio is required for TTA metric FAD/FD/KL/IS")
+        if need_caption and not row.get("caption"):
+            _fail(line_no, "caption is required for TTA CLAP score")
+        samples.append(
+            TTASample(
+                prediction_audio=_resolve_existing_path(
+                    row["prediction_audio"], path, line_no, "prediction_audio"
+                ),
+                reference_audio=_resolve_optional_path(
+                    row.get("reference_audio"), path, line_no, "reference_audio"
+                ),
+                caption=str(row.get("caption", "")),
+                sample_id=str(row["sample_id"]),
+                metadata=_metadata(row, line_no),
+            )
+        )
+    return samples
+
+
 def load_rir_samples_jsonl(
     path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None
 ) -> list[RIRSample]:
@@ -267,9 +300,7 @@ def _resolve_path(value: Any, jsonl_path: str | Path) -> Path:
 
 
 def _metadata(row: dict[str, Any], line_no: int) -> dict[str, Any]:
-    metadata = row.get("metadata")
-    if metadata is None:
-        return {}
+    metadata = row.get("metadata") or {}
     if not isinstance(metadata, dict):
         _fail(line_no, "metadata must be an object when present")
     return dict(metadata)
@@ -308,6 +339,18 @@ def _normalize_se_metric(metric: str) -> str:
         "si-sdr": "si-sdr",
         "wvmos": "wv-mos",
         "wv-mos": "wv-mos",
+    }.get(normalized, normalized)
+
+
+def _normalize_tta_metric(metric: str) -> str:
+    normalized = str(metric).lower().replace("-", "_")
+    return {
+        "inception_score": "is",
+        "clap": "clap_score",
+        "ce": "audiobox_ce",
+        "cu": "audiobox_cu",
+        "pc": "audiobox_pc",
+        "pq": "audiobox_pq",
     }.get(normalized, normalized)
 
 

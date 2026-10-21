@@ -1,6 +1,11 @@
 """KWS task-level evaluation routes."""
 
-from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSMetric, KWSSample
+from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import (
+    KWSMetric,
+    KWSSample,
+    KWSEvent,
+    KWSTrigger,
+)
 from sure_eval.evaluation.tasks.kws.compat import KWSMetricPipeline, KWSMetricReport, report_to_dict
 from sure_eval.evaluation.tasks.kws.loaders import (
     load_samples_from_jsonl_and_outputs,
@@ -14,6 +19,8 @@ __all__ = [
     "KWSMetricPipeline",
     "KWSMetricReport",
     "KWSSample",
+    "KWSEvent",
+    "KWSTrigger",
     "evaluate_kws_files",
     "evaluate_kws_samples",
     "load_samples_from_jsonl_and_outputs",

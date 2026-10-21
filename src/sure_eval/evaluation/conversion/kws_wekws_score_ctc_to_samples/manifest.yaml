@@ -1,0 +1,7 @@
+id: conversion/kws_wekws_score_ctc_to_samples
+version: v2
+task: KWS
+affects_metric: true
+source_format: wekws_score_ctc
+target_format: kws_samples
+implementation: sure_eval.evaluation.tasks.kws.loaders.load_samples_from_wekws_score_file

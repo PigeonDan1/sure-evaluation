@@ -214,8 +214,8 @@ def test_sa_asr_script_rejects_unknown_language() -> None:
 def test_simple_task_routes_declare_nodes_contract_and_executor() -> None:
     expected = {
         "kws": {
-            "metric": "accuracy",
-            "pipeline_id": "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1",
+            "metric": "macro_recall",
+            "pipeline_id": "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2",
             "nodes": ["scoring/wekws_det"],
             "input_contract": "sure_json",
             "executor": "sure_eval.evaluation.tasks.kws.pipeline.evaluate_kws_files",
@@ -1071,7 +1071,7 @@ def test_kws_script_run_writes_sure_json_route_report(tmp_path: Path) -> None:
         reference_jsonl,
         [
             {"key": "utt1", "audio": "utt1.wav", "expected": True, "expected_keyword": "小爱同学"},
-            {"key": "utt2", "audio": "utt2.wav", "expected": False},
+            {"key": "utt2", "audio": "utt2.wav", "expected": False, "duration": 3600},
         ],
     )
     sample_output.write_text(
@@ -1094,13 +1094,13 @@ def test_kws_script_run_writes_sure_json_route_report(tmp_path: Path) -> None:
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     description_payload = json.loads((output_dir / "pipeline_description.json").read_text(encoding="utf-8"))
     assert report.pipeline_id == (
-        "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2"
     )
     assert report_payload["pipeline_id"] == (
-        "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2"
     )
     assert description_payload["pipeline_id"] == (
-        "kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2"
     )
     assert report_payload["pipeline_trace"][0]["node_id"] == "scoring/wekws_det"
 

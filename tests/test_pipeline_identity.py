@@ -61,9 +61,9 @@ def test_kws_input_modes_encode_input_conversion_in_pipeline_id() -> None:
     ]
 
     assert {desc.pipeline_id for desc in descriptions} == {
-        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1",
-        "kws.any.macro_recall.conversion_kws_wekws_score_ctc_to_samples_v1.wekws_det_v1",
-        "kws.any.macro_recall.conversion_kws_wekws_frame_score_to_samples_v1.wekws_det_v1",
+        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2",
+        "kws.any.macro_recall.conversion_kws_wekws_score_ctc_to_samples_v2.wekws_det_v2",
+        "kws.any.macro_recall.conversion_kws_wekws_frame_score_to_samples_v2.wekws_det_v2",
     }
     assert {desc.pipeline_kind for desc in descriptions} == {"atomic"}
 

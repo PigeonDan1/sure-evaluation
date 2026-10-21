@@ -1,0 +1,7 @@
+id: conversion/kws_sure_json_to_samples
+version: v2
+task: KWS
+affects_metric: true
+source_format: sure_json
+target_format: kws_samples
+implementation: sure_eval.evaluation.tasks.kws.loaders.load_samples_from_jsonl_and_outputs

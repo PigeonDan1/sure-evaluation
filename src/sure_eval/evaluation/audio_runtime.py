@@ -226,3 +226,133 @@ def _normalize_se_metric(metric: str) -> str:
         "wvmos": "wv-mos",
         "wv-mos": "wv-mos",
     }.get(normalized, normalized)
+
+
+def build_tta_runtime(
+    *,
+    metrics: tuple[str, ...] | list[str],
+    device: str = "cuda",
+    cache_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Build node-local providers for text-to-audio metrics."""
+    requested = {str(metric).lower().replace("-", "_") for metric in metrics}
+    providers: dict[str, Any] = {}
+    if requested & {"fad", "fd", "kl", "is"}:
+        providers["audioldm_eval"] = _NodeLocalTTAProvider("scoring/audioldm_eval", device)
+    if requested & {"clap", "clap_score"}:
+        providers["clap_score"] = _NodeLocalTTAProvider("scoring/clap_score", device)
+    if requested & {
+        "ce",
+        "cu",
+        "pc",
+        "pq",
+        "audiobox_ce",
+        "audiobox_cu",
+        "audiobox_pc",
+        "audiobox_pq",
+    }:
+        providers["audiobox_aesthetics"] = _NodeLocalTTAProvider(
+            "scoring/audiobox_aesthetics", device
+        )
+    # Keep the runtime contract identical to ``evaluate_tta_samples``: callers
+    # receive the provider mapping directly and can pass it to the task
+    # executor without an additional unwrap step.
+    return providers
+
+
+def _tta_result_summary(node_id: str, result: dict[str, Any]) -> str:
+    if node_id == "scoring/audioldm_eval":
+        values = result.get("metrics", {})
+    elif node_id == "scoring/clap_score":
+        block = result.get("result", {})
+        values = {"clap_score": block.get("score")} if isinstance(block, dict) else {}
+    else:
+        axes = result.get("axes", {})
+        values = {
+            f"audiobox_{str(axis).lower()}": block.get("score")
+            for axis, block in axes.items()
+            if isinstance(block, dict)
+        }
+    return ", ".join(
+        f"{name}={float(value):.6g}"
+        for name, value in values.items()
+        if isinstance(value, (int, float))
+    )
+
+
+class _NodeLocalTTAProvider:
+    def __init__(self, node_id: str, device: str) -> None:
+        self.node_id, self.device = node_id, device
+
+    def __call__(self, rows, *, metrics=()):
+        import json
+        import sys
+        import tempfile
+        import time
+        from sure_eval.evaluation.nodes.scoring.common.node_local import _run_node_json
+
+        handle = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
+        )
+        path = Path(handle.name)
+        try:
+            for row in rows:
+                payload = {"key": row[0], "prediction_audio": row[1]}
+                if self.node_id == "scoring/audioldm_eval":
+                    payload["reference_audio"] = row[2]
+                elif self.node_id == "scoring/clap_score":
+                    payload["caption"] = row[2]
+                handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            handle.close()
+            args = ["--input-jsonl", str(path), "--device", self.device]
+            if self.node_id == "scoring/audioldm_eval":
+                args.extend(["--metrics", ",".join(metrics)])
+            metric_text = f", metrics={','.join(metrics)}" if metrics else ""
+            started = time.monotonic()
+            print(
+                f"[TTA] starting {self.node_id}: {len(rows)} samples{metric_text}",
+                file=sys.stderr,
+                flush=True,
+            )
+            try:
+                result = _run_node_json(
+                    node_id=self.node_id,
+                    node_dir=NODES_ROOT / "scoring" / self.node_id.split("/", 1)[1],
+                    module_name=f"sure_eval.evaluation.nodes.scoring.{self.node_id.split('/', 1)[1]}.node",
+                    args=args,
+                    forward_stderr=True,
+                )
+            except Exception:
+                elapsed = time.monotonic() - started
+                print(
+                    f"[TTA] failed {self.node_id} after {elapsed:.1f}s",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                raise
+            summary = _tta_result_summary(self.node_id, result)
+            if summary:
+                print(
+                    f"[TTA] result {self.node_id}: {summary}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            elapsed = time.monotonic() - started
+            print(
+                f"[TTA] completed {self.node_id} in {elapsed:.1f}s",
+                file=sys.stderr,
+                flush=True,
+            )
+        finally:
+            handle.close()
+            path.unlink(missing_ok=True)
+        if self.node_id == "scoring/audioldm_eval":
+            return dict(result["metrics"])
+        if self.node_id == "scoring/clap_score":
+            return [item["score"] for item in result["result"]["per_sample"]]
+        axes = result["axes"]
+        by_id = {str(key): {} for key, _path in rows}
+        for axis, block in axes.items():
+            for item in block["per_sample"]:
+                by_id[str(item["sample_id"])][axis] = item["score"]
+        return [by_id[str(key)] for key, _path in rows]

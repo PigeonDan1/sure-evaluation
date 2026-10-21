@@ -1,0 +1,10 @@
+id: scoring/clap_score
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: audio_with_inline_caption
+output_schema: per_sample_text_audio_cosine
+implementation: sure_eval.evaluation.nodes.scoring.clap_score.node
+metric: clap_score
+backend: laion_clap
+used_by: [TTA]

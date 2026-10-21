@@ -20,6 +20,7 @@ DISCOVERY_TASKS = (
     "sd",
     "sa_asr",
     "tts",
+    "tta",
     "vc",
     "se",
     "tse",
@@ -38,6 +39,7 @@ DISCOVERY_TASKS = (
 # Multi pipelines are curated presets. Atomic pipelines are always discovered
 # from tasks/<task>/routes.yaml and must never be added manually here.
 BUNDLE_COMBINATIONS = (
+    ("tta", {"metrics": ("fad", "fd", "kl", "is", "clap_score", "audiobox_ce", "audiobox_cu", "audiobox_pc", "audiobox_pq")}),
     ("tts", {"language": "zh", "metrics": ("tts_cer", "sim/wavlm-large", "dnsmos")}),
     (
         "tts",

@@ -55,11 +55,11 @@ def test_pipeline_catalog_has_new_kws_and_sa_asr_identities() -> None:
     ]
 
     assert {row["pipeline_id"] for row in kws_macro_rows} == {
-        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1",
-        "kws.any.macro_recall.conversion_kws_wekws_score_ctc_to_samples_v1.wekws_det_v1",
-        "kws.any.macro_recall.conversion_kws_wekws_frame_score_to_samples_v1.wekws_det_v1",
+        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2",
+        "kws.any.macro_recall.conversion_kws_wekws_score_ctc_to_samples_v2.wekws_det_v2",
+        "kws.any.macro_recall.conversion_kws_wekws_frame_score_to_samples_v2.wekws_det_v2",
     }
-    assert {row["execution_metrics"][0] for row in kws_macro_rows} == {"macro-recall"}
+    assert {row["execution_metrics"][0] for row in kws_macro_rows} == {"macro_recall"}
 
     sa_asr_rows = [row for row in rows if row["task_alias"] == "sa_asr"]
     assert {row["pipeline_id"] for row in sa_asr_rows} == {

@@ -1,0 +1,10 @@
+id: scoring/audioldm_eval
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: paired_audio_samples
+output_schema: corpus_audio_distribution_metrics
+implementation: sure_eval.evaluation.nodes.scoring.audioldm_eval.node
+metrics: [fad, fd, kl, is]
+backend: audioldm_eval_cnn14
+used_by: [TTA]

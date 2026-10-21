@@ -716,7 +716,7 @@ def test_metric_run_executes_kws_macro_recall_pipeline(tmp_path: Path) -> None:
     description_payload = json.loads(pipeline_path.read_text(encoding="utf-8"))
     assert description_payload["metric"] == "macro_recall"
     assert description_payload["pipeline_id"] == (
-        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1"
+        "kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2"
     )
 
     run_result = runner.invoke(
@@ -730,8 +730,9 @@ def test_metric_run_executes_kws_macro_recall_pipeline(tmp_path: Path) -> None:
             str(reference_jsonl),
             "--sample-output",
             str(sample_output),
-            "--macro-recall-false-alarms",
-            "0",
+            "--target-fa-per-hour",
+            "0.1",
+            "--include-roc",
             "--output-dir",
             str(output_dir),
             "--json",
@@ -744,8 +745,11 @@ def test_metric_run_executes_kws_macro_recall_pipeline(tmp_path: Path) -> None:
     assert payload["score"] == 0.5
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report_payload["score"] == 0.5
-    assert report_payload["details"]["results"]["accuracy"]["score"] == pytest.approx(2 / 3)
-    assert report_payload["details"]["results"]["macro-recall"]["score"] == 0.5
+    results = report_payload["details"]["results"]
+    assert "accuracy" not in results
+    assert results["macro_recall"]["score"] == 0.5
+    assert results["auc"]["score"] == 0.5
+    assert report_payload["details"]["summary"]["target_fa_per_hour"] == .1
 
 
 def test_metric_run_human_mode_prints_environment_note(tmp_path: Path) -> None:
@@ -1424,3 +1428,50 @@ def test_metric_run_executes_tse_exact_speaker_pipeline_id(
     assert payload["pipeline_id"] == pipeline_id
     report_payload = json.loads((output_dir / "report.json").read_text(encoding="utf-8"))
     assert report_payload["pipeline_trace"][0]["node_id"] == "scoring/ecapa_tdnn_sim"
+
+
+def test_kws_pipeline_settings_are_preserved_and_cli_overrides_them(tmp_path: Path) -> None:
+    from sure_eval.evaluation.cli_adapters import build_pipeline_spec
+
+    runner = CliRunner()
+    spec = build_pipeline_spec('kws')
+    assert spec['run_args']['target_fa_per_hour'] == .1
+    spec['run_args'].update(target_fa_per_hour=1.0, include_roc=True, match_tolerance_sec=.025)
+    pipeline = tmp_path / 'pipeline.json'
+    pipeline.write_text(json.dumps(spec))
+    ref, out = tmp_path / 'ref.jsonl', tmp_path / 'out.json'
+    _write_jsonl(ref, [{'key': 'hi', 'expected': True, 'expected_keyword': 'A'},
+                       {'key': 'lo', 'expected': True, 'expected_keyword': 'A'},
+                       {'key': 'n', 'expected': False, 'duration': 3600}])
+    out.write_text(json.dumps([{'key': key, 'keyword': 'A', 'score': score}
+                              for key, score in [('hi', .9), ('lo', .7), ('n', .8)]]))
+    for overrides, expected_score, expected_target, expected_roc in [
+        ([], 1, 1, True),
+        (['--target-fa-per-hour', '.1', '--no-include-roc'], .5, .1, False),
+    ]:
+        output_dir = tmp_path / str(expected_target)
+        result = runner.invoke(app, ['metric', 'run', '--pipeline', str(pipeline),
+            '--reference-jsonl', str(ref), '--sample-output', str(out),
+            '--output-dir', str(output_dir), '--json', *overrides])
+        assert result.exit_code == 0, result.stdout
+        report = json.loads((output_dir / 'report.json').read_text())
+        assert report['score'] == expected_score
+        assert report['details']['summary']['target_fa_per_hour'] == expected_target
+        assert report['details']['summary']['match_tolerance_sec'] == .025
+        assert ('roc_curve' in report['details']['results']) == expected_roc
+
+
+def test_kws_rejects_old_pipeline_identity_and_removed_accuracy(tmp_path: Path) -> None:
+    from sure_eval.evaluation.cli_adapters import build_pipeline_spec
+
+    runner = CliRunner()
+    spec = build_pipeline_spec('kws')
+    spec['pipeline_id'] = spec['pipeline_id'].replace('_v2', '_v1')
+    pipeline = tmp_path / 'old.json'
+    pipeline.write_text(json.dumps(spec))
+    result = runner.invoke(app, ['metric', 'run', '--pipeline', str(pipeline),
+                                 '--output-dir', str(tmp_path / 'out')])
+    assert result.exit_code != 0
+    result = runner.invoke(app, ['metric', 'describe', 'kws', '--metric', 'accuracy',
+                                 '--output', str(tmp_path / 'accuracy.json')])
+    assert result.exit_code != 0

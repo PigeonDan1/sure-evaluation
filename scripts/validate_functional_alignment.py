@@ -234,15 +234,14 @@ def _case_kws_macro_recall() -> dict[str, Any]:
             expected_detected=False,
             duration=2.4,
             detected=False,
-            score=None,
+            score=0.0,
         ),
     ]
     report = evaluate_kws_samples(
         samples,
         metric="macro-recall",
-        threshold=0.5,
         thresholds=[0.0, 0.5, 0.95],
-        macro_recall_false_alarms=0,
+        target_fa_per_hour=0.1,
     )
     return _report_summary(report)
 

@@ -42,7 +42,7 @@ ENVIRONMENT_NOTE = (
     "Check selected node directories for pyproject.toml or uv.lock when preparing a run."
 )
 
-AUDIO_SAMPLE_TASKS = {"tts", "vc", "se", "speech_enhancement", "tse", "rir"}
+AUDIO_SAMPLE_TASKS = {"tts", "vc", "se", "speech_enhancement", "tse", "tta", "rir"}
 SE_TASKS = {"se", "speech_enhancement"}
 SE_DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
 SV_DEFAULT_METRICS = ("eer", "min_dcf")
@@ -84,6 +84,8 @@ def build_pipeline_spec(
     if normalized_task in AUDIO_SAMPLE_TASKS:
         required_roles = ["samples_jsonl"]
         run_args.setdefault("samples_jsonl", None)
+    if normalized_task == "kws":
+        run_args.update(target_fa_per_hour=0.1, include_roc=False, match_tolerance_sec=1.0)
     run_args["output_dir"] = None
     execution_metrics = tuple(description.execution_metrics) or _requested_metrics(
         normalized_task,
@@ -391,7 +393,9 @@ def run_pipeline_spec(
     wekws_score_file: str | None = None,
     wekws_frame_score_file: str | None = None,
     keyword: str | None = None,
-    macro_recall_false_alarms: int = 0,
+    target_fa_per_hour: float | None = None,
+    include_roc: bool | None = None,
+    match_tolerance_sec: float | None = None,
     samples_jsonl: str | None = None,
     device: str = "cuda",
     cache_dir: str | None = None,
@@ -435,7 +439,11 @@ def run_pipeline_spec(
             cli_values.pop(key, None)
     kwargs.update({key: value for key, value in cli_values.items() if value is not None})
     if task == "kws":
-        kwargs["macro_recall_false_alarms"] = macro_recall_false_alarms
+        for key, value in {"target_fa_per_hour": target_fa_per_hour,
+                           "include_roc": include_roc,
+                           "match_tolerance_sec": match_tolerance_sec}.items():
+            if value is not None:
+                kwargs[key] = value
     uses_audio_samples = task in AUDIO_SAMPLE_TASKS or "samples_jsonl" in (
         pipeline.get("required_roles") or ()
     )
@@ -531,7 +539,7 @@ def _describe_kwargs(
             kwargs["pipeline_id"] = pipeline_id
         return kwargs
     if task == "kws":
-        kwargs = {"metric": metric or "accuracy"}
+        kwargs = {"metric": metric or "macro_recall"}
         if pipeline_id:
             kwargs["pipeline_id"] = pipeline_id
         return kwargs
@@ -595,6 +603,13 @@ def _describe_kwargs(
         kwargs = {}
         if language or not pipeline_id:
             kwargs["language"] = language or "zh"
+        if metric:
+            kwargs["metrics"] = split_metric_csv(metric)
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
+    if task == "tta":
+        kwargs = {"language": "n/a"}
         if metric:
             kwargs["metrics"] = split_metric_csv(metric)
         if pipeline_id:
@@ -763,6 +778,11 @@ def _run_kwargs_from_pipeline(pipeline: dict[str, Any]) -> dict[str, Any]:
         kwargs["metric"] = pipeline["requested_metric"]
     elif pipeline.get("metric"):
         kwargs["metric"] = pipeline["metric"]
+    if task == "kws":
+        for key in ("target_fa_per_hour", "include_roc", "match_tolerance_sec"):
+            value = (pipeline.get("run_args") or {}).get(key)
+            if value is not None:
+                kwargs[key] = value
     return kwargs
 
 
@@ -857,6 +877,12 @@ def _audio_sample_kwargs(
             cache_dir=cache_dir,
             transcription_node_id=_semantic_transcription_node_from_pipeline(pipeline),
         )
+    elif task == "tta":
+        from sure_eval.evaluation.audio_runtime import build_tta_runtime
+        from sure_eval.evaluation.audio_samples import load_tta_samples_jsonl
+
+        samples = load_tta_samples_jsonl(samples_jsonl, metrics=metrics)
+        runtime = build_tta_runtime(metrics=metrics, device=device, cache_dir=cache_dir)
     elif task == "rir":
         from sure_eval.evaluation.audio_samples import load_rir_samples_jsonl
 
@@ -873,6 +899,10 @@ def _audio_sample_kwargs(
         payload["speaker_providers"] = runtime["speaker_providers"]
     if "reference_providers" in runtime:
         payload["reference_providers"] = runtime["reference_providers"]
+    if "providers" in runtime:
+        payload["providers"] = runtime["providers"]
+    elif task == "tta":
+        payload["providers"] = runtime
     return payload
 
 

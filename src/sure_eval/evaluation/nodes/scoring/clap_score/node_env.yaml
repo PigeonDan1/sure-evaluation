@@ -1,0 +1,47 @@
+id: scoring/clap_score
+group: tta-clap
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: true
+models:
+  - id: lukewys/laion_clap/630k-audioset-best.pt
+    provider: url
+    auto_download: true
+    source: https://huggingface.co/lukewys/laion_clap/resolve/b3708341862f581175dba5c356a4ebf74a9b6651/630k-audioset-best.pt
+    revision: b3708341862f581175dba5c356a4ebf74a9b6651
+    target: checkpoints/630k-audioset-best.pt
+    env: CLAP_MODEL_PATH
+    sha256: 8053c9775516af2f4902e1e8281e356cc1bf7a85e8b761908170767b77c3f037
+  - id: roberta-base/config.json
+    provider: url
+    auto_download: true
+    source: https://huggingface.co/roberta-base/resolve/e2da8e2f811d1448a5b465c236feacd80ffbac7b/config.json
+    revision: e2da8e2f811d1448a5b465c236feacd80ffbac7b
+    target: checkpoints/huggingface/hub/models--roberta-base/snapshots/e2da8e2f811d1448a5b465c236feacd80ffbac7b/config.json
+    sha256: ef0185e2aae6e06c5f105a285006952c340e20c7dbf43c86ec82601b13fc45e9
+  - id: roberta-base/merges.txt
+    provider: url
+    auto_download: true
+    source: https://huggingface.co/roberta-base/resolve/e2da8e2f811d1448a5b465c236feacd80ffbac7b/merges.txt
+    revision: e2da8e2f811d1448a5b465c236feacd80ffbac7b
+    target: checkpoints/huggingface/hub/models--roberta-base/snapshots/e2da8e2f811d1448a5b465c236feacd80ffbac7b/merges.txt
+    sha256: 1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5
+  - id: roberta-base/tokenizer_config.json
+    provider: url
+    auto_download: true
+    source: https://huggingface.co/roberta-base/resolve/e2da8e2f811d1448a5b465c236feacd80ffbac7b/tokenizer_config.json
+    revision: e2da8e2f811d1448a5b465c236feacd80ffbac7b
+    target: checkpoints/huggingface/hub/models--roberta-base/snapshots/e2da8e2f811d1448a5b465c236feacd80ffbac7b/tokenizer_config.json
+    sha256: 994f46754c5bf4014f1aa92d34b1374319c3a6b3f702105cd5b742beaecd18ce
+  - id: roberta-base/vocab.json
+    provider: url
+    auto_download: true
+    source: https://huggingface.co/roberta-base/resolve/e2da8e2f811d1448a5b465c236feacd80ffbac7b/vocab.json
+    revision: e2da8e2f811d1448a5b465c236feacd80ffbac7b
+    target: checkpoints/huggingface/hub/models--roberta-base/snapshots/e2da8e2f811d1448a5b465c236feacd80ffbac7b/vocab.json
+    sha256: 9e7f63c2d15d666b52e21d250d2e513b87c9b713cfa6987a82ed89e5e6e50655
+verify:
+  imports: [laion_clap, numpy]

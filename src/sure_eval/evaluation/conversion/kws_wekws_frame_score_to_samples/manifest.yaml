@@ -1,0 +1,7 @@
+id: conversion/kws_wekws_frame_score_to_samples
+version: v2
+task: KWS
+affects_metric: true
+source_format: wekws_frame_score
+target_format: kws_samples
+implementation: sure_eval.evaluation.tasks.kws.loaders.load_samples_from_wekws_frame_score_file

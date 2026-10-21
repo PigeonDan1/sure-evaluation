@@ -1,5 +1,5 @@
 id: scoring/wekws_det
-version: v1
+version: v2
 stage: scoring
 language_sensitive: false
 input_schema: kws_samples
@@ -7,24 +7,21 @@ output_schema: kws_metric_report
 implementation: sure_eval.evaluation.nodes.scoring.wekws_det.node
 reference_compatibility:
   task_entry: sure_eval.evaluation.tasks.kws.KWSMetricPipeline
-  primary_reference: wenet-e2e/wekws
 metrics:
-  - accuracy
-  - precision
-  - recall
-  - macro-recall
-  - f1
-  - false_reject_rate
-  - false_alarm_rate
-  - false_alarm_per_hour
-  - det_curve
+- macro_recall
+- per_keyword_recall
+- trigger_latency
+- roc_curve
+- auc
 internal_stages:
-  - keyword_normalization
-  - threshold_decision
-  - det_curve
-  - operating_point_summary
+- keyword_normalization
+- threshold_sweep
+- fa_per_hour_operating_point
+- per_keyword_recall
+- trigger_latency
 notes:
-  - Positive samples below threshold or with wrong keyword count as false rejects.
-  - Negative samples above threshold count as false alarms.
-  - False alarm per hour uses negative audio duration when available.
-  - Macro-recall is the maximum true detect rate under a fixed false alarm count budget.
+- Global FA/hour budget defaults to 0.1; denominator is negative recording hours.
+- Macro recall is the unweighted mean of keyword recalls at the selected shared threshold.
+- Latency uses the first matched trigger minus keyword end, in milliseconds.
+- ROC/AUC is optional and uses false positive rate on scored clips.
+- Event lists contain distinct candidates before score-threshold filtering.

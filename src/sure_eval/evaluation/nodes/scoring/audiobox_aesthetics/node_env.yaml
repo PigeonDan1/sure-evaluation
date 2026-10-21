@@ -1,0 +1,19 @@
+id: scoring/audiobox_aesthetics
+group: tta-audiobox
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: true
+models:
+  - id: facebook/audiobox-aesthetics/checkpoint.pt
+    provider: url
+    auto_download: true
+    source: https://huggingface.co/facebook/audiobox-aesthetics/resolve/f6c27480aee3cf19d19a77abe0bcb9ceca441cd6/checkpoint.pt
+    revision: f6c27480aee3cf19d19a77abe0bcb9ceca441cd6
+    target: checkpoints/checkpoint.pt
+    env: AUDIOBOX_AESTHETICS_CHECKPOINT
+    sha256: a4931a7a01c3e6733352e9d85371835f03bf9135f8b31e1583c23538811d4a32
+verify:
+  imports: [audiobox_aesthetics.infer, torch]

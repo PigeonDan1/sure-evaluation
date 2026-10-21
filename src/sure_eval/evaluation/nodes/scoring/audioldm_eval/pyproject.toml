@@ -1,0 +1,18 @@
+[project]
+name = "sure-eval-scoring-audioldm-eval"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "audioldm-eval @ https://github.com/haoheliu/audioldm_eval/archive/8dc07ee7c42f9dc6e295460a1034175a0d49b436.zip",
+  "numpy==1.26.4",
+  "resampy>=0.4.3",
+  "soundfile>=0.12",
+  "torch>=2.2",
+  "torchaudio>=2.2",
+]
+[tool.uv]
+package = false
+override-dependencies = [
+  # ssr-eval incorrectly declares Python standard-library wave as a PyPI dependency.
+  "wave; python_version < '0'",
+]

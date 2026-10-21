@@ -1,0 +1,42 @@
+task: TTA
+language_sensitive: false
+canonical_entry: sure_eval.evaluation.tasks.tta.pipeline.evaluate_tta_samples
+implemented_metrics: [fad, fd, kl, is, clap_score, audiobox_ce, audiobox_cu, audiobox_pc, audiobox_pq]
+default_metrics: [fad, fd, kl, is, clap_score, audiobox_ce, audiobox_cu, audiobox_pc, audiobox_pq]
+default_pipelines:
+  any:
+    fad: tta.any.fad.audioldm_eval_v1
+    fd: tta.any.fd.audioldm_eval_v1
+    kl: tta.any.kl.audioldm_eval_v1
+    is: tta.any.is.audioldm_eval_v1
+    clap_score: tta.any.clap_score.clap_score_v1
+    audiobox_ce: tta.any.audiobox_ce.audiobox_aesthetics_v1
+    audiobox_cu: tta.any.audiobox_cu.audiobox_aesthetics_v1
+    audiobox_pc: tta.any.audiobox_pc.audiobox_aesthetics_v1
+    audiobox_pq: tta.any.audiobox_pq.audiobox_aesthetics_v1
+input_contracts:
+  scoring/audioldm_eval:
+    purpose: tta_reference_distribution_quality
+    required_roles: [prediction_audio, reference_audio]
+    row_format: paired_audio_samples
+    alignment_key: sample_id
+    aggregation: corpus_distribution
+    main_report: true
+  scoring/clap_score:
+    purpose: tta_text_audio_alignment
+    required_roles: [prediction_audio, caption]
+    row_format: audio_with_inline_caption
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/audiobox_aesthetics:
+    purpose: tta_aesthetic_quality
+    required_roles: [prediction_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+pipeline_nodes:
+  distribution: scoring/audioldm_eval
+  alignment: scoring/clap_score
+  aesthetics: scoring/audiobox_aesthetics

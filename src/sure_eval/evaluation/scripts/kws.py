@@ -16,7 +16,7 @@ from sure_eval.evaluation.scripts.contracts import (
 
 
 def describe_pipeline(
-    *, metric: str = "accuracy", input_mode: str = "sure_json", pipeline_id: str | None = None
+    *, metric: str = "macro_recall", input_mode: str = "sure_json", pipeline_id: str | None = None
 ):
     manifest, manifest_path, routes_path, route, normalized_metric = _select_route(
         metric=metric, input_mode=input_mode, pipeline_id=pipeline_id
@@ -41,7 +41,7 @@ def run(*, output_dir: str, **kwargs):
     if not output_dir:
         raise ValueError("output_dir is required")
     input_mode = _infer_input_mode(kwargs)
-    metric = kwargs.pop("metric", "accuracy")
+    metric = kwargs.pop("metric", "macro_recall")
     pipeline_id = kwargs.pop("pipeline_id", None)
     description = describe_pipeline(metric=metric, input_mode=input_mode, pipeline_id=pipeline_id)
     _, _, _, route, normalized_metric = _select_route(
@@ -52,7 +52,7 @@ def run(*, output_dir: str, **kwargs):
 
 
 def _select_route(
-    *, metric: str = "accuracy", input_mode: str = "sure_json", pipeline_id: str | None = None
+    *, metric: str = "macro_recall", input_mode: str = "sure_json", pipeline_id: str | None = None
 ):
     manifest, manifest_path = load_task_manifest("kws")
     requested_metric = metric.lower().strip()
@@ -69,7 +69,13 @@ def _select_route(
     if canonical_metric not in set(manifest["metrics"]) and requested_metric not in metric_aliases:
         raise ValueError(f"Unsupported KWS metric: {metric}")
     route = find_task_route(routes, metric=canonical_metric, input_mode=input_mode)
-    return manifest, manifest_path, routes_path, route, route_execution_metric(route) or canonical_metric
+    return (
+        manifest,
+        manifest_path,
+        routes_path,
+        route,
+        route_execution_metric(route) or canonical_metric,
+    )
 
 
 def _infer_input_mode(kwargs: dict) -> str:
@@ -77,6 +83,10 @@ def _infer_input_mode(kwargs: dict) -> str:
         return "sure_json"
     if kwargs.get("wekws_label_file") and kwargs.get("wekws_score_file") and kwargs.get("keyword"):
         return "wekws_score_ctc"
-    if kwargs.get("wekws_label_file") and kwargs.get("wekws_frame_score_file") and kwargs.get("keyword"):
+    if (
+        kwargs.get("wekws_label_file")
+        and kwargs.get("wekws_frame_score_file")
+        and kwargs.get("keyword")
+    ):
         return "wekws_frame_score"
     return "sure_json"

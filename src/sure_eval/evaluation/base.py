@@ -11,7 +11,7 @@ class MetricResult:
     """Result of metric calculation."""
 
     metric_name: str
-    score: float
+    score: float | None
     details: dict[str, Any] = field(default_factory=dict)
 
 

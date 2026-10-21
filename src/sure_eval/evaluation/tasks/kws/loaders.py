@@ -1,189 +1,207 @@
-"""KWS input loaders for supported file formats."""
+"""Strict KWS input alignment and score/timestamp conversion."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 from typing import Any
-
-from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSSample, normalize_keyword
+from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import (
+    KWSEvent,
+    KWSSample,
+    KWSTrigger,
+    normalize_keyword,
+)
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    with Path(path).open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
+    return [
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
 
 
-def _expected_from_reference(row: dict[str, Any]) -> tuple[bool, str | None]:
-    expected_value = row.get("expected", row.get("label", row.get("expected_detected")))
-    if isinstance(expected_value, bool):
-        expected_detected = expected_value
-    elif expected_value is None:
-        expected_detected = str(row.get("txt", row.get("text", ""))).strip() != ""
+def _index(rows: list[dict], source: str) -> dict[str, dict]:
+    indexed = {}
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("key"), str) or not row["key"]:
+            raise ValueError(f"{source} rows require a nonempty string key")
+        key = row["key"]
+        if key in indexed:
+            raise ValueError(f"Duplicate {source} key: {key}")
+        indexed[key] = row
+    return indexed
+
+
+def _align(references: dict, outputs: dict) -> None:
+    missing, extra = references.keys() - outputs.keys(), outputs.keys() - references.keys()
+    if missing or extra:
+        raise ValueError(f"KWS key mismatch: missing={sorted(missing)}, extra={sorted(extra)}")
+
+
+def _expected_from_reference(row: dict) -> tuple[bool, str | None]:
+    if "events" in row:
+        if not isinstance(row["events"], list):
+            raise ValueError("Reference events must be a list")
+        if any(key in row for key in ("expected", "label", "expected_detected")):
+            explicit, _ = _expected_from_reference(
+                {key: value for key, value in row.items() if key != "events"}
+            )
+            if explicit != bool(row["events"]):
+                raise ValueError("Reference label contradicts events")
+        return bool(row["events"]), None
+    value = row.get("expected", row.get("label", row.get("expected_detected")))
+    if isinstance(value, bool):
+        expected = value
+    elif value is None:
+        expected = bool(str(row.get("txt", row.get("text", ""))).strip())
     else:
-        expected_detected = str(expected_value).strip().lower() in {
+        normalized = str(value).strip().lower()
+        if normalized not in {
             "detect",
             "detected",
             "positive",
             "true",
             "1",
             "yes",
-        }
-    expected_keyword = row.get("expected_keyword")
-    if expected_keyword is None and expected_detected:
-        expected_keyword = row.get("text", row.get("txt"))
-    return expected_detected, expected_keyword
+            "reject",
+            "rejected",
+            "negative",
+            "false",
+            "0",
+            "no",
+        }:
+            raise ValueError(f"Unknown KWS reference label: {value}")
+        expected = normalized in {"detect", "detected", "positive", "true", "1", "yes"}
+    keyword = row.get("expected_keyword", row.get("text", row.get("txt"))) if expected else None
+    return expected, keyword
 
 
-def _result_payload(output: dict[str, Any]) -> dict[str, Any]:
-    result = output.get("result", output)
-    if not isinstance(result, dict):
-        raise ValueError(f"KWS output for key={output.get('key')} is not an object")
-    return result
+def _number(value: Any) -> float | None:
+    return float(value) if value is not None else None
+
+
+def _sample(ref: dict, result: dict) -> KWSSample:
+    expected, keyword = _expected_from_reference(ref)
+    events = None
+    if "events" in ref:
+        events = [
+            KWSEvent(item["keyword"], _number(item.get("end_sec")), _number(item.get("start_sec")))
+            for item in ref["events"]
+        ]
+    detections = None
+    if "detections" in result:
+        if not isinstance(result["detections"], list):
+            raise ValueError("detections must be a list")
+        detections = [
+            KWSTrigger(
+                item.get("keyword"), float(item["score"]), _number(item.get("trigger_time_sec"))
+            )
+            for item in result["detections"]
+        ]
+    return KWSSample(
+        key=ref["key"],
+        expected_detected=expected,
+        expected_keyword=keyword,
+        duration=_number(ref.get("duration")),
+        detected=bool(result.get("detected", False)),
+        predicted_keyword=result.get("keyword"),
+        score=_number(result.get("score")),
+        scores=[float(score) for score in result.get("scores", [])],
+        keyword_end_sec=_number(ref.get("keyword_end_sec")),
+        keyword_start_sec=_number(ref.get("keyword_start_sec")),
+        trigger_time_sec=_number(result.get("trigger_time_sec")),
+        frame_shift_sec=_number(result.get("frame_shift_sec", ref.get("frame_shift_sec"))),
+        frame_offset_sec=float(result.get("frame_offset_sec", ref.get("frame_offset_sec", 0.0))),
+        events=events,
+        detections=detections,
+        keyword_scores={
+            key: float(value) for key, value in result.get("keyword_scores", {}).items()
+        },
+        metadata={"audio": ref.get("audio", ref.get("wav")), "raw": result.get("raw", {})},
+    )
 
 
 def load_samples_from_jsonl_and_outputs(
-    reference_jsonl: Path | str,
-    output_json: Path | str,
+    reference_jsonl: Path | str, output_json: Path | str
 ) -> list[KWSSample]:
-    """Load SURE fixture JSONL and wrapper sample_output.json."""
-    references = {row["key"]: row for row in _load_jsonl(Path(reference_jsonl))}
-    outputs = json.loads(Path(output_json).read_text(encoding="utf-8"))
-    if isinstance(outputs, dict) and "rows" in outputs:
-        outputs = outputs["rows"]
+    references = _index(_load_jsonl(Path(reference_jsonl)), "reference")
+    text = Path(output_json).read_text(encoding="utf-8")
+    try:
+        outputs = json.loads(text)
+    except json.JSONDecodeError:
+        outputs = [json.loads(line) for line in text.splitlines() if line.strip()]
+    if isinstance(outputs, dict):
+        outputs = outputs.get("rows", [outputs] if "key" in outputs else None)
     if not isinstance(outputs, list):
-        raise ValueError("KWS output JSON must be a list or an object with rows")
-
-    samples: list[KWSSample] = []
-    for output in outputs:
-        key = output["key"]
-        if key not in references:
-            raise KeyError(f"KWS output key not found in reference: {key}")
-        ref = references[key]
-        expected_detected, expected_keyword = _expected_from_reference(ref)
-        result = _result_payload(output)
-        detected = bool(result.get("detected", False))
-        score = result.get("score")
-        samples.append(
-            KWSSample(
-                key=key,
-                expected_detected=expected_detected,
-                expected_keyword=expected_keyword,
-                duration=ref.get("duration"),
-                detected=detected,
-                predicted_keyword=result.get("keyword"),
-                score=float(score) if score is not None else None,
-                metadata={
-                    "audio": ref.get("audio", ref.get("wav")),
-                    "raw": result.get("raw", {}),
-                },
-            )
-        )
+        raise ValueError("KWS output must be a JSON list, an object with rows, or JSONL")
+    outputs = _index(outputs, "output")
+    _align(references, outputs)
+    samples = []
+    for key, ref in references.items():
+        result = outputs[key].get("result", outputs[key])
+        if not isinstance(result, dict):
+            raise ValueError(f"KWS result must be an object: {key}")
+        samples.append(_sample(ref, result))
     return samples
+
+
+def _wekws_reference(ref: dict, keyword: str) -> dict:
+    text = normalize_keyword(str(ref.get("txt", ref.get("text", "")))) or ""
+    expected = normalize_keyword(keyword) in text
+    return {**ref, "expected": expected, "expected_keyword": keyword if expected else None}
 
 
 def load_samples_from_wekws_score_file(
-    label_file: Path | str,
-    score_file: Path | str,
-    *,
-    keyword: str,
+    label_file: Path | str, score_file: Path | str, *, keyword: str
 ) -> list[KWSSample]:
-    """Load utterance-level WekWS CTC score output."""
-    labels = {row["key"]: row for row in _load_jsonl(Path(label_file))}
-    outputs: dict[str, dict[str, Any]] = {}
-    with Path(score_file).open("r", encoding="utf-8") as handle:
-        for line in handle:
-            parts = line.strip().split()
-            if not parts:
-                continue
-            key = parts[0]
-            if len(parts) >= 4 and parts[1] == "detected":
-                outputs[key] = {
-                    "detected": True,
-                    "keyword": parts[2],
-                    "score": float(parts[3]),
-                }
-            else:
-                outputs[key] = {
-                    "detected": False,
-                    "keyword": None,
-                    "score": None,
-                }
-
-    samples: list[KWSSample] = []
-    for key, ref in labels.items():
-        output = outputs.get(key)
-        if output is None:
-            raise KeyError(f"KWS score key not found for reference: {key}")
-        ref_text = str(ref.get("txt", ref.get("text", "")))
-        expected_detected = normalize_keyword(keyword) in normalize_keyword(ref_text) if ref_text else False
-        samples.append(
-            KWSSample(
-                key=key,
-                expected_detected=bool(expected_detected),
-                expected_keyword=keyword if expected_detected else None,
-                duration=ref.get("duration"),
-                detected=bool(output["detected"]),
-                predicted_keyword=output.get("keyword"),
-                score=output.get("score"),
-                metadata={"wav": ref.get("wav", ref.get("audio"))},
+    if not normalize_keyword(keyword):
+        raise ValueError("keyword must not be empty")
+    labels = _index(_load_jsonl(Path(label_file)), "reference")
+    outputs = []
+    for line in Path(score_file).read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        if len(parts) not in {4, 5} or parts[1] not in {"detected", "rejected"}:
+            raise ValueError(
+                "WeKWS FA/hour scoring requires an uncensored score on every row: key detected|rejected keyword score [trigger_time_sec]"
             )
+        outputs.append(
+            {
+                "key": parts[0],
+                "keyword": parts[2],
+                "score": float(parts[3]),
+                "trigger_time_sec": float(parts[4]) if len(parts) == 5 else None,
+            }
         )
-    return samples
+    indexed = _index(outputs, "score")
+    _align(labels, indexed)
+    return [_sample(_wekws_reference(ref, keyword), indexed[key]) for key, ref in labels.items()]
 
 
 def load_samples_from_wekws_frame_score_file(
-    label_file: Path | str,
-    score_file: Path | str,
-    *,
-    keyword: str,
-    threshold: float = 0.5,
+    label_file: Path | str, score_file: Path | str, *, keyword: str
 ) -> list[KWSSample]:
-    """Load frame-level WekWS ``score.py`` output for one keyword."""
-    labels = {row["key"]: row for row in _load_jsonl(Path(label_file))}
-    score_table: dict[str, list[float]] = {}
-    with Path(score_file).open("r", encoding="utf-8") as handle:
-        for line in handle:
-            parts = line.strip().split()
-            if len(parts) < 3:
-                continue
-            key = parts[0]
-            current_keyword = parts[1]
-            if normalize_keyword(current_keyword) != normalize_keyword(keyword):
-                continue
-            score_table[key] = [float(item) for item in parts[2:]]
-
-    samples: list[KWSSample] = []
-    for key, ref in labels.items():
-        if key not in score_table:
-            raise KeyError(f"KWS frame score key not found for reference: {key}")
-        frame_scores = score_table[key]
-        max_score = max(frame_scores) if frame_scores else 0.0
-        ref_text = str(ref.get("txt", ref.get("text", "")))
-        expected_detected = normalize_keyword(keyword) in normalize_keyword(ref_text) if ref_text else False
-        samples.append(
-            KWSSample(
-                key=key,
-                expected_detected=bool(expected_detected),
-                expected_keyword=keyword if expected_detected else None,
-                duration=ref.get("duration"),
-                detected=max_score >= threshold,
-                predicted_keyword=keyword if max_score >= threshold else None,
-                score=max_score,
-                scores=frame_scores,
-                metadata={"wav": ref.get("wav", ref.get("audio"))},
+    if not normalize_keyword(keyword):
+        raise ValueError("keyword must not be empty")
+    labels = _index(_load_jsonl(Path(label_file)), "reference")
+    outputs = []
+    for line in Path(score_file).read_text(encoding="utf-8").splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        if len(parts) < 3:
+            raise ValueError("WeKWS frame rows require key keyword score...")
+        if normalize_keyword(parts[1]) == normalize_keyword(keyword):
+            outputs.append(
+                {"key": parts[0], "keyword": keyword, "scores": [float(item) for item in parts[2:]]}
             )
-        )
-    return samples
+    indexed = _index(outputs, "frame score")
+    _align(labels, indexed)
+    return [_sample(_wekws_reference(ref, keyword), indexed[key]) for key, ref in labels.items()]
 
 
 __all__ = [
-    "load_samples_from_wekws_frame_score_file",
     "load_samples_from_jsonl_and_outputs",
     "load_samples_from_wekws_score_file",
+    "load_samples_from_wekws_frame_score_file",
 ]

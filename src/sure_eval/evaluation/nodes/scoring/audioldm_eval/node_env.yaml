@@ -1,0 +1,43 @@
+id: scoring/audioldm_eval
+group: tta-audioldm
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: true
+models:
+  - id: PANNs/Cnn14_16k_mAP=0.438.pth
+    provider: url
+    auto_download: true
+    source: https://zenodo.org/api/records/3987831/files/Cnn14_16k_mAP=0.438.pth/content
+    target: checkpoints/audioldm_eval/ckpt/Cnn14_16k_mAP=0.438.pth
+    env: AUDIOLDM_EVAL_CNN14_CHECKPOINT
+    md5: 362fc5ff18f1d6ad2f6d464b45893f2c
+  - id: PANNs/Cnn14_mAP=0.431.pth
+    provider: url
+    auto_download: true
+    source: https://zenodo.org/api/records/3987831/files/Cnn14_mAP=0.431.pth/content
+    target: checkpoints/audioldm_eval/ckpt/Cnn14_mAP=0.431.pth
+    md5: 541141fa2ee191a88f24a3219fff024e
+  - id: harritaylor/torchvggish@f3f90969ce8fb77a05d984b892ddf662e8466377
+    provider: url
+    auto_download: true
+    source: https://github.com/harritaylor/torchvggish/archive/f3f90969ce8fb77a05d984b892ddf662e8466377.zip
+    revision: f3f90969ce8fb77a05d984b892ddf662e8466377
+    target: checkpoints/torchvggish/torchvggish-f3f90969ce8fb77a05d984b892ddf662e8466377.zip
+    sha256: 9ff1baef0f6b705adbea332d82268cfecde29d4e5a29a51589d0e89f2d05d1a2
+  - id: harritaylor/torchvggish/vggish-10086976.pth
+    provider: url
+    auto_download: true
+    source: https://github.com/harritaylor/torchvggish/releases/download/v0.1/vggish-10086976.pth
+    target: checkpoints/runtime_home/.cache/torch/hub/checkpoints/vggish-10086976.pth
+    sha256: 10086976245803799d9194e9a73d9b6c1549c71d1b80106f5cade5608a561f4b
+  - id: harritaylor/torchvggish/vggish_pca_params-970ea276.pth
+    provider: url
+    auto_download: true
+    source: https://github.com/harritaylor/torchvggish/releases/download/v0.1/vggish_pca_params-970ea276.pth
+    target: checkpoints/runtime_home/.cache/torch/hub/checkpoints/vggish_pca_params-970ea276.pth
+    sha256: 970ea276ddb99e236d4140292aa5c7ba53128f3ebb0b4bda3efccabf94f5b7b4
+verify:
+  imports: [audioldm_eval, torch, torchaudio]

@@ -1,113 +1,74 @@
-"""WekWS-style DET scoring wrapper for KWS."""
+"""KWS scoring at a shared FA/hour operating point."""
 
 from __future__ import annotations
 
-from typing import Any
-
 from sure_eval.evaluation.core.types import PipelineNodeResult
 from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import (
+    DEFAULT_TARGET_FA_PER_HOUR,
     KWSMetric,
     KWSSample,
-    build_rows,
-    mean_score,
-    summarize_det_curve,
 )
 
 NODE_ID = "scoring/wekws_det"
-NODE_VERSION = "v1"
+NODE_VERSION = "v2"
 INTERNAL_STAGES = (
     "keyword_normalization",
-    "threshold_decision",
-    "det_curve",
-    "operating_point_summary",
+    "threshold_sweep",
+    "fa_per_hour_operating_point",
+    "per_keyword_recall",
+    "trigger_latency",
 )
 
 
 def score_wekws_det(
     samples: list[KWSSample],
     *,
-    threshold: float = 0.5,
+    target_fa_per_hour: float = DEFAULT_TARGET_FA_PER_HOUR,
     thresholds: list[float] | None = None,
-    threshold_step: float = 0.01,
-    macro_recall_false_alarms: int = 0,
+    include_roc: bool = False,
+    match_tolerance_sec: float = 1.0,
 ) -> PipelineNodeResult:
-    """Score aligned KWS samples with the existing WekWS-style DET semantics."""
-
     metric = KWSMetric(
-        threshold=threshold,
+        target_fa_per_hour=target_fa_per_hour,
         thresholds=thresholds,
-        threshold_step=threshold_step,
-    ).calculate_samples(samples, macro_recall_false_alarms=macro_recall_false_alarms)
+        include_roc=include_roc,
+        match_tolerance_sec=match_tolerance_sec,
+    ).calculate_samples(samples)
     details = metric.details
-    det_points = details["det_curve"]
-    rows = build_rows(samples, threshold=threshold)
-    macro_recall = details["macro_recall_operating_point"]
-    summary = {
-        "threshold": threshold,
-        "num_samples": len(samples),
-        "num_positive": details["positive_samples"],
-        "num_negative": details["negative_samples"],
-        "mean_score": mean_score(samples),
-        "macro_recall_false_alarm_budget": macro_recall["false_alarm_budget"],
-        "macro_recall": macro_recall["score"],
-        "macro_recall_threshold": macro_recall["threshold"],
-        "macro_recall_achieved_false_alarms": macro_recall["achieved_false_alarms"],
-        **summarize_det_curve(det_points),
-    }
+    point = details["operating_point"]
+    latency = details["trigger_latency"]
     results = {
-        "accuracy": _metric_dict(
-            "accuracy",
-            metric.score,
-            correct=details["correct"],
-            total=details["total"],
-            threshold=threshold,
-        ),
-        "precision": _metric_dict("precision", float(details["precision"]), threshold=threshold),
-        "recall": _metric_dict("recall", float(details["recall"]), threshold=threshold),
-        "f1": _metric_dict("f1", float(details["f1"]), threshold=threshold),
-        "false_reject_rate": _metric_dict(
-            "false_reject_rate",
-            float(details["false_reject_rate"]),
-            false_rejects=details["false_rejects"],
-            positives=details["positive_samples"],
-            threshold=threshold,
-        ),
-        "false_alarm_rate": _metric_dict(
-            "false_alarm_rate",
-            float(details["false_alarm_rate"]),
-            false_alarms=details["false_alarms"],
-            negatives=details["negative_samples"],
-            threshold=threshold,
-        ),
-        "false_alarm_per_hour": _metric_dict(
-            "false_alarm_per_hour",
-            float(details["false_alarm_per_hour"]),
-            false_alarms=details["false_alarms"],
-            threshold=threshold,
-        ),
-        "macro-recall": _metric_dict(
-            "macro-recall",
-            float(macro_recall["score"]),
-            false_alarm_budget=macro_recall["false_alarm_budget"],
-            threshold=macro_recall["threshold"],
-            achieved_false_alarms=macro_recall["achieved_false_alarms"],
-            achieved_false_alarm_per_hour=macro_recall["achieved_false_alarm_per_hour"],
-            true_detect_rate=macro_recall["true_detect_rate"],
-            false_reject_rate=macro_recall["false_reject_rate"],
-            feasible=macro_recall["feasible"],
-        ),
-        "det_curve": {
-            "metric_name": "det_curve",
-            "score": float(summary.get("best_false_reject_rate", 0.0)),
+        "macro_recall": {
+            "metric_name": "macro_recall",
+            "score": metric.score,
             "details": {
-                "points": det_points,
-                "best": summarize_det_curve(det_points),
-                "source": {
-                    "primary_reference": "wenet-e2e/wekws",
-                    "method": "WekWS compute_det / compute_det_ctc threshold sweep semantics",
-                },
+                "target_fa_per_hour": target_fa_per_hour,
+                "negative_hours": details["negative_hours"],
+                **point,
             },
         },
+        "per_keyword_recall": {
+            "metric_name": "per_keyword_recall",
+            "score": None,
+            "details": point["per_keyword"],
+        },
+        "trigger_latency": {
+            "metric_name": "trigger_latency",
+            "score": latency["overall"]["mean_ms"],
+            "details": latency,
+        },
+    }
+    if include_roc:
+        roc = details["roc"]
+        results["roc_curve"] = {"metric_name": "roc_curve", "score": None, "details": roc}
+        results["auc"] = {"metric_name": "auc", "score": roc.get("macro_auc"), "details": roc}
+    summary = {
+        "target_fa_per_hour": target_fa_per_hour,
+        "negative_hours": details["negative_hours"],
+        "threshold_scope": "global",
+        "match_tolerance_sec": match_tolerance_sec,
+        "num_samples": len(samples),
+        **point,
     }
     return PipelineNodeResult(
         stage="scoring",
@@ -115,21 +76,11 @@ def score_wekws_det(
         version=NODE_VERSION,
         details={
             "backend": "wekws_det",
-            "metric": "accuracy",
-            "threshold": threshold,
-            "threshold_step": threshold_step,
-            "num_samples": len(samples),
+            "metric": "macro_recall",
             "results": results,
-            "rows": rows,
+            "rows": details["rows"],
             "summary": summary,
+            "operating_curve": details["operating_curve"],
         },
-        internal_stages=INTERNAL_STAGES,
+        internal_stages=INTERNAL_STAGES + (("roc_auc",) if include_roc else ()),
     )
-
-
-def _metric_dict(metric_name: str, score: float, **details: Any) -> dict[str, Any]:
-    return {
-        "metric_name": metric_name,
-        "score": score,
-        "details": details,
-    }

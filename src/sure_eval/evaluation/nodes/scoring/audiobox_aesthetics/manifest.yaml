@@ -1,0 +1,10 @@
+id: scoring/audiobox_aesthetics
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: generated_audio_rows
+output_schema: per_sample_aesthetic_axes
+implementation: sure_eval.evaluation.nodes.scoring.audiobox_aesthetics.node
+metrics: [audiobox_ce, audiobox_cu, audiobox_pc, audiobox_pq]
+backend: facebook_audiobox_aesthetics
+used_by: [TTA]

@@ -19,6 +19,7 @@ multi-metric bundles, see [Pipeline Catalog](../pipeline_catalog.md).
 - [SV — Speaker Verification](./sv.md)
 - [SA-ASR — Speaker-Aware ASR](./sa_asr.md)
 - [TTS — Text-to-Speech](./tts.md)
+- [TTA — Text-to-Audio](./tta.md)
 - [VC — Voice Conversion](./vc.md)
 - [SE — Speech Enhancement](./se.md)
 - [RIR — RIR Estimation and Spatial Audio](./rir.md)

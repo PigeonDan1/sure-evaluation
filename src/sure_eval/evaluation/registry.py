@@ -48,8 +48,8 @@ class MetricRegistry:
         "xcomet_xl": XCOMETXLMetric,
         "bleurt_20": BLEURT20Metric,
         "kws": KWSMetric,
-        "kws_accuracy": KWSMetric,
         "kws_macro_recall": KWSMacroRecallMetric,
+        "macro_recall": KWSMacroRecallMetric,
         "macro-recall": KWSMacroRecallMetric,
         "si_sdr": TSESISDRMetric,
     }

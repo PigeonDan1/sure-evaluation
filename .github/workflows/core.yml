@@ -108,7 +108,7 @@ jobs:
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval agent plan asr --language en --metric wer --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric routes asr --language en --metric wer --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe vad --metric f1 --json
-          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe kws --metric accuracy --json
+          uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe kws --metric macro_recall --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric routes lid --metric accuracy --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval metric describe lid --metric accuracy --json
           uv run --python 3.11 --extra dev --extra audio --extra canonical sure-eval env setup --task tts --language zh --metrics tts_cer,dnsmos --dry-run --json

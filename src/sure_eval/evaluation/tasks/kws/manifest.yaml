@@ -1,44 +1,37 @@
 id: task/kws
-version: v1
+version: v2
 task: KWS
-default_metric: accuracy
+default_metric: macro_recall
 routes:
-  accuracy:
-    pipeline_id: kws.any.accuracy.conversion_kws_sure_json_to_samples_v1.wekws_det_v1
-    scoring: scoring/wekws_det
-    conversion: conversion/kws_sure_json_to_samples
   macro_recall:
-    pipeline_id: kws.any.macro_recall.conversion_kws_sure_json_to_samples_v1.wekws_det_v1
+    pipeline_id: kws.any.macro_recall.conversion_kws_sure_json_to_samples_v2.wekws_det_v2
     scoring: scoring/wekws_det
     conversion: conversion/kws_sure_json_to_samples
     aliases:
-      - macro-recall
+    - macro-recall
 input_contracts:
   sure_json:
     required_roles:
-      - reference_jsonl
-      - sample_output
+    - reference_jsonl
+    - sample_output
   wekws_score_ctc:
     required_roles:
-      - wekws_label_file
-      - wekws_score_file
-      - keyword
+    - wekws_label_file
+    - wekws_score_file
+    - keyword
   wekws_frame_score:
     required_roles:
-      - wekws_label_file
-      - wekws_frame_score_file
-      - keyword
+    - wekws_label_file
+    - wekws_frame_score_file
+    - keyword
 metrics:
-  - accuracy
-  - precision
-  - recall
-  - macro_recall
-  - f1
-  - false_reject_rate
-  - false_alarm_rate
-  - false_alarm_per_hour
-  - det_curve
+- macro_recall
+- per_keyword_recall
+- trigger_latency
+- roc_curve
+- auc
 compatibility:
   legacy_entry:
-    - sure_eval.evaluation.tasks.kws.KWSMetricPipeline
-    - scripts/run_kws_metric_pipeline.py
+  - sure_eval.evaluation.tasks.kws.KWSMetricPipeline
+  - scripts/run_kws_metric_pipeline.py
+default_target_fa_per_hour: 0.1

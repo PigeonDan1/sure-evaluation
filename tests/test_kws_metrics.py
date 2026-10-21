@@ -1,335 +1,349 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
+from dataclasses import replace
+import math
 import pytest
 
+from sure_eval.evaluation.tasks.kws import KWSEvent, KWSMetricPipeline, KWSSample, KWSTrigger
 
-def test_kws_pipeline_scores_detection_samples() -> None:
-    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
 
+def positive(key="pos", keyword="A", score=0.9, **kwargs):
+    return KWSSample(
+        key=key,
+        expected_detected=True,
+        expected_keyword=keyword,
+        predicted_keyword=keyword,
+        score=score,
+        **kwargs,
+    )
+
+
+def negative(duration=3600.0, score=0.8, **kwargs):
+    return KWSSample(key="neg", expected_detected=False, duration=duration, score=score, **kwargs)
+
+
+def test_default_uses_rate_budget_and_duration_changes_operating_point():
+    positives = [positive("high", score=0.9), positive("low", score=0.7)]
+    short = KWSMetricPipeline().evaluate([*positives, negative(3600)])
+    long = KWSMetricPipeline().evaluate([*positives, negative(36000)])
+    assert short.summary["target_fa_per_hour"] == 0.1
+    assert short.results["macro_recall"].score == 0.5
+    assert short.summary["false_alarms"] == 0
+    assert long.results["macro_recall"].score == 1
+    assert long.summary["false_alarm_per_hour"] == 0.1
+    assert long.summary["false_alarms"] == 1
+
+
+def test_macro_is_equal_keyword_average_at_one_shared_threshold():
+    samples = [positive(f"a{i}") for i in range(9)]
+    samples += [replace(positive("b", "B"), predicted_keyword="WRONG"), negative(score=0.1)]
+    report = KWSMetricPipeline().evaluate(samples)
+    assert report.results["macro_recall"].score == 0.5
+    assert report.results["per_keyword_recall"].details == {
+        "A": {"recall": 1, "true_positives": 9, "positive_events": 9},
+        "B": {"recall": 0, "true_positives": 0, "positive_events": 1},
+    }
+    assert report.summary["threshold_scope"] == "global"
+    assert set(report.results) == {"macro_recall", "per_keyword_recall", "trigger_latency"}
+
+
+def test_keyword_normalization_and_detected_flag_do_not_censor_raw_scores():
+    report = KWSMetricPipeline().evaluate(
+        [
+            replace(
+                positive(keyword="Hello World", score=0.1234),
+                predicted_keyword=" helloWORLD ",
+                detected=False,
+            ),
+            negative(score=0.12),
+        ]
+    )
+    assert report.results["macro_recall"].score == 1
+    assert report.summary["threshold"] == 0.1234
+
+
+def test_tied_scores_are_atomic_and_all_rejected_point_exists():
+    report = KWSMetricPipeline(target_fa_per_hour=0, thresholds=[0.5]).evaluate(
+        [positive(score=1), negative(score=1)]
+    )
+    assert report.results["macro_recall"].score == 0
+    assert report.summary["threshold"] > 1
+    assert math.isfinite(report.summary["threshold"])
+    assert report.summary["false_alarms"] == 0
+
+
+def test_multiple_false_alarm_events_share_system_budget():
     samples = [
-        KWSSample(
-            key="pos",
-            expected_detected=True,
-            expected_keyword="嗨小问",
-            duration=1.2,
-            detected=True,
-            predicted_keyword="嗨小问",
-            score=0.9,
-        ),
+        positive(score=0.7),
         KWSSample(
             key="neg",
             expected_detected=False,
-            duration=2.4,
-            detected=False,
-            score=None,
+            duration=36000,
+            detections=[KWSTrigger("A", 0.8, 10), KWSTrigger("B", 0.75, 20)],
         ),
     ]
-
-    report = KWSMetricPipeline(thresholds=[0.0, 0.5, 0.95]).evaluate(samples)
-
-    assert report.results["accuracy"].score == 1.0
-    assert report.results["recall"].score == 1.0
-    assert report.results["false_reject_rate"].score == 0.0
-    assert report.results["false_alarm_rate"].score == 0.0
-    assert report.results["false_alarm_per_hour"].score == 0.0
-    assert report.results["det_curve"].details["points"][1] == {
-        "threshold": 0.5,
-        "false_alarm_per_hour": 0.0,
-        "false_reject_rate": 0.0,
-        "false_alarm_rate": 0.0,
-        "true_detect_rate": 1.0,
-        "false_alarms": 0,
-        "false_rejects": 0,
-    }
-    assert report.summary["best_threshold"] == 0.5
-    assert report.results["macro-recall"].score == 1.0
+    strict = KWSMetricPipeline().evaluate(samples)
+    loose = KWSMetricPipeline(target_fa_per_hour=0.2).evaluate(samples)
+    assert strict.results["macro_recall"].score == 0
+    assert loose.results["macro_recall"].score == 1
+    assert loose.summary["false_alarms"] == 2
+    assert loose.summary["false_alarm_per_hour"] == 0.2
 
 
-def test_kws_macro_recall_at_false_alarm_budget() -> None:
-    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
-
+def test_latency_uses_first_correct_trigger_and_preserves_early_detection():
     samples = [
         KWSSample(
-            key="pos_high",
+            key="stream",
             expected_detected=True,
-            expected_keyword="嗨小问",
-            detected=True,
-            predicted_keyword="嗨小问",
-            score=0.9,
+            duration=6,
+            events=[KWSEvent("A", 1, 0.5), KWSEvent("A", 4, 3.5)],
+            detections=[
+                KWSTrigger("A", 0.9, 1.2),
+                KWSTrigger("A", 0.9, 1.4),
+                KWSTrigger("A", 0.9, 3.9),
+            ],
         ),
-        KWSSample(
-            key="pos_low",
-            expected_detected=True,
-            expected_keyword="嗨小问",
-            detected=True,
-            predicted_keyword="嗨小问",
-            score=0.7,
-        ),
-        KWSSample(
-            key="neg_high", expected_detected=False, detected=True, score=0.8, duration=3600.0
-        ),
-        KWSSample(
-            key="neg_low", expected_detected=False, detected=True, score=0.2, duration=3600.0
-        ),
+        negative(score=0.1),
     ]
-
-    zero_fa = KWSMetricPipeline(
-        thresholds=[0.5, 0.75, 0.85],
-        macro_recall_false_alarms=0,
-    ).evaluate(samples)
-    one_fa = KWSMetricPipeline(
-        thresholds=[0.5, 0.75, 0.85],
-        macro_recall_false_alarms=1,
-    ).evaluate(samples)
-
-    assert zero_fa.results["macro-recall"].score == 0.5
-    assert zero_fa.results["macro-recall"].details["threshold"] == 0.85
-    assert zero_fa.results["macro-recall"].details["achieved_false_alarms"] == 0
-    assert one_fa.results["macro-recall"].score == 1.0
-    assert one_fa.results["macro-recall"].details["threshold"] == 0.5
-    assert one_fa.results["macro-recall"].details["achieved_false_alarms"] == 1
+    report = KWSMetricPipeline().evaluate(samples)
+    latency = report.results["trigger_latency"]
+    assert [row["latency_ms"] for row in report.rows] == pytest.approx([200, -100])
+    assert latency.score == pytest.approx(50)
+    assert latency.details["overall"]["p50_ms"] == pytest.approx(50)
+    assert latency.details["overall"]["p95_ms"] == pytest.approx(185)
+    assert latency.details["overall"]["count"] == 2
+    assert report.summary["per_keyword"]["A"]["true_positives"] == 2
+    assert report.summary["unmatched_triggers"] == 1
 
 
-def test_kws_macro_recall_rejects_negative_false_alarm_budget() -> None:
-    from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import (
-        compute_macro_recall_at_false_alarms,
-    )
+def test_unmatched_positive_trigger_is_diagnostic_only_for_background_fa_rate():
+    from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSMetric
 
-    with pytest.raises(ValueError, match="non-negative"):
-        compute_macro_recall_at_false_alarms([], false_alarm_budget=-1)
-
-
-def test_kws_macro_recall_penalizes_wrong_keyword() -> None:
-    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
-
-    report = KWSMetricPipeline(thresholds=[0.5], macro_recall_false_alarms=0).evaluate(
+    result = KWSMetric().calculate_samples(
         [
             KWSSample(
-                key="pos",
+                key="positive-stream",
                 expected_detected=True,
-                expected_keyword="嗨小问",
-                detected=True,
-                predicted_keyword="你好问问",
-                score=0.99,
-            )
+                duration=5,
+                events=[KWSEvent("A", 1, 0.5)],
+                detections=[KWSTrigger("WRONG", 0.9, 3)],
+            ),
+            negative(duration=3600, score=0.1),
         ]
     )
 
-    assert report.results["macro-recall"].score == 0.0
+    point = next(item for item in result.details["operating_curve"] if item["threshold"] == pytest.approx(0.9))
+    assert point["false_alarms"] == 0
+    assert point["false_alarm_per_hour"] == 0.0
+    assert point["unmatched_triggers"] == 1
 
 
-def test_kws_macro_recall_without_positive_samples_is_zero() -> None:
-    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
-
-    report = KWSMetricPipeline(thresholds=[0.5], macro_recall_false_alarms=0).evaluate(
-        [KWSSample(key="neg", expected_detected=False, detected=False, score=0.1)]
+def test_one_trigger_cannot_match_two_reference_events():
+    report = KWSMetricPipeline().evaluate(
+        [
+            KWSSample(
+                key="p",
+                expected_detected=True,
+                events=[KWSEvent("A", 1), KWSEvent("A", 1.5)],
+                detections=[KWSTrigger("A", 0.9, 1.2)],
+            ),
+            negative(score=0.1),
+        ]
     )
+    assert report.results["macro_recall"].score == 0.5
+    assert [row["matched"] for row in report.rows] == [True, False]
 
-    assert report.results["macro-recall"].score == 0.0
+
+def test_out_of_window_trigger_is_a_miss():
+    report = KWSMetricPipeline(match_tolerance_sec=0.2).evaluate(
+        [positive(keyword_end_sec=1, trigger_time_sec=1.5), negative(score=0.1)]
+    )
+    assert report.results["macro_recall"].score == 0
+    assert report.results["trigger_latency"].score is None
 
 
-def test_kws_macro_recall_registry_metric_uses_macro_recall_score() -> None:
+def test_missing_timestamps_report_latency_coverage_instead_of_zero():
+    report = KWSMetricPipeline().evaluate(
+        [
+            positive("timed", keyword_end_sec=1, trigger_time_sec=1.2),
+            positive("untimed"),
+            negative(score=0.1),
+        ]
+    )
+    overall = report.results["trigger_latency"].details["overall"]
+    assert overall["matched_events"] == 2
+    assert overall["count"] == 1
+    assert overall["coverage"] == 0.5
+    assert overall["mean_ms"] == pytest.approx(200)
+
+
+def test_frame_latency_uses_threshold_crossing_not_peak_and_no_prior_gate():
+    report = KWSMetricPipeline().evaluate(
+        [
+            KWSSample(
+                key="p",
+                expected_detected=True,
+                expected_keyword="A",
+                predicted_keyword="A",
+                detected=False,
+                scores=[0.1, 0.6, 0.9],
+                frame_shift_sec=0.1,
+                keyword_end_sec=0.15,
+            ),
+            negative(score=0.1),
+        ]
+    )
+    assert report.results["macro_recall"].score == 1
+    # Tie policy selects the higher threshold (.9); use a fixed search to exercise .6.
+    fixed = KWSMetricPipeline(thresholds=[0.6]).evaluate(
+        [
+            KWSSample(
+                key="p",
+                expected_detected=True,
+                expected_keyword="A",
+                predicted_keyword="A",
+                scores=[0.1, 0.6, 0.9],
+                frame_shift_sec=0.1,
+                keyword_end_sec=0.15,
+            ),
+            negative(score=0.1),
+        ]
+    )
+    assert fixed.rows[0]["trigger_time_sec"] == pytest.approx(0.2)
+    assert fixed.rows[0]["latency_ms"] == pytest.approx(50)
+
+
+@pytest.mark.parametrize(
+    "scores,expected_auc", [([0.9, 0.1], 1), ([0.1, 0.9], 0), ([0.5, 0.5], 0.5)]
+)
+def test_optional_roc_has_standard_fpr_axis_and_auc(scores, expected_auc):
+    report = KWSMetricPipeline(include_roc=True).evaluate(
+        [positive(score=scores[0]), negative(score=scores[1])]
+    )
+    assert report.results["auc"].score == expected_auc
+    roc = report.results["roc_curve"].details
+    assert roc["x_axis"] == "false_positive_rate"
+    points = roc["per_keyword"]["A"]["points"]
+    assert (points[0]["fpr"], points[0]["tpr"]) == (0, 0)
+    assert (points[-1]["fpr"], points[-1]["tpr"]) == (1, 1)
+
+
+def test_multiclass_roc_requires_complete_per_keyword_scores():
+    samples = [positive("a"), positive("b", "B"), negative(score=0.1)]
+    missing = KWSMetricPipeline(include_roc=True).evaluate(samples)
+    assert missing.results["auc"].score is None
+    assert not missing.results["roc_curve"].details["available"]
+    samples = [
+        replace(samples[0], keyword_scores={"A": 0.9, "B": 0.1}),
+        replace(samples[1], keyword_scores={"A": 0.1, "B": 0.9}),
+        replace(samples[2], keyword_scores={"A": 0.1, "B": 0.1}),
+    ]
+    assert KWSMetricPipeline(include_roc=True).evaluate(samples).results["auc"].score == 1
+
+
+def test_event_stream_roc_is_explicitly_unavailable():
+    report = KWSMetricPipeline(include_roc=True).evaluate(
+        [positive(), KWSSample(key="n", expected_detected=False, duration=3600, detections=[])]
+    )
+    assert report.results["auc"].score is None
+    assert "event lists" in report.results["roc_curve"].details["reason"]
+
+
+@pytest.mark.parametrize("duration", [None, 0, -1, float("nan"), float("inf")])
+def test_invalid_negative_duration_is_rejected(duration):
+    with pytest.raises(ValueError, match="duration"):
+        KWSMetricPipeline().evaluate([positive(), negative(duration)])
+
+
+@pytest.mark.parametrize("budget", [-1, float("nan"), float("inf")])
+def test_invalid_rate_budget_is_rejected(budget):
+    with pytest.raises(ValueError, match="target_fa_per_hour"):
+        KWSMetricPipeline(target_fa_per_hour=budget).evaluate([positive(), negative()])
+
+
+@pytest.mark.parametrize("score", [float("nan"), float("inf"), -float("inf")])
+def test_nonfinite_scores_are_rejected(score):
+    with pytest.raises(ValueError, match="score"):
+        KWSMetricPipeline().evaluate([positive(score=score), negative()])
+
+
+def test_missing_positive_negative_or_raw_scores_are_rejected():
+    for samples, message in [
+        ([], "requires samples"),
+        ([positive()], "negative audio"),
+        ([negative()], "positive keyword"),
+        ([positive(), negative(score=None)], "Raw score"),
+    ]:
+        with pytest.raises(ValueError, match=message):
+            KWSMetricPipeline().evaluate(samples)
+
+
+def test_empty_candidate_list_is_valid_and_duplicate_keys_are_rejected():
+    samples = [
+        positive(),
+        KWSSample(key="n", expected_detected=False, duration=3600, detections=[]),
+    ]
+    assert KWSMetricPipeline().evaluate(samples).results["macro_recall"].score == 1
+    with pytest.raises(ValueError, match="Duplicate"):
+        KWSMetricPipeline().evaluate([*samples, samples[0]])
+
+
+def test_registry_removes_kws_accuracy_and_exposes_new_macro():
     from sure_eval.evaluation.registry import MetricRegistry
-    from sure_eval.evaluation.tasks.kws import KWSSample
+
+    assert "kws_accuracy" not in MetricRegistry.list_metrics()
+    result = MetricRegistry.get_metric("kws_macro_recall").calculate_samples(
+        [positive(), negative()]
+    )
+    assert result.metric_name == "macro_recall"
+    assert result.score == 1
+
+
+def test_optional_roc_does_not_relabel_another_keywords_score():
+    report = KWSMetricPipeline(include_roc=True).evaluate(
+        [replace(positive(), predicted_keyword="B"), negative(score=0.1)]
+    )
+    assert report.results["macro_recall"].score == 0
+    assert report.results["auc"].score is None
+    assert "another predicted keyword" in report.results["roc_curve"].details["reason"]
+
+
+def test_timestamp_and_multievent_validation():
+    invalid = [
+        positive(keyword_end_sec=-1),
+        positive(keyword_end_sec=1, keyword_start_sec=2),
+        positive(trigger_time_sec=float("nan")),
+        positive(duration=1, keyword_end_sec=2),
+        KWSSample(
+            key="p",
+            expected_detected=True,
+            events=[KWSEvent("A", 1), KWSEvent("A", 2)],
+            detections=[KWSTrigger("A", 0.9)],
+        ),
+        replace(positive(), detections=[]),
+    ]
+    for sample in invalid:
+        with pytest.raises(ValueError):
+            KWSMetricPipeline().evaluate([sample, negative()])
+
+
+def test_frame_first_crossing_can_leave_matching_window_as_threshold_drops():
+    from sure_eval.evaluation.nodes.scoring.wekws_det.metrics import KWSMetric
 
     samples = [
         KWSSample(
-            key="pos_high",
+            key="p",
             expected_detected=True,
-            expected_keyword="嗨小问",
-            detected=True,
-            predicted_keyword="嗨小问",
-            score=0.9,
+            expected_keyword="A",
+            predicted_keyword="A",
+            scores=[0.6, 0.9],
+            frame_shift_sec=1,
+            keyword_end_sec=2,
         ),
-        KWSSample(
-            key="pos_low",
-            expected_detected=True,
-            expected_keyword="嗨小问",
-            detected=True,
-            predicted_keyword="嗨小问",
-            score=0.7,
-        ),
-        KWSSample(key="neg_high", expected_detected=False, detected=True, score=0.8),
-        KWSSample(key="neg_low", expected_detected=False, detected=True, score=0.2),
+        negative(score=0.1),
     ]
-
-    accuracy = MetricRegistry.get_metric("kws_accuracy").calculate_samples(
-        samples,
-        thresholds=[0.5, 0.75, 0.85],
-        macro_recall_false_alarms=0,
-    )
-    macro_recall = MetricRegistry.get_metric("macro-recall").calculate_samples(
-        samples,
-        thresholds=[0.5, 0.75, 0.85],
-        macro_recall_false_alarms=0,
-    )
-
-    assert accuracy.metric_name == "kws_accuracy"
-    assert accuracy.score == 0.75
-    assert macro_recall.metric_name == "macro-recall"
-    assert macro_recall.score == 0.5
-    assert macro_recall.details["macro_recall"] == 0.5
-
-
-def test_kws_pipeline_penalizes_wrong_keyword() -> None:
-    from sure_eval.evaluation.tasks.kws import KWSSample, KWSMetricPipeline
-
-    sample = KWSSample(
-        key="pos",
-        expected_detected=True,
-        expected_keyword="嗨小问",
-        duration=1.0,
-        detected=True,
-        predicted_keyword="你好问问",
-        score=0.99,
-    )
-
-    report = KWSMetricPipeline(thresholds=[0.5]).evaluate([sample])
-
-    assert report.results["accuracy"].score == 0.0
-    assert report.results["recall"].score == 0.0
-    assert report.results["false_reject_rate"].score == 1.0
-    assert report.rows[0]["correct"] is False
-    assert report.rows[0]["error_type"] == "wrong_keyword"
-
-
-def test_kws_loads_sure_json_outputs(tmp_path: Path) -> None:
-    from sure_eval.evaluation.tasks.kws.loaders import load_samples_from_jsonl_and_outputs
-
-    gt = tmp_path / "gt.jsonl"
-    gt.write_text(
-        "\n".join(
-            [
-                json.dumps(
-                    {
-                        "key": "pos",
-                        "expected": "detect",
-                        "text": "嗨小问",
-                        "duration": 1.0,
-                    },
-                    ensure_ascii=False,
-                ),
-                json.dumps(
-                    {
-                        "key": "neg",
-                        "expected": "reject",
-                        "duration": 2.0,
-                    },
-                    ensure_ascii=False,
-                ),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    outputs = tmp_path / "sample_output.json"
-    outputs.write_text(
-        json.dumps(
-            [
-                {
-                    "key": "pos",
-                    "result": {
-                        "detected": True,
-                        "keyword": "嗨小问",
-                        "score": 0.91,
-                    },
-                },
-                {
-                    "key": "neg",
-                    "result": {
-                        "detected": False,
-                        "keyword": None,
-                        "score": None,
-                    },
-                },
-            ],
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
-
-    samples = load_samples_from_jsonl_and_outputs(gt, outputs)
-
-    assert [sample.key for sample in samples] == ["pos", "neg"]
-    assert samples[0].expected_detected is True
-    assert samples[0].expected_keyword == "嗨小问"
-    assert samples[0].detected is True
-    assert samples[0].score == 0.91
-    assert samples[1].expected_detected is False
-
-
-def test_kws_loads_wekws_score_format(tmp_path: Path) -> None:
-    from sure_eval.evaluation.tasks.kws.loaders import load_samples_from_wekws_score_file
-
-    labels = tmp_path / "labels.jsonl"
-    labels.write_text(
-        "\n".join(
-            [
-                json.dumps({"key": "pos", "txt": "嗨小问", "duration": 1.0}, ensure_ascii=False),
-                json.dumps({"key": "neg", "txt": "其他文本", "duration": 2.0}, ensure_ascii=False),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    scores = tmp_path / "score.txt"
-    scores.write_text(
-        "\n".join(
-            [
-                "pos detected 嗨小问 0.930",
-                "neg rejected",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    samples = load_samples_from_wekws_score_file(labels, scores, keyword="嗨小问")
-
-    assert len(samples) == 2
-    assert samples[0].expected_detected is True
-    assert samples[0].detected is True
-    assert samples[0].predicted_keyword == "嗨小问"
-    assert samples[0].score == 0.93
-    assert samples[1].expected_detected is False
-    assert samples[1].detected is False
-
-
-def test_kws_loads_wekws_frame_score_format(tmp_path: Path) -> None:
-    from sure_eval.evaluation.tasks.kws.loaders import load_samples_from_wekws_frame_score_file
-
-    labels = tmp_path / "labels.jsonl"
-    labels.write_text(
-        "\n".join(
-            [
-                json.dumps({"key": "pos", "txt": "嗨小问", "duration": 1.0}, ensure_ascii=False),
-                json.dumps({"key": "neg", "txt": "其他文本", "duration": 2.0}, ensure_ascii=False),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    scores = tmp_path / "score.txt"
-    scores.write_text(
-        "\n".join(
-            [
-                "pos 嗨小问 0.100000 0.930000 0.700000",
-                "neg 嗨小问 0.100000 0.200000 0.300000",
-                "pos 其他 0.990000",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    samples = load_samples_from_wekws_frame_score_file(labels, scores, keyword="嗨小问")
-
-    assert len(samples) == 2
-    assert samples[0].expected_detected is True
-    assert samples[0].scores == [0.1, 0.93, 0.7]
-    assert samples[0].score == 0.93
-    assert samples[1].expected_detected is False
-    assert samples[1].score == 0.3
+    result = KWSMetric(match_tolerance_sec=0.1).calculate_samples(samples)
+    points = {point["threshold"]: point for point in result.details["operating_curve"]}
+    assert points[0.6]["macro_recall"] == 0
+    assert points[0.9]["macro_recall"] == 1
+    assert result.score == 1

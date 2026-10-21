@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shlex
 import subprocess
 import sys
+import tempfile
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -182,11 +185,17 @@ def run_metric_pipeline(
         None, "--wekws-frame-score-file", help="WeKWS frame score file"
     ),
     keyword: Optional[str] = typer.Option(None, "--keyword", help="KWS keyword"),
-    macro_recall_false_alarms: int = typer.Option(
-        0, "--macro-recall-false-alarms", help="False alarm count budget for KWS macro-recall"
+    target_fa_per_hour: Optional[float] = typer.Option(
+        None, "--target-fa-per-hour", help="KWS system false alarms per negative-audio hour (default 0.1)"
+    ),
+    include_roc: Optional[bool] = typer.Option(
+        None, "--include-roc/--no-include-roc", help="Include optional KWS clip ROC/AUC"
+    ),
+    match_tolerance_sec: Optional[float] = typer.Option(
+        None, "--match-tolerance-sec", help="KWS event matching tolerance in seconds (default 1.0)"
     ),
     samples_jsonl: Optional[str] = typer.Option(
-        None, "--samples-jsonl", help="TTS/VC/SE/TSE/RIR samples JSONL file"
+        None, "--samples-jsonl", help="TTS/TTA/VC/SE/TSE/RIR samples JSONL file"
     ),
     device: str = typer.Option(
         "cuda", "--device", help="Device passed to audio model runtime builders"
@@ -228,7 +237,9 @@ def run_metric_pipeline(
             wekws_score_file=wekws_score_file,
             wekws_frame_score_file=wekws_frame_score_file,
             keyword=keyword,
-            macro_recall_false_alarms=macro_recall_false_alarms,
+            target_fa_per_hour=target_fa_per_hour,
+            include_roc=include_roc,
+            match_tolerance_sec=match_tolerance_sec,
             samples_jsonl=samples_jsonl,
             device=device,
             cache_dir=cache_dir,
@@ -643,7 +654,14 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
                 "target": model.get("target"),
                 "env": model.get("env"),
             }
-            for key in ("revision", "layout", "sha256"):
+            for key in (
+                "revision",
+                "layout",
+                "source",
+                "sha256",
+                "md5",
+                "auto_download",
+            ):
                 if model.get(key):
                     download[key] = model[key]
             downloads.append(download)
@@ -663,7 +681,11 @@ def _setup_plan_for_node(node_id: str, *, no_download: bool) -> dict[str, object
         "downloads": [] if no_download else downloads,
         "node_env": str(checker.node_env_path(node_id)) if node_env else "",
         "status": "planned",
-        "note": "Checkpoint downloads are declared but not executed in this command yet.",
+        "note": (
+            "Opt-in automatic downloads run after environment setup."
+            if not no_download and any(item.get("auto_download") for item in downloads)
+            else "Checkpoint downloads are declared but not executed in this command yet."
+        ),
     }
 
 
@@ -694,6 +716,34 @@ def _download_plan_for_node(node_id: str) -> dict[str, object]:
         "node_env": str(checker.node_env_path(node_id)) if node_env else "",
         "assets": assets,
     }
+
+
+def _execute_automatic_download_plan(plan: dict[str, object]) -> dict[str, object]:
+    """Download supported assets while leaving explicitly manual assets untouched."""
+
+    result = dict(plan)
+    assets = []
+    for asset in plan.get("assets", []):
+        if not isinstance(asset, dict):
+            continue
+        executed = dict(asset)
+        if not executed.get("auto_download"):
+            executed["status"] = "skipped"
+            executed["message"] = "automatic download is not enabled for this asset"
+        elif str(executed.get("provider") or "").lower() == "manual":
+            executed["status"] = "skipped"
+            executed["message"] = "manual asset; use its target/env override"
+        else:
+            try:
+                _download_asset(executed)
+            except Exception as exc:
+                executed["status"] = "failed"
+                executed["message"] = str(exc)
+            else:
+                executed["status"] = "ok"
+        assets.append(executed)
+    result["assets"] = assets
+    return result
 
 
 def _execute_download_plan(plan: dict[str, object]) -> dict[str, object]:
@@ -745,6 +795,50 @@ def _download_asset(asset: dict[str, object]) -> None:
         snapshot_download(**kwargs)
         _verify_downloaded_asset(asset)
         return
+    if provider == "url":
+        source = str(asset.get("source") or model_id)
+        if not source.startswith(("https://", "http://")):
+            raise RuntimeError("a URL download requires an http(s) source")
+        if not target_path:
+            raise RuntimeError("a URL download requires target")
+        target = Path(str(target_path))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_file():
+            _verify_downloaded_asset(asset)
+            return
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=target.parent,
+                prefix=f".{target.name}.",
+                suffix=".part",
+                delete=False,
+            ) as handle:
+                temporary_path = Path(handle.name)
+                with urllib.request.urlopen(source, timeout=60) as response:
+                    from tqdm import tqdm
+
+                    headers = getattr(response, "headers", {})
+                    total = int(headers.get("Content-Length") or 0) if headers else 0
+                    with tqdm(
+                        total=total,
+                        unit="B",
+                        unit_scale=True,
+                        desc=f"Downloading {target.name}",
+                        disable=not total,
+                    ) as progress:
+                        while chunk := response.read(1024 * 1024):
+                            handle.write(chunk)
+                            progress.update(len(chunk))
+            verification_asset = dict(asset)
+            verification_asset["target_path"] = str(temporary_path)
+            _verify_downloaded_asset(verification_asset)
+            temporary_path.replace(target)
+        except Exception:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+            raise
+        return
     raise RuntimeError(
         f"provider {provider!r} is manual or unsupported for automated download; "
         "use the target/env fields from node_env.yaml."
@@ -752,14 +846,26 @@ def _download_asset(asset: dict[str, object]) -> None:
 
 
 def _verify_downloaded_asset(asset: dict[str, object]) -> None:
-    expected = str(asset.get("sha256") or "").lower()
-    if not expected:
-        return
+    expected_sha256 = str(asset.get("sha256") or "").lower()
+    expected_md5 = str(asset.get("md5") or "").lower()
     target_path = Path(str(asset.get("target_path") or ""))
-    try:
-        verify_file_sha256(target_path, expected)
-    except RuntimeError as exc:
-        raise RuntimeError(f"downloaded asset {exc}") from exc
+    if expected_sha256:
+        try:
+            verify_file_sha256(target_path, expected_sha256)
+        except RuntimeError as exc:
+            raise RuntimeError(f"downloaded asset {exc}") from exc
+        return
+    if expected_md5:
+        digest = hashlib.md5()
+        with target_path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        actual_md5 = digest.hexdigest()
+        if actual_md5 != expected_md5:
+            raise RuntimeError(
+                f"downloaded asset checksum mismatch for {target_path}: "
+                f"expected md5 {expected_md5}, got {actual_md5}"
+            )
 
 
 def _resolve_env_node_ids(
@@ -842,6 +948,22 @@ def _execute_setup_action(action: dict[str, object], *, force: bool) -> dict[str
             result["status"] = "skipped"
             result["message"] = f"unsupported runtime type: {runtime}"
             return result
+
+        if not action.get("no_download") and any(
+            item.get("auto_download") for item in action.get("downloads", [])
+        ):
+            download_result = _execute_automatic_download_plan(
+                _download_plan_for_node(str(action["node_id"]))
+            )
+            result["downloads"] = download_result.get("assets", [])
+            failed_downloads = [
+                asset
+                for asset in result["downloads"]
+                if isinstance(asset, dict) and asset.get("status") == "failed"
+            ]
+            if failed_downloads:
+                message = failed_downloads[0].get("message") or "unknown download error"
+                raise RuntimeError(f"automatic asset download failed: {message}")
     except Exception as exc:
         result["status"] = "failed"
         result["message"] = str(exc)
