@@ -59,20 +59,25 @@ def test_rir_pipeline_describes_registered_route() -> None:
     assert npm.metric == "rir_npm"
 
     default = describe_pipeline("rir")
-    assert default.pipeline_id == "rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1"
+    assert default.pipeline_id == "rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1__rir_edc_mae.rir_edc_mae_v1"
 
     base_bundle = describe_pipeline(
         "rir",
-        metrics=("rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae"),
+        metrics=("rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae"),
     )
     assert base_bundle.pipeline_kind == "bundle"
     assert base_bundle.execution_metrics == (
-        "rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae"
+        "rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae"
     )
 
     iacc = describe_pipeline("rir", metric="iacc")
     assert iacc.pipeline_id == "rir.any.rir_iacc_mae.rir_iacc_mae_v1"
     assert iacc.metric == "rir_iacc_mae"
+
+    rt30 = describe_pipeline("rir", metric="rt30_mae")
+    assert rt30.pipeline_id == "rir.any.rt30_mae.rt30_mae_v1"
+    edc = describe_pipeline("rir", metric="rir_edc_mae")
+    assert edc.pipeline_id == "rir.any.rir_edc_mae.rir_edc_mae_v1"
 
 
 def test_rir_script_describe_and_run_writes_report(tmp_path: Path) -> None:
@@ -183,18 +188,22 @@ def test_rir_metrics_run_on_small_fixture(tmp_path: Path) -> None:
         channel_layout="binaural_lr",
         metadata={"microphone_spacing_m": 0.18},
     )
-    report = evaluate_rir_samples([sample], metrics=("rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"))
+    report = evaluate_rir_samples([sample], metrics=("rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"))
     assert report.pipeline_kind == "bundle"
     assert report.score is not None
-    assert set(report.details["results"]) == {"rir_npm", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
+    assert set(report.details["results"]) == {"rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"}
     npm_row = report.details["results"]["rir_npm"]["per_sample"][0]
     assert "reference_energy" in npm_row and "prediction_energy" in npm_row
     rt60_row = report.details["results"]["rt60_mae"]["per_sample"][0]
     assert rt60_row["channels"] and "reference_rt60" in rt60_row["channels"][0]
+    rt30_row = report.details["results"]["rt30_mae"]["per_sample"][0]
+    assert rt30_row["channels"] and "reference_rt30" in rt30_row["channels"][0]
     drr_row = report.details["results"]["rir_drr_mae"]["per_sample"][0]
     assert drr_row["channels"][0]["reference_drr"] is not None
     c50_row = report.details["results"]["rir_c50_mae"]["per_sample"][0]
     assert c50_row["channels"][0]["reference_c"] is not None
+    edc_row = report.details["results"]["rir_edc_mae"]["per_sample"][0]
+    assert edc_row["channels"][0]["valid_points"] >= 4
     ild_row = report.details["results"]["rir_ild_mae"]["per_sample"][0]
     assert "reference_ild" in ild_row["pairs"][0]
     assert np.isclose(ild_row["pairs"][0]["score"], ild_row["pairs"][0]["absolute_error_sum"] / ild_row["pairs"][0]["valid_bin_count"])
@@ -221,6 +230,62 @@ def test_rir_metrics_accept_reference_npy_in_channel_first_layout(tmp_path: Path
     )
     result = evaluate_rir_samples([sample], metrics=("rir_npm",))
     assert result.details["results"]["rir_npm"]["score"] < 0
+
+
+def test_rir_minimal_examples_cover_every_registered_metric(tmp_path: Path) -> None:
+    acoustic_metrics = ("rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae")
+    mono_reference = tmp_path / "mono_reference.wav"
+    mono_prediction = tmp_path / "mono_prediction.wav"
+    mono_reference_stereo = tmp_path / "mono_reference_stereo.wav"
+    mono_prediction_stereo = tmp_path / "mono_prediction_stereo.wav"
+    _write_long_rir(mono_reference_stereo)
+    _write_long_rir(mono_prediction_stereo, 0.9)
+    reference_audio, reference_rate = sf.read(mono_reference_stereo, always_2d=True)
+    prediction_audio, prediction_rate = sf.read(mono_prediction_stereo, always_2d=True)
+    sf.write(mono_reference, reference_audio[:, 0], reference_rate)
+    sf.write(mono_prediction, prediction_audio[:, 0], prediction_rate)
+    mono = RIRSample(
+        prediction_rir=str(mono_prediction), reference_rir=str(mono_reference),
+        sample_id="minimal-mono", channel_layout="mono",
+    )
+    binaural_reference = tmp_path / "binaural_reference.wav"
+    binaural_prediction = tmp_path / "binaural_prediction.wav"
+    _write_long_rir(binaural_reference)
+    _write_long_rir(binaural_prediction, 0.9)
+    binaural = RIRSample(
+        prediction_rir=str(binaural_prediction), reference_rir=str(binaural_reference),
+        sample_id="minimal-binaural", channel_layout="binaural_lr",
+        metadata={"microphone_spacing_m": 0.18},
+    )
+    reference = np.zeros((4096, 4), dtype=np.float64)
+    prediction = np.zeros((4096, 4), dtype=np.float64)
+    for channel in range(4):
+        reference[8 + channel * 2, channel] = 1.0 / (channel + 1)
+        prediction[9 + channel * 2, channel] = 0.9 / (channel + 1)
+        reference_tail = np.exp(-np.arange(4088 - channel * 2) / 600.0) * 0.05 / (channel + 1)
+        prediction_tail = np.exp(-np.arange(4087 - channel * 2) / 600.0) * 0.045 / (channel + 1)
+        reference[8 + channel * 2 :, channel] += reference_tail
+        prediction[9 + channel * 2 :, channel] += prediction_tail
+    np.save(tmp_path / "four_reference.npy", reference)
+    np.save(tmp_path / "four_prediction.npy", prediction)
+    four = RIRSample(
+        prediction_rir=str(tmp_path / "four_prediction.npy"), reference_rir=str(tmp_path / "four_reference.npy"),
+        sample_id="minimal-four-channel", sample_rate=16000, channel_layout="multi_channel",
+        metadata={"microphone_spacing_m": 0.08},
+    )
+    mono_report = evaluate_rir_samples([mono], metrics=acoustic_metrics, channel_mode="single")
+    binaural_report = evaluate_rir_samples(
+        [binaural], metrics=acoustic_metrics + ("rir_iacc_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae"), channel_mode="binaural"
+    )
+    four_report = evaluate_rir_samples(
+        [four], metrics=acoustic_metrics + ("rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="multi"
+    )
+    covered = set(mono_report.details["results"]) | set(binaural_report.details["results"]) | set(four_report.details["results"])
+    assert covered == {
+        "rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae",
+        "rir_iacc_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae",
+    }
+    assert four_report.details["results"]["rir_doa_mae"]["per_sample"][0]["pair_count"] == 3
 
 
 def test_rir_npm_is_scale_invariant_and_reports_db(tmp_path: Path) -> None:
@@ -287,17 +352,17 @@ def test_rir_channel_branches_and_binaural_metrics(tmp_path: Path) -> None:
     assert report.details["results"]["rir_itd_mae"]["unit"] == "ms"
 
 
-def test_binaural_metric_rejects_three_channel_rir(tmp_path: Path) -> None:
+def test_binaural_metric_rejects_four_channel_rir(tmp_path: Path) -> None:
     reference = tmp_path / "reference.npy"
     prediction = tmp_path / "prediction.npy"
-    signal = np.zeros((3, 64), dtype=np.float64)
+    signal = np.zeros((4, 64), dtype=np.float64)
     signal[:, 4] = 1.0
     np.save(reference, signal)
     np.save(prediction, signal)
     sample = RIRSample(
         prediction_rir=str(prediction),
         reference_rir=str(reference),
-        sample_id="rir-three-channel-001",
+        sample_id="rir-four-channel-001",
         sample_rate=16000,
         channel_layout="multi_channel",
         metadata={"microphone_spacing_m": 0.08},
@@ -315,8 +380,8 @@ def test_binaural_metric_rejects_three_channel_rir(tmp_path: Path) -> None:
     )
     for result in spatial_report.details["results"].values():
         row = result["per_sample"][0]
-        assert row["pair_count"] == 2
-        assert len(row["pairs"]) == 2
+        assert row["pair_count"] == 3
+        assert len(row["pairs"]) == 3
 
 
 def test_multichannel_spatial_scores_weight_samples_equally(tmp_path: Path) -> None:
@@ -437,10 +502,12 @@ def test_rir_nodes_are_in_process_environment_checks() -> None:
     checker = NodeEnvChecker()
     for metric in (
         "rir_npm",
+        "rt30_mae",
         "rt60_mae",
         "rir_drr_mae",
         "rir_c50_mae",
         "rir_c80_mae",
+        "rir_edc_mae",
         "rir_iacc_mae",
         "rir_itd_mae",
         "rir_ild_mae",

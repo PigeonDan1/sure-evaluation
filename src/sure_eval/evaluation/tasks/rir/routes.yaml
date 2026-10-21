@@ -10,6 +10,13 @@ routes:
     input_contract: scoring/rir_npm
     executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
   -
+    metric: rt30_mae
+    family: room_acoustics
+    pipeline_id: rir.any.rt30_mae.rt30_mae_v1
+    nodes: [scoring/rt30_mae]
+    input_contract: scoring/rt30_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
     metric: rt60_mae
     family: room_acoustics
     pipeline_id: rir.any.rt60_mae.rt60_mae_v1
@@ -36,6 +43,13 @@ routes:
     pipeline_id: rir.any.rir_c80_mae.rir_c80_mae_v1
     nodes: [scoring/rir_c80_mae]
     input_contract: scoring/rir_c80_mae
+    executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+  -
+    metric: rir_edc_mae
+    family: room_acoustics
+    pipeline_id: rir.any.rir_edc_mae.rir_edc_mae_v1
+    nodes: [scoring/rir_edc_mae]
+    input_contract: scoring/rir_edc_mae
     executor: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
   -
     metric: rir_iacc_mae

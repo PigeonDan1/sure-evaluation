@@ -16,7 +16,7 @@ spatial entries include each channel-0-relative pair; ILD/IPD additionally
 report the valid frequency-bin count and absolute-error sum used for the mean.
 
 The evaluator has two channel branches. The single-channel branch accepts one
-channel and computes the base NPM, RT60, DRR, C50, and C80 metrics. The
+channel and computes the base NPM, RT30, RT60, DRR, C50, C80, and EDC metrics. The
 multi-channel branch computes the same base metrics before adding spatial
 metrics. IACC is restricted to an exact binaural pair. ITD, ILD, IPD, and DOA
 accept two or more channels and report one pair for every `chN` relative to
@@ -29,10 +29,12 @@ used when it is omitted.
 | Metric | Meaning | Direction |
 |---|---|---|
 | `rir_npm` | normalized projection misalignment in dB | lower is better |
+| `rt30_mae` | measured 30 dB decay-time error in seconds | lower is better |
 | `rt60_mae` | absolute RT60 error in seconds | lower is better |
 | `rir_drr_mae` | direct-to-reverberant ratio error in dB | lower is better |
 | `rir_c50_mae` | C50 error in dB | lower is better |
 | `rir_c80_mae` | C80 error in dB | lower is better |
+| `rir_edc_mae` | energy decay curve MAE above -40 dB in dB | lower is better |
 | `rir_iacc_mae` | interaural cross-correlation coefficient error in a +/-1 ms window | lower is better |
 | `rir_itd_mae` | interaural time difference error in ms in a +/-1 ms window | lower is better |
 | `rir_ild_mae` | ch0-relative interchannel level error in dB | lower is better |
@@ -42,16 +44,16 @@ used when it is omitted.
 The default bundle is:
 
 ```text
-rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1
+rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1__rir_edc_mae.rir_edc_mae_v1
 ```
 
-The bundle's top-level `score` is `rir_npm`; both metric scores are in
+The bundle's top-level `score` is `rir_npm`; all metric scores are in
 `details.results`. This is a reporting convention, not a combined score.
 
 For cross-channel base evaluation, the curated bundle is:
 
 ```text
-rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1
+rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1__rir_edc_mae.rir_edc_mae_v1
 ```
 
 It accepts the monaural and multi-channel branches because it contains only
@@ -63,14 +65,15 @@ For multi-channel spatial evaluation with more than two channels, use the
 registered spatial bundle without IACC:
 
 ```text
-rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1__rir_itd_mae.rir_itd_mae_v1__rir_ild_mae.rir_ild_mae_v1__rir_ipd_mae.rir_ipd_mae_v1__rir_doa_mae.rir_doa_mae_v1
+rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1__rir_edc_mae.rir_edc_mae_v1__rir_itd_mae.rir_itd_mae_v1__rir_ild_mae.rir_ild_mae_v1__rir_ipd_mae.rir_ipd_mae_v1__rir_doa_mae.rir_doa_mae_v1
 ```
 
 This bundle reports the remaining spatial metrics as channel-0-relative pairs;
 IACC is intentionally absent because it is defined only for an exact binaural
 pair.
 
-For the multi-channel spatial chain, start with the same NPM and RT60 base
+For the multi-channel spatial chain, start with the same NPM, RT30, RT60, DRR,
+C50, C80, and EDC base
 metrics, then select the registered bundle containing
 `rir_iacc_mae`, `rir_itd_mae`, `rir_ild_mae`, and `rir_ipd_mae` together with
 the channel-wise metrics. Its top-level score is `rir_npm`; spatial

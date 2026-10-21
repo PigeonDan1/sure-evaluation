@@ -21,7 +21,7 @@ from sure_eval.evaluation.scripts.contracts import (
 )
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
-DEFAULT_METRICS = ("rir_npm", "rt60_mae")
+DEFAULT_METRICS = ("rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae")
 
 
 def describe_pipeline(*, metrics: str | list[str] | tuple[str, ...] | None = None, metric: str | None = None, pipeline_id: str | None = None, language: str = "n/a"):

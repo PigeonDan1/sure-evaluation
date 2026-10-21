@@ -3,10 +3,12 @@ language_sensitive: false
 canonical_entry: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
 implemented_metrics:
   - rir_npm
+  - rt30_mae
   - rt60_mae
   - rir_drr_mae
   - rir_c50_mae
   - rir_c80_mae
+  - rir_edc_mae
   - rir_iacc_mae
   - rir_itd_mae
   - rir_ild_mae
@@ -15,8 +17,13 @@ implemented_metrics:
 default_metrics:
   n/a:
     - rir_npm
+    - rt30_mae
     - rt60_mae
-default_pipeline: rir.any.multi.rir_npm.rir_npm_v1__rt60_mae.rt60_mae_v1
+    - rir_drr_mae
+    - rir_c50_mae
+    - rir_c80_mae
+    - rir_edc_mae
+default_pipeline: rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1__rir_edc_mae.rir_edc_mae_v1
 input_contracts:
   scoring/rir_npm:
     purpose: rir_normalized_projection_misalignment
@@ -42,6 +49,14 @@ input_contracts:
     alignment_key: sample_id
     aggregation: mean
     main_report: true
+  scoring/rt30_mae:
+    purpose: rir_30_db_decay_time_absolute_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
   scoring/rir_drr_mae:
     purpose: rir_direct_to_reverberant_ratio_error
     required_roles: [prediction_rir, reference_rir]
@@ -60,6 +75,14 @@ input_contracts:
     main_report: true
   scoring/rir_c80_mae:
     purpose: rir_early_to_late_clarity_error_80ms
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_edc_mae:
+    purpose: rir_energy_decay_curve_mean_absolute_error
     required_roles: [prediction_rir, reference_rir]
     optional_roles: [metadata]
     row_format: rir_samples_jsonl

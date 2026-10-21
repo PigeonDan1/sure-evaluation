@@ -300,7 +300,9 @@ def _resolve_path(value: Any, jsonl_path: str | Path) -> Path:
 
 
 def _metadata(row: dict[str, Any], line_no: int) -> dict[str, Any]:
-    metadata = row.get("metadata") or {}
+    metadata = row.get("metadata")
+    if metadata is None:
+        metadata = {}
     if not isinstance(metadata, dict):
         _fail(line_no, "metadata must be an object when present")
     return dict(metadata)

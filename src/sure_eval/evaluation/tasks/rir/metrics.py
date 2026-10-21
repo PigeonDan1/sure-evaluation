@@ -234,6 +234,21 @@ def _fit_rt60(edc_db: np.ndarray, sample_rate: int, decay_db: float) -> float:
     return float(-60.0 / slope) if slope < 0.0 else float("nan")
 
 
+def _fit_decay_duration(edc_db: np.ndarray, sample_rate: int, decay_db: float) -> float:
+    """Return the measured time between -5 dB and -(5+decay_db) dB."""
+    upper_db = -5.0
+    lower_db = -(5.0 + decay_db)
+    below_upper = np.flatnonzero(edc_db <= upper_db)
+    below_lower = np.flatnonzero(edc_db <= lower_db)
+    if below_upper.size == 0 or below_lower.size == 0:
+        return float("nan")
+    start = int(below_upper[0])
+    end = int(below_lower[0])
+    if end - start < 4:
+        return float("nan")
+    return float(end - start) / float(sample_rate)
+
+
 def _rt60(signal: np.ndarray, sample_rate: int) -> float:
     x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
     if x.size < 4:
@@ -244,6 +259,48 @@ def _rt60(signal: np.ndarray, sample_rate: int) -> float:
         (value for value in (_fit_rt60(edc_db, sample_rate, 30.0), _fit_rt60(edc_db, sample_rate, 20.0)) if np.isfinite(value)),
         float("nan"),
     )
+
+
+def _rt30(signal: np.ndarray, sample_rate: int) -> float:
+    x = np.ascontiguousarray(np.asarray(signal, dtype="float64").reshape(-1))
+    if x.size < 4:
+        return float("nan")
+    energy = np.cumsum((x**2)[::-1])[::-1]
+    edc_db = 10.0 * np.log10(energy / (energy[0] + _EPSILON) + _EPSILON)
+    return _fit_decay_duration(edc_db, sample_rate, 30.0)
+
+
+def _decay_metric(samples: list[RIRSample], *, metric_name: str, field_name: str, estimator) -> MetricResult:
+    values = []
+    per_sample = []
+    for sample in samples:
+        prediction, reference, rate = _pair(sample)
+        errors = []
+        channel_rows = []
+        for channel in range(prediction.shape[1]):
+            predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
+            pred = estimator(predicted, rate)
+            ref = estimator(target, rate)
+            if np.isfinite(pred) and np.isfinite(ref):
+                error = float(abs(pred - ref))
+                errors.append(error)
+                channel_rows.append({
+                    "channel": channel,
+                    f"prediction_{field_name}": float(pred),
+                    f"reference_{field_name}": float(ref),
+                    "score": error,
+                    "unit": "seconds",
+                })
+        if not errors:
+            raise ValueError(f"{field_name.upper()} could not be estimated for {sample.sample_id}")
+        score = float(np.mean(errors))
+        values.append(score)
+        per_sample.append({"sample_id": sample.sample_id, "score": score, "channels": channel_rows, "unit": "seconds"})
+    return MetricResult(metric_name, _mean(values), {"per_sample": per_sample, "higher_is_better": False, "unit": "seconds"})
+
+
+def rt30_mae(samples: list[RIRSample]) -> MetricResult:
+    return _decay_metric(samples, metric_name="rt30_mae", field_name="rt30", estimator=_rt30)
 
 
 def rt60_mae(samples: list[RIRSample]) -> MetricResult:
@@ -280,6 +337,77 @@ def rt60_mae(samples: list[RIRSample]) -> MetricResult:
         "rt60_mae",
         _mean(values),
         {"per_sample": per_sample, "higher_is_better": False, "unit": "seconds"},
+    )
+
+
+def _edc_curve_stats(prediction: np.ndarray, reference: np.ndarray, floor_db: float = -40.0) -> tuple[float, float, float, int]:
+    def curve(signal: np.ndarray) -> np.ndarray:
+        energy = np.cumsum((signal**2)[::-1])[::-1]
+        return 10.0 * np.log10(energy / (energy[0] + _EPSILON) + _EPSILON)
+
+    predicted = curve(np.asarray(prediction, dtype="float64"))
+    target = curve(np.asarray(reference, dtype="float64"))
+    length = min(predicted.size, target.size)
+    if length < 4:
+        return float("nan"), float("nan"), float("nan"), 0
+    predicted = predicted[:length]
+    target = target[:length]
+    valid = np.isfinite(predicted) & np.isfinite(target) & (target >= floor_db)
+    if int(valid.sum()) < 4:
+        return float("nan"), float("nan"), float("nan"), int(valid.sum())
+    difference = predicted[valid] - target[valid]
+    correlation = float("nan")
+    if difference.size >= 2 and np.std(predicted[valid]) > _EPSILON and np.std(target[valid]) > _EPSILON:
+        correlation = float(np.corrcoef(predicted[valid], target[valid])[0, 1])
+    return (
+        float(np.mean(np.abs(difference))),
+        float(np.sqrt(np.mean(difference**2))),
+        correlation,
+        int(valid.sum()),
+    )
+
+
+def rir_edc_mae(samples: list[RIRSample]) -> MetricResult:
+    values = []
+    per_sample = []
+    rmses = []
+    correlations = []
+    for sample in samples:
+        prediction, reference, rate = _pair(sample)
+        channel_errors = []
+        channel_rows = []
+        for channel in range(prediction.shape[1]):
+            predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
+            mae, rmse, correlation, valid_points = _edc_curve_stats(predicted, target)
+            if np.isfinite(mae):
+                channel_errors.append(mae)
+                rmses.append(rmse)
+                correlations.append(correlation)
+                channel_rows.append({
+                    "channel": channel,
+                    "edc_mae_db": mae,
+                    "edc_rmse_db": rmse,
+                    "edc_correlation": correlation,
+                    "valid_points": valid_points,
+                    "unit": "dB",
+                })
+        if not channel_errors:
+            raise ValueError(f"EDC could not be estimated for {sample.sample_id}")
+        score = float(np.mean(channel_errors))
+        values.append(score)
+        per_sample.append({"sample_id": sample.sample_id, "score": score, "channels": channel_rows, "unit": "dB"})
+    finite_rmse = [value for value in rmses if np.isfinite(value)]
+    finite_corr = [value for value in correlations if np.isfinite(value)]
+    return MetricResult(
+        "rir_edc_mae",
+        _mean(values),
+        {
+            "per_sample": per_sample,
+            "higher_is_better": False,
+            "unit": "dB",
+            "edc_rmse_db": float(np.mean(finite_rmse)) if finite_rmse else float("nan"),
+            "edc_correlation": float(np.mean(finite_corr)) if finite_corr else float("nan"),
+        },
     )
 
 
@@ -568,11 +696,13 @@ __all__ = [
     "rir_c80_mae",
     "rir_doa_mae",
     "rir_drr_mae",
+    "rir_edc_mae",
     "rir_iacc_mae",
     "rir_ild_mae",
     "rir_ipd_mae",
     "rir_itd_mae",
     "rir_npm",
+    "rt30_mae",
     "rt60_mae",
     "iacc",
     "itd",

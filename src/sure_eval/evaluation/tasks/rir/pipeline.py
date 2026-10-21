@@ -21,17 +21,19 @@ from sure_eval.evaluation.tasks.rir.metrics import (
     rir_c80_mae,
     rir_doa_mae,
     rir_drr_mae,
+    rir_edc_mae,
     rir_iacc_mae,
     rir_ild_mae,
     rir_ipd_mae,
     rir_itd_mae,
     rir_npm,
+    rt30_mae,
     rt60_mae,
     validate_rir_samples,
 )
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
-DEFAULT_METRICS = ("rir_npm", "rt60_mae")
+DEFAULT_METRICS = ("rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae")
 METRIC_ALIASES = {
     "npm": "rir_npm",
     "rir_npm": "rir_npm",
@@ -42,10 +44,12 @@ METRIC_ALIASES = {
 }
 METRICS = {
     "rir_npm": ("scoring/rir_npm", rir_npm),
+    "rt30_mae": ("scoring/rt30_mae", rt30_mae),
     "rt60_mae": ("scoring/rt60_mae", rt60_mae),
     "rir_drr_mae": ("scoring/rir_drr_mae", rir_drr_mae),
     "rir_c50_mae": ("scoring/rir_c50_mae", rir_c50_mae),
     "rir_c80_mae": ("scoring/rir_c80_mae", rir_c80_mae),
+    "rir_edc_mae": ("scoring/rir_edc_mae", rir_edc_mae),
     "rir_iacc_mae": ("scoring/rir_iacc_mae", rir_iacc_mae),
     "rir_itd_mae": ("scoring/rir_itd_mae", rir_itd_mae),
     "rir_ild_mae": ("scoring/rir_ild_mae", rir_ild_mae),
