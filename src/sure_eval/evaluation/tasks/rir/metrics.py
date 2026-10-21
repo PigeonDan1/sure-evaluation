@@ -167,24 +167,17 @@ def rir_npm(samples: list[RIRSample]) -> MetricResult:
         if reference_energy <= _EPSILON or prediction_energy <= _EPSILON:
             raise ValueError(f"NPM requires nonzero RIR energy for {sample.sample_id}")
         max_lag = min(256, prediction.shape[0] - 1, reference.shape[0] - 1)
-        lag_values = []
-        for lag in range(-max_lag, max_lag + 1):
-            if lag < 0:
-                value = sum(
-                    np.dot(reference[-lag:, channel], prediction[: prediction.shape[0] + lag, channel])
-                    for channel in range(reference.shape[1])
-                )
-            elif lag > 0:
-                value = sum(
-                    np.dot(reference[: reference.shape[0] - lag, channel], prediction[lag:, channel])
-                    for channel in range(reference.shape[1])
-                )
-            else:
-                value = sum(
-                    np.dot(reference[:, channel], prediction[:, channel])
-                    for channel in range(reference.shape[1])
-                )
-            lag_values.append(float(value))
+        fft_length = reference.shape[0] + prediction.shape[0] - 1
+        correlation = np.zeros(fft_length, dtype="float64")
+        for channel in range(reference.shape[1]):
+            reference_fft = np.fft.rfft(reference[:, channel], fft_length)
+            prediction_fft = np.fft.rfft(prediction[:, channel], fft_length)
+            full = np.fft.irfft(reference_fft * np.conj(prediction_fft), fft_length)
+            correlation += np.concatenate((full[-(prediction.shape[0] - 1) :], full[: reference.shape[0]]))
+        center = reference.shape[0] - 1
+        # The legacy loop indexes negative lags first; reverse the standard
+        # correlation slice to preserve both scores and reported lag signs.
+        lag_values = correlation[center - max_lag : center + max_lag + 1][::-1]
         best_index = int(np.argmax(np.abs(lag_values)))
         correlation_max = float(abs(lag_values[best_index]))
         best_lag = int(best_index - max_lag)
