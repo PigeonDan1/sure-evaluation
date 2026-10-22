@@ -66,10 +66,12 @@ BUNDLE_COMBINATIONS = (
         {
             "metrics": (
                 "rir_npm",
+                "rt30_mae",
                 "rt60_mae",
                 "rir_drr_mae",
                 "rir_c50_mae",
                 "rir_c80_mae",
+                "rir_edc_mae",
             )
         },
     ),
@@ -78,11 +80,19 @@ BUNDLE_COMBINATIONS = (
         {
             "metrics": (
                 "rir_npm",
+                "rt30_mae",
                 "rt60_mae",
-                "rir_iacc_mae",
+                "rir_drr_mae",
+                "rir_c50_mae",
+                "rir_c80_mae",
+                "rir_edc_mae",
+                "rir_iacc_full_mae",
+                "rir_iacc_early_mae",
+                "rir_iacc_late_mae",
                 "rir_itd_mae",
                 "rir_ild_mae",
                 "rir_ipd_mae",
+                "rir_doa_mae",
             )
         },
     ),
@@ -91,7 +101,12 @@ BUNDLE_COMBINATIONS = (
         {
             "metrics": (
                 "rir_npm",
+                "rt30_mae",
                 "rt60_mae",
+                "rir_drr_mae",
+                "rir_c50_mae",
+                "rir_c80_mae",
+                "rir_edc_mae",
                 "rir_itd_mae",
                 "rir_ild_mae",
                 "rir_ipd_mae",

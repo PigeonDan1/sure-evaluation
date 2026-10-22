@@ -78,8 +78,14 @@ pair.
 For the binaural spatial chain, start with the same NPM, RT30, RT60, DRR,
 C50, C80, and EDC base metrics, then select the registered bundle containing
 `rir_iacc_full_mae`, `rir_iacc_early_mae`, `rir_iacc_late_mae`, `rir_itd_mae`,
-`rir_ild_mae`, and `rir_ipd_mae`. Its top-level score is `rir_npm`; spatial
-scores remain separate entries in `details.results`.
+`rir_ild_mae`, `rir_ipd_mae`, and `rir_doa_mae`. Its pipeline ID is:
+
+```text
+rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1__rir_edc_mae.rir_edc_mae_v1__rir_iacc_full_mae.rir_iacc_full_mae_v1__rir_iacc_early_mae.rir_iacc_early_mae_v1__rir_iacc_late_mae.rir_iacc_late_mae_v1__rir_itd_mae.rir_itd_mae_v1__rir_ild_mae.rir_ild_mae_v1__rir_ipd_mae.rir_ipd_mae_v1__rir_doa_mae.rir_doa_mae_v1
+```
+
+Its top-level score is `rir_npm`; spatial scores remain separate entries in
+`details.results`.
 
 Example row:
 
