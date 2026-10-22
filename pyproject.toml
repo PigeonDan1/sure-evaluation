@@ -94,6 +94,8 @@ sure_eval = [
     "evaluation/nodes/*/*/README.md",
     "evaluation/nodes/normalization/whisper_norm/normalization_impl/*.json",
     "evaluation/nodes/normalization/whisper_norm/normalization_impl/LICENSE.*",
+    "evaluation/nodes/normalization/xnorm/xnorm_vendor/text_normalization/numbers/data/*.json",
+    "evaluation/nodes/normalization/xnorm/xnorm_vendor/LICENSE",
     "evaluation/nodes/*/*/normalization_impl/LICENSE*",
     "evaluation/nodes/normalization/giga_norm/normalization_impl/ref_code/*.tsv",
     "evaluation/nodes/scoring/sctk_sclite/*.sh",
@@ -124,6 +126,7 @@ line-length = 100
 target-version = "py310"
 extend-exclude = [
     "src/sure_eval/evaluation/nodes/normalization/giga_norm/normalization_impl",
+    "src/sure_eval/evaluation/nodes/normalization/xnorm/xnorm_vendor",
 ]
 
 [tool.ruff.lint]
