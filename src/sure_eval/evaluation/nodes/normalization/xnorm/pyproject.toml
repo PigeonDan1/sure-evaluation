@@ -1,0 +1,14 @@
+[project]
+name = "sure-eval-normalization-xnorm"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "opencc-python-reimplemented==0.1.7",
+    "nemo-text-processing==1.2.0",
+]
+
+[tool.uv]
+package = false
+override-dependencies = [
+    "cdifflib; python_version < '0'",
+]
