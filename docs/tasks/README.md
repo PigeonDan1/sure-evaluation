@@ -22,6 +22,7 @@ multi-metric bundles, see [Pipeline Catalog](../pipeline_catalog.md).
 - [TTA — Text-to-Audio](./tta.md)
 - [VC — Voice Conversion](./vc.md)
 - [SE — Speech Enhancement](./se.md)
+- [RIR — RIR Estimation and Spatial Audio](./rir.md)
 - [TSE — Target Speaker Extraction](./tse.md)
 - [Classification / SER / GR](./classification.md)
 - [KWS — Keyword Spotting](./kws.md)

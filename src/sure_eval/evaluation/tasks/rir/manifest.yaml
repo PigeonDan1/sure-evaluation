@@ -1,0 +1,158 @@
+task: RIR estimation
+language_sensitive: false
+canonical_entry: sure_eval.evaluation.tasks.rir.pipeline.evaluate_rir_samples
+implemented_metrics:
+  - rir_npm
+  - rt30_mae
+  - rt60_mae
+  - rir_drr_mae
+  - rir_c50_mae
+  - rir_c80_mae
+  - rir_edc_mae
+  - rir_iacc_mae
+  - rir_iacc_full_mae
+  - rir_iacc_early_mae
+  - rir_iacc_late_mae
+  - rir_itd_mae
+  - rir_ild_mae
+  - rir_ipd_mae
+  - rir_doa_mae
+default_metrics:
+  n/a:
+    - rir_npm
+    - rt30_mae
+    - rt60_mae
+    - rir_drr_mae
+    - rir_c50_mae
+    - rir_c80_mae
+    - rir_edc_mae
+default_pipeline: rir.any.multi.rir_npm.rir_npm_v1__rt30_mae.rt30_mae_v1__rt60_mae.rt60_mae_v1__rir_drr_mae.rir_drr_mae_v1__rir_c50_mae.rir_c50_mae_v1__rir_c80_mae.rir_c80_mae_v1__rir_edc_mae.rir_edc_mae_v1
+input_contracts:
+  scoring/rir_npm:
+    purpose: rir_normalized_projection_misalignment
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  rir_samples_jsonl:
+    purpose: rir_cli_samples_batch_input
+    required_roles: [samples_jsonl]
+    optional_roles: [cache_dir, device]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: per_sample_then_metric_mean
+    main_report: false
+  scoring/rt60_mae:
+    purpose: rir_reverberation_time_absolute_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rt30_mae:
+    purpose: rir_30_db_decay_time_absolute_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_drr_mae:
+    purpose: rir_direct_to_reverberant_ratio_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_c50_mae:
+    purpose: rir_early_to_late_clarity_error_50ms
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_c80_mae:
+    purpose: rir_early_to_late_clarity_error_80ms
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_edc_mae:
+    purpose: rir_energy_decay_curve_mean_absolute_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_ild_mae:
+    purpose: multichannel_interchannel_level_difference_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: multichannel_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_mae:
+    purpose: binaural_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_full_mae:
+    purpose: rir_binaural_full_window_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_early_mae:
+    purpose: rir_binaural_early_window_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_iacc_late_mae:
+    purpose: rir_binaural_late_window_interaural_cross_correlation_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: binaural_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_itd_mae:
+    purpose: multichannel_interchannel_time_difference_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: multichannel_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_ipd_mae:
+    purpose: multichannel_interchannel_phase_difference_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: multichannel_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/rir_doa_mae:
+    purpose: multichannel_time_difference_of_arrival_angle_error
+    required_roles: [prediction_rir, reference_rir]
+    optional_roles: [metadata]
+    row_format: multichannel_rir_samples_jsonl
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
