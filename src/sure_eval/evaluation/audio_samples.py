@@ -211,6 +211,9 @@ def load_rir_samples_jsonl(
     for row in rows:
         line_no = row["_line_no"]
         _require_fields(row, line_no, ("sample_id", "prediction_rir", "reference_rir"))
+        for field in ("prediction_rir", "reference_rir"):
+            if not isinstance(row[field], str):
+                _fail(line_no, f"{field} must be a path string")
         metadata = _metadata(row, line_no)
         sample_rate = row.get("sample_rate", metadata.get("sample_rate"))
         if sample_rate is not None:

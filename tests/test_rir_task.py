@@ -4,13 +4,14 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pytest
 import soundfile as sf
 from typer.testing import CliRunner
 
 from sure_eval.cli import app
 from sure_eval.evaluation.scripts import describe_pipeline
 from sure_eval.evaluation.scripts import run_task
-from sure_eval.evaluation.tasks.rir.pipeline import evaluate_rir_samples
+from sure_eval.evaluation.tasks.rir.pipeline import METRICS, evaluate_rir_samples
 from sure_eval.evaluation.tasks.rir.types import RIRSample
 
 
@@ -279,16 +280,14 @@ def test_rir_minimal_examples_cover_every_registered_metric(tmp_path: Path) -> N
     )
     mono_report = evaluate_rir_samples([mono], metrics=acoustic_metrics, channel_mode="single")
     binaural_report = evaluate_rir_samples(
-        [binaural], metrics=acoustic_metrics + ("rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae"), channel_mode="binaural"
+        [binaural], metrics=acoustic_metrics + ("rir_iacc_mae", "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="binaural"
     )
     four_report = evaluate_rir_samples(
         [four], metrics=acoustic_metrics + ("rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae"), channel_mode="multi"
     )
     covered = set(mono_report.details["results"]) | set(binaural_report.details["results"]) | set(four_report.details["results"])
-    assert covered == {
-        "rir_npm", "rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae",
-        "rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_ild_mae", "rir_ipd_mae", "rir_doa_mae",
-    }
+    assert covered == set(METRICS)
+    assert binaural_report.details["results"]["rir_iacc_mae"]["score"] == binaural_report.details["results"]["rir_iacc_full_mae"]["score"]
     assert four_report.details["results"]["rir_doa_mae"]["per_sample"][0]["pair_count"] == 3
 
 
@@ -461,17 +460,32 @@ def test_rir_rejects_unscorable_silent_pairs(tmp_path: Path) -> None:
             raise AssertionError(f"{metric} accepted a silent RIR as valid")
 
 
-def test_rir_samples_jsonl_contract_rejects_missing_reference(tmp_path: Path) -> None:
+@pytest.mark.parametrize("missing_field", ("sample_id", "prediction_rir", "reference_rir"))
+def test_rir_samples_jsonl_contract_rejects_missing_required_roles(tmp_path: Path, missing_field: str) -> None:
     fixture = tmp_path / "samples.jsonl"
-    fixture.write_text(json.dumps({"sample_id": "rir-001", "prediction_rir": "prediction.wav"}) + "\n", encoding="utf-8")
+    row = {"sample_id": "rir-001", "prediction_rir": "prediction.wav", "reference_rir": "reference.wav"}
+    del row[missing_field]
+    fixture.write_text(json.dumps(row) + "\n", encoding="utf-8")
     from sure_eval.evaluation.audio_samples import SampleJsonlError, load_rir_samples_jsonl
 
-    try:
+    with pytest.raises(SampleJsonlError, match=f"{missing_field} is required"):
         load_rir_samples_jsonl(fixture)
-    except SampleJsonlError as exc:
-        assert "reference_rir is required" in str(exc)
-    else:
-        raise AssertionError("missing reference_rir was accepted")
+
+
+@pytest.mark.parametrize("field", ("prediction_rir", "reference_rir"))
+@pytest.mark.parametrize("invalid_value", (42, ["rir.wav"], {"path": "rir.wav"}))
+def test_rir_samples_jsonl_contract_rejects_malformed_required_paths(
+    tmp_path: Path, field: str, invalid_value: object
+) -> None:
+    from sure_eval.evaluation.audio_samples import SampleJsonlError, load_rir_samples_jsonl
+
+    fixture = tmp_path / "samples.jsonl"
+    row = {"sample_id": "rir-001", "prediction_rir": "prediction.wav", "reference_rir": "reference.wav"}
+    row[field] = invalid_value
+    fixture.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    with pytest.raises(SampleJsonlError, match=f"{field} must be a path string"):
+        load_rir_samples_jsonl(fixture)
 
 
 def test_rir_samples_jsonl_contract_rejects_malformed_metadata(tmp_path: Path) -> None:
