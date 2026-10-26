@@ -173,8 +173,16 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     )
 
     runtime = build_tts_runtime(
-        metrics=("sim/wavlm-large", "sim/ecapa-tdnn", "sim/eres2net", "dnsmos", "wv-mos", "utmos"),
-        language="en",
+        metrics=(
+            "sim/wavlm-large",
+            "sim/ecapa-tdnn",
+            "sim/eres2net",
+            "dnsmos",
+            "wv-mos",
+            "utmos",
+            "komos",
+        ),
+        language="ko",
         device="cpu",
     )
 
@@ -190,6 +198,31 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     assert runtime["mos_providers"]["wv-mos"].node_id == "scoring/wv_mos"
     assert isinstance(runtime["mos_providers"]["utmos"], NodeLocalMOSProvider)
     assert runtime["mos_providers"]["utmos"].node_id == "scoring/utmos"
+    assert isinstance(runtime["mos_providers"]["komos"], NodeLocalMOSProvider)
+    assert runtime["mos_providers"]["komos"].node_id == "scoring/komos"
+
+
+def test_komos_verify_files_follow_model_override(monkeypatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker, _resolve_verify_file
+
+    checker = NodeEnvChecker()
+    node_path = checker.node_path("scoring/komos")
+    node_env = checker.load_node_env("scoring/komos")
+    assert node_env is not None
+    file_specs = node_env["verify"]["files"]
+
+    monkeypatch.delenv("KOMOS_MODEL", raising=False)
+    assert [_resolve_verify_file(node_path, spec) for spec in file_specs] == [
+        node_path / "checkpoints" / "komos" / "config.json",
+        node_path / "checkpoints" / "komos" / "model.safetensors",
+    ]
+
+    override = tmp_path / "custom-model"
+    monkeypatch.setenv("KOMOS_MODEL", str(override))
+    assert [_resolve_verify_file(node_path, spec) for spec in file_specs] == [
+        override / "config.json",
+        override / "model.safetensors",
+    ]
 
 
 def test_se_runtime_uses_in_process_full_reference_and_node_local_mos() -> None:
@@ -467,9 +500,7 @@ def test_env_setup_dry_run_uses_exact_pipeline_json(tmp_path: Path) -> None:
 
     assert setup_result.exit_code == 0, setup_result.stdout
     payload = json.loads(setup_result.stdout)
-    assert [action["node_id"] for action in payload["actions"]] == [
-        "transcription/qwen3_asr_1_7b"
-    ]
+    assert [action["node_id"] for action in payload["actions"]] == ["transcription/qwen3_asr_1_7b"]
 
 
 def test_env_setup_rejects_tampered_pipeline_identity(tmp_path: Path) -> None:

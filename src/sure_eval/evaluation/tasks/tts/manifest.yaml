@@ -8,6 +8,7 @@ implemented_metrics:
   - dnsmos
   - wv_mos
   - utmos
+  - komos
 default_metrics:
   ar: tts_cer
   zh: tts_cer
@@ -83,6 +84,13 @@ input_contracts:
     alignment_key: sample_id
     aggregation: mean
     main_report: true
+  scoring/komos:
+    purpose: korean_tts_audio_quality
+    required_roles: [prediction_audio]
+    row_format: generated_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
 pipeline_nodes:
   ar:
     transcription: transcription/cohere_transcribe_arabic_07_2026
@@ -115,6 +123,7 @@ pipeline_nodes:
     dnsmos: scoring/dnsmos
     wv-mos: scoring/wv_mos
     utmos: scoring/utmos
+    komos: scoring/komos
 legacy_reference:
   pipeline: sure_eval.evaluation.tasks.tts.compat.TTSMetricPipeline
 notes:
@@ -127,5 +136,6 @@ notes:
   - WeTextProcessing profiles are available only through explicit semantic_normalizer arguments and do not change default TTS routes.
   - Mandarin CER keeps CV3-compatible Paraformer execution by passing the original audio path to FunASR AutoModel.generate; frontend/funasr_loader_16k_mono records the internal loader contract.
   - Speaker similarity and MOS use concrete backend scoring nodes with provider-backed model execution.
+  - KOMOS is available only through the explicit Korean TTS route.
   - The report-level sim value is an aggregate over selected named speaker backends, not a standalone scoring node.
   - metrics=None defaults to the language-matched semantic metric; speaker/MOS metrics are selected explicitly.

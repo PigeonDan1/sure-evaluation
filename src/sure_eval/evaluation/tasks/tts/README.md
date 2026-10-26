@@ -40,11 +40,15 @@ Speaker similarity and MOS routes:
 | `dnsmos` | `dnsmos` | `scoring/dnsmos` |
 | `wv_mos` | `wv_mos` / `wv-mos` | `scoring/wv_mos` |
 | `utmos` | `utmos` | `scoring/utmos` |
+| `komos` | `komos` (`ko` only) | `scoring/komos` |
 
 `metrics=None` defaults to the language-matched semantic metric. Speaker and MOS routes require explicit
 metric selection plus injected providers. New `EvaluationReport` payloads use
 canonical result keys; the legacy `TTSMetricPipeline` wrapper still exposes
 `sim/...` and aggregate `sim` for compatibility.
+
+KOMOS is language-matched to Korean speech and is therefore available only as
+the explicit `tts.ko.komos.komos_v1` route.
 
 `normalization/wetext_norm` can be selected explicitly with
 `evaluate_tts_samples(..., semantic_normalizer="wetext:zh_tn")`. Mandarin defaults

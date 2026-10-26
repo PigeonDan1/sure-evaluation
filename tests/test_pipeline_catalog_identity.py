@@ -48,6 +48,16 @@ def test_pipeline_catalog_contains_every_discovered_atomic_route() -> None:
     assert catalog_ids == discovered_ids
 
 
+def test_pipeline_catalog_contains_language_specific_komos_route() -> None:
+    rows = _catalog_rows()
+
+    assert {
+        row["pipeline_id"]
+        for row in rows
+        if row["task_alias"] == "tts" and row["metric"] == "komos"
+    } == {"tts.ko.komos.komos_v1"}
+
+
 def test_pipeline_catalog_has_new_kws_and_sa_asr_identities() -> None:
     rows = _catalog_rows()
     kws_macro_rows = [

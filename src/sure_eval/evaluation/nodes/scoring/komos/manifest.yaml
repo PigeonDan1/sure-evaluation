@@ -1,0 +1,18 @@
+id: scoring/komos
+version: v1
+stage: scoring
+language_sensitive: true
+input_schema: generated_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.komos.node
+metric: komos
+backend: komos
+internal_stages:
+  - audio_score_provider
+  - score_normalization
+  - mean_aggregation
+used_by:
+  - Korean TTS audio quality
+notes:
+  - KOMOS is trained for Korean speech and is exposed only through the Korean TTS route.
+  - Model loading and audio preprocessing stay inside the node-local provider.
