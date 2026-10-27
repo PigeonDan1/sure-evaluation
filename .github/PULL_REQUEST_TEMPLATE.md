@@ -34,6 +34,7 @@ Guide followed:
 - Node README follows `docs/node_readme_template.md`: yes / no / n/a
 - Catalog regenerated: yes / no / n/a
 - Catalog discovery task or curated bundle changed: yes / no / n/a
+- Documentation coverage checked against `docs/contributing.md`: root EN/ZH READMEs, task guides/index, task/node READMEs, and generated atlas updated as applicable; explain any n/a
 
 ## Validation
 

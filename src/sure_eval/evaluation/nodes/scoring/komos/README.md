@@ -17,7 +17,7 @@ Its default `score()` interface evaluates up to the first 10 seconds.
 
 ## Runtime and Assets
 
-- Runtime: optional node-local `uv` project on Python 3.10--3.13.
+- Runtime: optional node-local `uv` project, prepared with Python 3.11.
 - Package: `komos==0.0.2`.
 - Model: `upskyy/komos` pinned to revision
   `c558983b9777d4f01aa61003b151dea37db0cc2d`.

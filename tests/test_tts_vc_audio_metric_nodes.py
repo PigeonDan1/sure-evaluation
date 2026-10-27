@@ -6,6 +6,29 @@ from pathlib import Path
 from types import SimpleNamespace
 
 
+def test_komos_verify_files_follow_model_override(monkeypatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker, _resolve_verify_file
+
+    checker = NodeEnvChecker()
+    node_path = checker.node_path("scoring/komos")
+    node_env = checker.load_node_env("scoring/komos")
+    assert node_env is not None
+    file_specs = node_env["verify"]["files"]
+
+    monkeypatch.delenv("KOMOS_MODEL", raising=False)
+    assert [_resolve_verify_file(node_path, spec) for spec in file_specs] == [
+        node_path / "checkpoints" / "komos" / "config.json",
+        node_path / "checkpoints" / "komos" / "model.safetensors",
+    ]
+
+    override = tmp_path / "custom-model"
+    monkeypatch.setenv("KOMOS_MODEL", str(override))
+    assert [_resolve_verify_file(node_path, spec) for spec in file_specs] == [
+        override / "config.json",
+        override / "model.safetensors",
+    ]
+
+
 def test_wavlm_large_sim_node_scores_named_backend() -> None:
     from sure_eval.evaluation.nodes.scoring.wavlm_large_sim import score_wavlm_large_sim
 

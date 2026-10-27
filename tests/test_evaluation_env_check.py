@@ -202,29 +202,6 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     assert runtime["mos_providers"]["komos"].node_id == "scoring/komos"
 
 
-def test_komos_verify_files_follow_model_override(monkeypatch, tmp_path: Path) -> None:
-    from sure_eval.evaluation.env_check import NodeEnvChecker, _resolve_verify_file
-
-    checker = NodeEnvChecker()
-    node_path = checker.node_path("scoring/komos")
-    node_env = checker.load_node_env("scoring/komos")
-    assert node_env is not None
-    file_specs = node_env["verify"]["files"]
-
-    monkeypatch.delenv("KOMOS_MODEL", raising=False)
-    assert [_resolve_verify_file(node_path, spec) for spec in file_specs] == [
-        node_path / "checkpoints" / "komos" / "config.json",
-        node_path / "checkpoints" / "komos" / "model.safetensors",
-    ]
-
-    override = tmp_path / "custom-model"
-    monkeypatch.setenv("KOMOS_MODEL", str(override))
-    assert [_resolve_verify_file(node_path, spec) for spec in file_specs] == [
-        override / "config.json",
-        override / "model.safetensors",
-    ]
-
-
 def test_se_runtime_uses_in_process_full_reference_and_node_local_mos() -> None:
     from sure_eval.evaluation.audio_runtime import build_se_runtime
     from sure_eval.evaluation.nodes.scoring._full_reference_audio import (
