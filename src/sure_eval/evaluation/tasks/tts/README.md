@@ -49,7 +49,8 @@ canonical result keys; the legacy `TTSMetricPipeline` wrapper still exposes
 
 KOMOS is language-matched to Korean speech and is therefore available only as
 the explicit `tts.ko.komos.komos_v1` route.
-It requires only `sample_id` and `prediction_audio`, averages utterance MOS
+JSONL rows require `sample_id`, `prediction_audio`, and `language: "ko"`,
+without reference text/audio. It averages utterance MOS
 predictions on a calibrated 1--5 scale, and scores at most the first 10 seconds.
 See the [public task guide](../../../../../docs/tasks/tts.md) for setup and
 CPU execution examples.

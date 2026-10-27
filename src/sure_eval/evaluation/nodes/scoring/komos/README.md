@@ -10,6 +10,7 @@ reports the canonical atomic metric `komos` on the calibrated 1--5 MOS scale.
 - Pipeline: `tts.ko.komos.komos_v1`.
 - Schema: `generated_audio_rows`.
 - Required audio role: `prediction_audio`.
+- TTS sample JSONL rows also require `sample_id` and `language: "ko"`.
 - Aggregation: arithmetic mean over utterance scores; higher is better.
 
 KOMOS loads each audio path, converts it to mono, and resamples it to 16 kHz.

@@ -51,8 +51,9 @@ keys, but `EvaluationReport.metric`, catalog rows, and pipeline IDs use
 | `komos` | `komos` (Korean only) | `scoring/komos` |
 
 KOMOS is a no-reference quality predictor for Korean synthesized speech. Its
-atomic route is `tts.ko.komos.komos_v1`; each row needs only `sample_id` and
-`prediction_audio`. It averages calibrated utterance MOS predictions on a
+atomic route is `tts.ko.komos.komos_v1`; each JSONL row needs `sample_id`,
+`prediction_audio`, and `language: "ko"`, without reference text/audio.
+It averages calibrated utterance MOS predictions on a
 1--5 scale (higher is better), converts audio to 16 kHz mono, and evaluates
 up to the first 10 seconds. It is not included in the default TTS bundle and
 does not replace a human listening test. See the
@@ -82,7 +83,7 @@ JSONL sample manifest. Each row is one sample:
 | `prediction_audio` | all | Path to synthesized audio |
 | `reference_text` | semantic metrics | Ground-truth text |
 | `reference_audio` | speaker similarity | Reference speaker audio; not required by no-reference MOS metrics |
-| `language` | semantic metrics | `zh`, `en`, etc. |
+| `language` | all | One language per run, such as `zh`, `en`, or `ko`; must match the selected route |
 
 ## CLI Usage
 
@@ -128,7 +129,7 @@ sure-eval metric run --pipeline /tmp/tts_komos.json \
   --device cpu --validate-env
 ```
 
-Minimal row: `{"sample_id":"ko_001","prediction_audio":"korean.wav"}`.
+Minimal row: `{"sample_id":"ko_001","prediction_audio":"korean.wav","language":"ko"}`.
 
 ## Python API
 
