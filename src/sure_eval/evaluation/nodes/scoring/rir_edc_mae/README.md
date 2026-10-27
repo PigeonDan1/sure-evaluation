@@ -24,7 +24,8 @@ Only reference EDC points at or above -40 dB are included.
 
 ## Versioned Computation
 
-Node `scoring/rir_edc_mae`, version `v1`, computes the Schroeder reverse
+Node `scoring/rir_edc_mae`, version `v1`, starts each channel 2.5 ms before its
+own strongest impulse, then computes the Schroeder reverse
 cumulative energy curve, normalizes it to 0 dB at the first sample, and
 compares aligned curves over the valid -40 dB range. Channel errors are
 averaged per sample; sample MAE values are averaged equally.
@@ -45,7 +46,8 @@ Every channel must have a defined metric estimate. An unscorable channel
 fails the evaluation with its sample and channel identified; it is never
 silently omitted from the mean.
 
-The curves share the input time origin and are truncated to the shorter RIR.
+The curves are compared after the per-channel preprocessing and truncated to
+their shared duration.
 Samples with fewer than four valid EDC points are rejected.
 An undefined optional correlation is reported as JSON `null`; it does not
 remove a channel with a defined MAE, including a silent prediction against a

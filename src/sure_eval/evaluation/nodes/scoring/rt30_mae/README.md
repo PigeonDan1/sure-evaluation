@@ -22,7 +22,8 @@ rows include predicted and reference RT30 and per-channel absolute errors.
 
 ## Versioned Computation
 
-Node `scoring/rt30_mae`, version `v1`, computes the Schroeder energy decay and
+Node `scoring/rt30_mae`, version `v1`, starts each channel 2.5 ms before its
+strongest impulse, computes the Schroeder energy decay, and
 measures the time between -5 dB and -35 dB. The metric averages channel errors
 within each sample and then averages samples equally.
 
@@ -42,5 +43,5 @@ Every channel must have a defined metric estimate. An unscorable channel
 fails the evaluation with its sample and channel identified; it is never
 silently omitted from the mean.
 
-Inputs need a valid 30 dB decay interval. The estimator uses the recorded RIR
-time origin and does not infer a room noise floor.
+Inputs need a valid 30 dB decay interval. The estimator uses the preprocessed
+RIR decay and does not infer a room noise floor.

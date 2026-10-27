@@ -620,3 +620,27 @@ def test_rir_doa_rejects_invalid_geometry(tmp_path: Path, metadata: dict) -> Non
     _write_rir(path)
     with pytest.raises(ValueError, match="spacing|sound_speed_mps"):
         evaluate_rir_samples([RIRSample(str(path), str(path), metadata=metadata)], metrics=("rir_doa_mae",))
+
+
+@pytest.mark.parametrize("spacing", (0.09, 0.18))
+def test_rir_known_itd_and_doa_within_supported_window(tmp_path: Path, spacing: float) -> None:
+    reference = np.zeros((256, 2))
+    reference[20] = 1.0
+    prediction = np.zeros_like(reference)
+    prediction[20, 0] = 1.0
+    prediction[24, 1] = 1.0
+    np.save(tmp_path / "reference.npy", reference)
+    np.save(tmp_path / "prediction.npy", prediction)
+    sample = RIRSample(str(tmp_path / "prediction.npy"), str(tmp_path / "reference.npy"), sample_rate=16000, metadata={"microphone_spacing_m": spacing})
+    results = evaluate_rir_samples([sample], metrics=("rir_itd_mae", "rir_doa_mae")).details["results"]
+    assert results["rir_itd_mae"]["score"] == pytest.approx(0.25)
+    expected_angle = np.degrees(np.arcsin(4 / 16000 * 343 / spacing))
+    assert results["rir_doa_mae"]["score"] == pytest.approx(expected_angle)
+
+
+@pytest.mark.parametrize("value", (0.0, 1.0))
+def test_rir_itd_rejects_silent_or_constant_pairs(tmp_path: Path, value: float) -> None:
+    path = tmp_path / "constant.npy"
+    np.save(path, np.full((256, 2), value))
+    with pytest.raises(ValueError, match="nonzero centered energy"):
+        evaluate_rir_samples([RIRSample(str(path), str(path), sample_rate=16000)], metrics=("rir_itd_mae",))
