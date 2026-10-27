@@ -92,7 +92,7 @@ sure-eval env setup --pipeline pipeline.json --dry-run --json
 
 Required PR checks are intentionally portable: they must pass on a clean GitHub
 runner without model checkpoints, secrets, or node-local virtual environments.
-They run `ruff`, whitespace checks, catalog freshness, package build/install
+They run `ruff`, whitespace checks, catalog/atlas freshness, package build/install
 smoke tests, CLI smoke tests, and the test suite excluding checkpoint-backed
 environment assertions.
 
@@ -104,7 +104,8 @@ git diff --check
 uv run --extra dev --extra audio --extra canonical pytest -q --ignore=tests/test_evaluation_env_check.py
 uv run --extra dev --extra audio --extra canonical pytest tests/test_evaluation_env_check.py -q -k "in_process or pip_runtime or dry_run or doctor or cache_dir or se_pip_runtime_nodes_are_declared"
 uv run --extra dev --extra canonical python scripts/generate_pipeline_catalog.py
-git diff --exit-code docs/pipeline_catalog.jsonl
+python scripts/generate_pipeline_atlas.py
+git diff --exit-code docs/pipeline_catalog.jsonl docs/atlas/index.html docs/atlas/pipeline_atlas.svg docs/atlas/pipeline_atlas_dark.svg
 ```
 
 Checkpoint-backed node-local checks live in the optional Heavy Nodes workflow.
