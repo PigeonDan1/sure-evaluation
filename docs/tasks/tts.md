@@ -12,6 +12,7 @@ sure-eval metric routes tts --language zh --metric cer
 
 | Canonical metric | Execution selector | Language | Pipeline ID | Nodes |
 |:-----------------|:-------------------|:---------|:------------|:------|
+| `cer` | `cer` or `tts_cer` | `ar` | `tts.ar.cer.cohere_transcribe_arabic_07_2026_v1.nemo_norm_ar_tn_v1.wenet_cer_v1` | `transcription/cohere_transcribe_arabic_07_2026` → `normalization/nemo_norm` (`ar_tn`) → `scoring/wenet_cer` |
 | `cer` | `cer` or `tts_cer` | `zh` / `cmn` / `yue` | `tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1` | `frontend/funasr_loader_16k_mono` → `transcription/paraformer_zh` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
 | `cer` | exact `pipeline_id` | `zh` | `tts.zh.cer.qwen3_asr_1_7b_v1.punctuation_strip_norm_v1.wenet_cer_v1` | `transcription/qwen3_asr_1_7b` → `normalization/punctuation_strip_norm` → `scoring/wenet_cer` |
 | `wer` | `wer` or `tts_wer` | `en` | `tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1` | `transcription/whisper_large_v3` → `normalization/whisper_norm` → `scoring/wenet_wer` |
@@ -47,6 +48,17 @@ keys, but `EvaluationReport.metric`, catalog rows, and pipeline IDs use
 | `dnsmos` | `dnsmos` | `scoring/dnsmos` |
 | `wv_mos` | `wv_mos` or `wv-mos` | `scoring/wv_mos` |
 | `utmos` | `utmos` | `scoring/utmos` |
+| `komos` | `komos` (Korean only) | `scoring/komos` |
+
+KOMOS is a no-reference quality predictor for Korean synthesized speech. Its
+atomic route is `tts.ko.komos.komos_v1`; each JSONL row needs `sample_id`,
+`prediction_audio`, and `language: "ko"`, without reference text/audio.
+It averages calibrated utterance MOS predictions on a
+1--5 scale (higher is better), converts audio to 16 kHz mono, and evaluates
+up to the first 10 seconds. It is not included in the default TTS bundle and
+does not replace a human listening test. See the
+[KOMOS node README](../../src/sure_eval/evaluation/nodes/scoring/komos/README.md)
+for the pinned model, runtime, and checkpoint override.
 
 Multi-metric selections are bundle IDs built from atomic member tails, such as
 `tts.zh.multi.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.punctuation_strip_norm_v1.wenet_cer_v1__spk_sim.wavlm_large_sim_v1__dnsmos.dnsmos_v1`; the selected atomic IDs are listed in `member_pipeline_ids`.
@@ -70,8 +82,8 @@ JSONL sample manifest. Each row is one sample:
 | `sample_id` | all | Unique sample identifier |
 | `prediction_audio` | all | Path to synthesized audio |
 | `reference_text` | semantic metrics | Ground-truth text |
-| `reference_audio` | speaker / MOS metrics | Reference speaker audio |
-| `language` | semantic metrics | `zh`, `en`, etc. |
+| `reference_audio` | speaker similarity | Reference speaker audio; not required by no-reference MOS metrics |
+| `language` | all | One language per run, such as `zh`, `en`, or `ko`; must match the selected route |
 
 ## CLI Usage
 
@@ -103,6 +115,22 @@ sure-eval metric run --pipeline /tmp/tts_qwen.json \
   --validate-env
 ```
 
+### Korean quality evaluation
+
+For Korean KOMOS, prepare and run its exact route:
+
+```bash
+sure-eval metric describe tts --pipeline-id tts.ko.komos.komos_v1 \
+  --output /tmp/tts_komos.json
+sure-eval env setup --pipeline /tmp/tts_komos.json --dry-run
+sure-eval env setup --pipeline /tmp/tts_komos.json
+sure-eval metric run --pipeline /tmp/tts_komos.json \
+  --samples-jsonl korean_samples.jsonl --output-dir /tmp/tts_komos_eval \
+  --device cpu --validate-env
+```
+
+Minimal row: `{"sample_id":"ko_001","prediction_audio":"korean.wav","language":"ko"}`.
+
 ## Python API
 
 ```python
@@ -131,7 +159,7 @@ print(report.score)
 ## Environment Notes
 
 - Semantic metrics need ASR transcription nodes (`transcription/paraformer_zh`,
-  `transcription/whisper_large_v3`, or the exact-route
+  `transcription/whisper_large_v3`, `transcription/cohere_transcribe_arabic_07_2026`, or the exact-route
   `transcription/qwen3_asr_1_7b` alternative).
 - Speaker similarity and MOS require their respective scoring nodes.
 - Use `export SURE_EVAL_CACHE_DIR=/path/to/large/disk` for model checkpoints and caches.

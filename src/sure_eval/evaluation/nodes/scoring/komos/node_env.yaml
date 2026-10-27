@@ -1,0 +1,27 @@
+id: scoring/komos
+group: tts-mos
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  optional: true
+  gpu: optional
+models:
+  - id: upskyy/komos
+    revision: c558983b9777d4f01aa61003b151dea37db0cc2d
+    provider: huggingface
+    target: checkpoints/komos/model.safetensors
+    env: KOMOS_MODEL
+    license: mit
+verify:
+  imports:
+    - komos
+    - torch
+    - transformers
+  files:
+    - path: config.json
+      relative_to_env: KOMOS_MODEL
+      default_base: checkpoints/komos
+    - path: model.safetensors
+      relative_to_env: KOMOS_MODEL
+      default_base: checkpoints/komos
