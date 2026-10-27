@@ -16,4 +16,10 @@ windows: full RIR, ch0 direct peak through 80 ms, and the remainder after
 ITD, ILD, IPD, and DOA use channel 0 as the reference and report every `chN`
 pair. ILD and IPD are frequency-domain interaural errors.
 The default bundle reports `rir_npm` as its top-level score and keeps the
-NPM and RT60 scores in `details.results`.
+individual metric scores in `details.results`.
+
+Unscorable channels and undefined spatial correlations fail explicitly rather
+than being omitted from the mean. Reports retain input paths, sample rate,
+layout, geometry metadata, and original/paired lengths. See the
+[task guide](../../../../../docs/tasks/rir.md) for the metric definitions and
+the limits of the truncation and fixed +/-1 ms ITD/DOA search policies.

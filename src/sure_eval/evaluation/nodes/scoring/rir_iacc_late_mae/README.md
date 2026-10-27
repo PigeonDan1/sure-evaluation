@@ -44,6 +44,9 @@ the late binaural RIR window.
 
 ## Limitations
 
+Undefined correlation (silent or constant channels, or an empty selected
+window) fails evaluation rather than receiving zero error.
+
 - Requires exactly two channels.
 - Broadband correlation does not use microphone spacing or
   frequency-dependent weighting.

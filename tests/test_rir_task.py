@@ -42,12 +42,12 @@ def _write_mono_rir(path: Path, scale: float = 1.0) -> None:
 
 
 def _write_delayed_binaural_rir(path: Path, right_delay: int) -> None:
-    signal = np.zeros((256, 2), dtype=np.float64)
+    signal = np.zeros((4096, 2), dtype=np.float64)
     signal[20, 0] = 1.0
     signal[20 + right_delay, 1] = 0.8
-    signal[40:, 0] += 0.01 * np.exp(-np.arange(216) / 40.0)
-    signal[40:, 1] += 0.008 * np.exp(-np.arange(216) / 40.0)
-    sf.write(path, signal, 16000)
+    signal[40:, 0] += 0.01 * np.exp(-np.arange(4056) / 600.0)
+    signal[40:, 1] += 0.008 * np.exp(-np.arange(4056) / 600.0)
+    sf.write(path, signal, 16000, subtype="FLOAT")
 
 
 def test_rir_pipeline_describes_registered_route() -> None:
@@ -542,3 +542,81 @@ def test_rir_nodes_are_in_process_environment_checks() -> None:
         assert result.status == "ok"
         assert result.runtime == "in_process"
         assert result.required is False
+
+
+@pytest.mark.parametrize("metric", ("rt30_mae", "rt60_mae", "rir_drr_mae", "rir_c50_mae", "rir_c80_mae", "rir_edc_mae"))
+@pytest.mark.parametrize("invalid_role", ("prediction", "reference"))
+def test_rir_acoustic_metrics_do_not_drop_unscorable_channels(tmp_path: Path, metric: str, invalid_role: str) -> None:
+    tail = np.random.default_rng(42).normal(size=16000) * np.exp(-np.arange(16000) / 1500.0) * 0.05
+    tail[20] += 1.0
+    valid = np.column_stack((tail, tail))
+    invalid = valid.copy()
+    invalid[:, 1] = 0.0
+    for role in ("prediction", "reference"):
+        np.save(tmp_path / f"{role}.npy", invalid if role == invalid_role else valid)
+    sample = RIRSample(str(tmp_path / "prediction.npy"), str(tmp_path / "reference.npy"), sample_rate=16000, sample_id="missing-channel")
+    if metric == "rir_edc_mae" and invalid_role == "prediction":
+        # EDC MAE can quantify a silent prediction against a valid decay;
+        # the undefined optional correlation must not remove this channel.
+        result = evaluate_rir_samples([sample], metrics=(metric,)).details["results"][metric]
+        assert len(result["per_sample"][0]["channels"]) == 2
+        assert result["score"] > 1.0
+        assert result["per_sample"][0]["channels"][1]["edc_correlation"] is None
+        json.dumps(result, allow_nan=False)
+    else:
+        with pytest.raises(ValueError, match="missing-channel, channel 1"):
+            evaluate_rir_samples([sample], metrics=(metric,))
+
+
+@pytest.mark.parametrize("metric", ("rir_iacc_full_mae", "rir_iacc_early_mae", "rir_iacc_late_mae", "rir_itd_mae", "rir_doa_mae"))
+@pytest.mark.parametrize("invalid_role", ("prediction", "reference"))
+def test_rir_spatial_metrics_reject_undefined_channel_correlation(tmp_path: Path, metric: str, invalid_role: str) -> None:
+    tail = np.random.default_rng(7).normal(size=4096) * np.exp(-np.arange(4096) / 600.0)
+    valid = np.column_stack((tail, tail))
+    invalid = valid.copy()
+    invalid[:, 1] = 0.0
+    for role in ("prediction", "reference"):
+        np.save(tmp_path / f"{role}.npy", invalid if role == invalid_role else valid)
+    sample = RIRSample(str(tmp_path / "prediction.npy"), str(tmp_path / "reference.npy"), sample_rate=16000, metadata={"microphone_spacing_m": 0.18})
+    with pytest.raises(ValueError, match="nonzero centered energy"):
+        evaluate_rir_samples([sample], metrics=(metric,))
+
+
+def test_rir_iacc_rejects_empty_late_window(tmp_path: Path) -> None:
+    path = tmp_path / "short.wav"
+    _write_rir(path)
+    with pytest.raises(ValueError, match="IACC late could not be estimated"):
+        evaluate_rir_samples([RIRSample(str(path), str(path))], metrics=("rir_iacc_late_mae",))
+
+
+def test_rir_report_preserves_geometry_and_truncation_inputs(tmp_path: Path) -> None:
+    reference = np.zeros((4096, 2))
+    reference[20] = 1.0
+    np.save(tmp_path / "reference.npy", reference)
+    np.save(tmp_path / "prediction.npy", reference[:2048])
+    metadata = {"microphone_spacing_m": 0.18, "sound_speed_mps": 343.0, "channel_spacings_m": [0.18]}
+    sample = RIRSample(str(tmp_path / "prediction.npy"), str(tmp_path / "reference.npy"), sample_rate=16000, sample_id="cropped", channel_layout="binaural_lr", metadata=metadata)
+    report = evaluate_rir_samples([sample], metrics=("rir_npm",))
+    row = report.details["rows"][0]
+    assert row["prediction_rir"] == sample.prediction_rir
+    assert row["reference_rir"] == sample.reference_rir
+    assert row["metadata"] == metadata
+    assert row["sample_rate"] == 16000
+    assert row["channel_layout"] == "binaural_lr"
+    assert row["channel_count"] == 2
+    assert (row["prediction_samples"], row["reference_samples"], row["paired_samples"]) == (2048, 4096, 2048)
+    assert row["length_policy"] == "truncate_to_shorter"
+    assert report.details["results"]["rir_npm"]["score"] < -100
+
+
+@pytest.mark.parametrize("metadata", (
+    {"microphone_spacing_m": float("nan")},
+    {"microphone_spacing_m": 0.18, "sound_speed_mps": 0.0},
+    {"microphone_spacing_m": 0.18, "channel_spacings_m": []},
+    {"microphone_spacing_m": 0.18, "channel_spacings_m": [float("inf")]},
+))
+def test_rir_doa_rejects_invalid_geometry(tmp_path: Path, metadata: dict) -> None:
+    path = tmp_path / "rir.wav"
+    _write_rir(path)
+    with pytest.raises(ValueError, match="spacing|sound_speed_mps"):
+        evaluate_rir_samples([RIRSample(str(path), str(path), metadata=metadata)], metrics=("rir_doa_mae",))

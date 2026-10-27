@@ -21,7 +21,7 @@ need matching sample rates and channel counts. NumPy arrays require
 
 The `rir_c80_mae_score` trace reports lower-is-better dB error. Each
 `per_sample` entry records predicted clarity, reference clarity, and
-absolute error per valid channel. The metric averages channels within
+absolute error per channel. The metric averages all channels within
 each sample and then averages samples equally.
 
 ## Versioned Computation
@@ -42,6 +42,9 @@ Local SURE RIR implementation in `tasks/rir/metrics.py`.
 
 ## Limitations
 
+Every channel must have a defined metric estimate. An unscorable channel
+fails the evaluation with its sample and channel identified; it is never
+silently omitted from the mean.
+
 Prediction and reference must describe the same source and room. A missing
-or zero early/late energy pair is excluded; scoring fails if no channel
-remains valid.
+or zero early/late energy pair fails scoring.

@@ -15,6 +15,22 @@ reference-side and prediction-side values with the unit. Multi-channel
 spatial entries include each channel-0-relative pair; ILD/IPD additionally
 report the valid frequency-bin count and absolute-error sum used for the mean.
 
+An undefined RT30, RT60, DRR, clarity, or reference EDC estimate fails the
+evaluation with the sample and channel identified; channels are never silently
+dropped from the score. IACC and ITD also reject undefined correlation (silent
+or constant channels, or an empty selected window). A silent prediction can
+still receive an EDC MAE against a valid reference; its optional correlation
+diagnostic can be undefined. Reports retain input paths, effective sample
+rate, channel layout/count, geometry metadata, original lengths, and the
+paired length in `details.rows`.
+
+The truncation policy measures only the shared duration; it does not penalize
+a missing tail. ITD and DOA retain the fixed +/-1 ms search window, including
+for microphone arrays. Array delays outside that window are not supported by
+this protocol and the reported angle is not a general array-localization
+estimate. Choose recordings compatible with these limits before comparing
+scores. NPM's separate +/-256-sample alignment is unchanged.
+
 The evaluator has two channel branches. The single-channel branch accepts one
 channel and computes the base NPM, RT30, RT60, DRR, C50, C80, and EDC metrics. The
 multi-channel branch computes the same base metrics before adding spatial

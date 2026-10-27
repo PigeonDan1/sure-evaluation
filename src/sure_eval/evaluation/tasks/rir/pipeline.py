@@ -87,7 +87,7 @@ def evaluate_rir_samples(
         raise ValueError(f"Unsupported RIR metric(s): {', '.join(unsupported)}")
     if any(metric in SPATIAL_METRICS for metric in requested):
         _validate_spatial_mode(channel_mode)
-    validate_rir_samples(samples, channel_mode=channel_mode)
+    input_rows = validate_rir_samples(samples, channel_mode=channel_mode)
 
     results = {}
     trace = []
@@ -137,7 +137,7 @@ def evaluate_rir_samples(
         details={
             "channel_mode": _normalize_channel_mode(channel_mode),
             "results": results,
-            "rows": [{"sample_id": sample.sample_id} for sample in samples],
+            "rows": input_rows,
         },
     )
 

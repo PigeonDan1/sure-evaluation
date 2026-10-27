@@ -8,7 +8,7 @@ It does not estimate a room-independent quality score.
 ## Task Scenarios
 
 The `RIR estimation` monaural and multichannel base routes select
-`scoring/rt60_mae`. It is part of the default NPM + RT60 bundle and can run
+`scoring/rt60_mae`. It is part of the default acoustic bundle and can run
 as an atomic metric.
 
 ## Input
@@ -22,7 +22,7 @@ sample rates and channel counts. NumPy arrays require `sample_rate`.
 The `rt60_mae_score` trace has a lower-is-better score in seconds. Each
 `per_sample` entry records predicted and reference RT60, their absolute
 error, and per-channel values. The metric score averages sample errors
-equally, after averaging valid channel errors within each sample.
+equally, after averaging all channel errors within each sample.
 
 ## Versioned Computation
 
@@ -43,6 +43,10 @@ Local SURE RIR implementation in `tasks/rir/metrics.py`.
 
 ## Limitations
 
-If no channel has a valid decay interval, scoring fails for that sample.
+Every channel must have a defined metric estimate. An unscorable channel
+fails the evaluation with its sample and channel identified; it is never
+silently omitted from the mean.
+
+If any channel lacks a valid decay interval, scoring fails for that sample.
 The estimator uses the recorded RIR decay and does not infer an external
 noise floor or a different time origin.

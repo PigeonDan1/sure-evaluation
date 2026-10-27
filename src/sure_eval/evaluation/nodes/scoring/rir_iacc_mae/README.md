@@ -41,5 +41,8 @@ Local SURE RIR implementation in `tasks/rir/metrics.py`.
 
 ## Limitations
 
+Undefined correlation (silent or constant channels, or an empty selected
+window) fails evaluation rather than receiving zero error.
+
 Only exactly two channels are accepted. The search is broadband and does
 not use microphone spacing or frequency-dependent weighting.

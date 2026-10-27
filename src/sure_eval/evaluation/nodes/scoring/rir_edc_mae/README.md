@@ -41,5 +41,12 @@ Local SURE RIR implementation following the Rec-BIR EDC protocol in
 
 ## Limitations
 
+Every channel must have a defined metric estimate. An unscorable channel
+fails the evaluation with its sample and channel identified; it is never
+silently omitted from the mean.
+
 The curves share the input time origin and are truncated to the shorter RIR.
 Samples with fewer than four valid EDC points are rejected.
+An undefined optional correlation is reported as JSON `null`; it does not
+remove a channel with a defined MAE, including a silent prediction against a
+valid reference decay.

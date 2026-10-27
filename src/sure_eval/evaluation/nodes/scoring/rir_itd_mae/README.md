@@ -42,5 +42,8 @@ Local SURE RIR implementation in `tasks/rir/metrics.py`.
 
 ## Limitations
 
+Undefined correlation (silent or constant channels, or an empty selected
+window) fails evaluation rather than receiving zero error.
+
 Mono input is unsupported. The +/-1 ms search bounds measurable delay, and
 the output is a broadband pairwise lag rather than a frequency-specific ITD.

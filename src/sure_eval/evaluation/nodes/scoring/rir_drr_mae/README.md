@@ -21,7 +21,7 @@ need matching sample rates and channel counts. NumPy arrays require
 
 The `rir_drr_mae_score` trace reports lower-is-better dB error. Each
 `per_sample` entry records predicted DRR, reference DRR, and absolute error
-per valid channel. The metric averages valid channel errors per sample,
+per channel. The metric averages all channel errors per sample,
 then averages samples equally.
 
 ## Versioned Computation
@@ -42,6 +42,9 @@ Local SURE RIR implementation in `tasks/rir/metrics.py`.
 
 ## Limitations
 
+Every channel must have a defined metric estimate. An unscorable channel
+fails the evaluation with its sample and channel identified; it is never
+silently omitted from the mean.
+
 The direct-arrival window follows the strongest sample, not microphone
-geometry metadata. A missing or zero early/late energy pair is excluded;
-scoring fails if no channel remains valid.
+geometry metadata. A missing or zero early/late energy pair fails scoring.

@@ -44,5 +44,11 @@ Local SURE RIR implementation in `tasks/rir/metrics.py`.
 
 ## Limitations
 
+Undefined correlation (silent or constant channels, or an empty selected
+window) fails evaluation rather than receiving zero error.
+
 Mono input and nonpositive microphone spacing are unsupported. The angle
 assumes far-field pair geometry and cannot resolve full 3-D direction.
+Sound speed and all spacings must be finite and positive; an explicit
+`channel_spacings_m` list must contain one value per channel-0 pair. The
+fixed +/-1 ms search does not cover general array delays outside that window.

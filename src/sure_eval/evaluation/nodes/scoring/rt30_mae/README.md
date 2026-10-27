@@ -38,5 +38,9 @@ Local SURE RIR implementation following the Rec-BIR decay protocol in
 
 ## Limitations
 
+Every channel must have a defined metric estimate. An unscorable channel
+fails the evaluation with its sample and channel identified; it is never
+silently omitted from the mean.
+
 Inputs need a valid 30 dB decay interval. The estimator uses the recorded RIR
 time origin and does not infer a room noise floor.

@@ -81,8 +81,8 @@ def _validate_layout(sample: RIRSample, channel_count: int) -> None:
 
 def validate_rir_samples(
     samples: Iterable[RIRSample], *, channel_mode: str = "auto"
-) -> None:
-    """Validate the channel branch selected by an RIR evaluation chain."""
+) -> list[dict]:
+    """Validate the channel branch and describe the inputs actually scored."""
 
     normalized = str(channel_mode).strip().lower().replace("-", "_")
     aliases = {
@@ -95,8 +95,9 @@ def validate_rir_samples(
     normalized = aliases.get(normalized, normalized)
     if normalized not in {"auto", "single", "multi", "binaural"}:
         raise ValueError(f"unsupported RIR channel mode: {channel_mode!r}")
+    rows = []
     for sample in samples:
-        prediction, reference, _ = _pair(sample)
+        prediction, reference, rate = _load_pair(sample)
         channel_count = prediction.shape[1]
         if normalized == "single" and channel_count != 1:
             raise ValueError(f"{sample.sample_id} requires a single-channel RIR")
@@ -106,9 +107,23 @@ def validate_rir_samples(
             raise ValueError(f"{sample.sample_id} requires a binaural two-channel RIR")
         if normalized == "auto" and reference.shape[1] != channel_count:
             raise ValueError(f"channel counts differ for {sample.sample_id}")
+        rows.append({
+            "sample_id": sample.sample_id,
+            "prediction_rir": sample.prediction_rir,
+            "reference_rir": sample.reference_rir,
+            "sample_rate": rate,
+            "channel_layout": sample.channel_layout,
+            "channel_count": channel_count,
+            "metadata": dict(sample.metadata),
+            "prediction_samples": prediction.shape[0],
+            "reference_samples": reference.shape[0],
+            "paired_samples": min(prediction.shape[0], reference.shape[0]),
+            "length_policy": "truncate_to_shorter",
+        })
+    return rows
 
 
-def _pair(sample: RIRSample) -> tuple[np.ndarray, np.ndarray, int]:
+def _load_pair(sample: RIRSample) -> tuple[np.ndarray, np.ndarray, int]:
     prediction, prediction_rate = _load(sample.prediction_rir)
     reference, reference_rate = _load(sample.reference_rir)
     rate = int(sample.sample_rate or reference_rate or prediction_rate)
@@ -126,6 +141,12 @@ def _pair(sample: RIRSample) -> tuple[np.ndarray, np.ndarray, int]:
     length = min(prediction.shape[0], reference.shape[0])
     if length == 0:
         raise ValueError(f"RIR pair is empty for {sample.sample_id}")
+    return prediction, reference, rate
+
+
+def _pair(sample: RIRSample) -> tuple[np.ndarray, np.ndarray, int]:
+    prediction, reference, rate = _load_pair(sample)
+    length = min(prediction.shape[0], reference.shape[0])
     return prediction[:length], reference[:length], rate
 
 
@@ -286,18 +307,17 @@ def _decay_metric(samples: list[RIRSample], *, metric_name: str, field_name: str
             predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
             pred = estimator(predicted, rate)
             ref = estimator(target, rate)
-            if np.isfinite(pred) and np.isfinite(ref):
-                error = float(abs(pred - ref))
-                errors.append(error)
-                channel_rows.append({
-                    "channel": channel,
-                    f"prediction_{field_name}": float(pred),
-                    f"reference_{field_name}": float(ref),
-                    "score": error,
-                    "unit": "seconds",
-                })
-        if not errors:
-            raise ValueError(f"{field_name.upper()} could not be estimated for {sample.sample_id}")
+            if not (np.isfinite(pred) and np.isfinite(ref)):
+                raise ValueError(f"{field_name.upper()} could not be estimated for {sample.sample_id}, channel {channel}")
+            error = float(abs(pred - ref))
+            errors.append(error)
+            channel_rows.append({
+                "channel": channel,
+                f"prediction_{field_name}": float(pred),
+                f"reference_{field_name}": float(ref),
+                "score": error,
+                "unit": "seconds",
+            })
         score = float(np.mean(errors))
         values.append(score)
         per_sample.append({"sample_id": sample.sample_id, "score": score, "channels": channel_rows, "unit": "seconds"})
@@ -321,13 +341,12 @@ def rt60_mae(samples: list[RIRSample]) -> MetricResult:
             predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
             pred = _rt60(predicted, rate)
             ref = _rt60(target, rate)
-            if np.isfinite(pred) and np.isfinite(ref):
-                errors.append(abs(pred - ref))
-                predictions.append(pred)
-                references.append(ref)
-                channel_rows.append({"channel": channel, "prediction_rt60": float(pred), "reference_rt60": float(ref), "score": float(abs(pred - ref)), "unit": "seconds"})
-        if not errors:
-            raise ValueError(f"RT60 could not be estimated for {sample.sample_id}")
+            if not (np.isfinite(pred) and np.isfinite(ref)):
+                raise ValueError(f"RT60 could not be estimated for {sample.sample_id}, channel {channel}")
+            errors.append(abs(pred - ref))
+            predictions.append(pred)
+            references.append(ref)
+            channel_rows.append({"channel": channel, "prediction_rt60": float(pred), "reference_rt60": float(ref), "score": float(abs(pred - ref)), "unit": "seconds"})
         score = float(np.mean(errors))
         values.append(score)
         per_sample.append({
@@ -384,20 +403,19 @@ def rir_edc_mae(samples: list[RIRSample]) -> MetricResult:
         for channel in range(prediction.shape[1]):
             predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
             mae, rmse, correlation, valid_points = _edc_curve_stats(predicted, target)
-            if np.isfinite(mae):
-                channel_errors.append(mae)
-                rmses.append(rmse)
-                correlations.append(correlation)
-                channel_rows.append({
-                    "channel": channel,
-                    "edc_mae_db": mae,
-                    "edc_rmse_db": rmse,
-                    "edc_correlation": correlation,
-                    "valid_points": valid_points,
-                    "unit": "dB",
-                })
-        if not channel_errors:
-            raise ValueError(f"EDC could not be estimated for {sample.sample_id}")
+            if not np.isfinite(mae):
+                raise ValueError(f"EDC could not be estimated for {sample.sample_id}, channel {channel}")
+            channel_errors.append(mae)
+            rmses.append(rmse)
+            correlations.append(correlation)
+            channel_rows.append({
+                "channel": channel,
+                "edc_mae_db": mae,
+                "edc_rmse_db": rmse,
+                "edc_correlation": correlation if np.isfinite(correlation) else None,
+                "valid_points": valid_points,
+                "unit": "dB",
+            })
         score = float(np.mean(channel_errors))
         values.append(score)
         per_sample.append({"sample_id": sample.sample_id, "score": score, "channels": channel_rows, "unit": "dB"})
@@ -411,7 +429,7 @@ def rir_edc_mae(samples: list[RIRSample]) -> MetricResult:
             "higher_is_better": False,
             "unit": "dB",
             "edc_rmse_db": float(np.mean(finite_rmse)) if finite_rmse else float("nan"),
-            "edc_correlation": float(np.mean(finite_corr)) if finite_corr else float("nan"),
+            "edc_correlation": float(np.mean(finite_corr)) if finite_corr else None,
         },
     )
 
@@ -441,14 +459,13 @@ def _clarity_mae(samples: list[RIRSample], window_ms: float) -> MetricResult:
             predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
             pred_early, pred_late = _early_late(predicted, rate, window_ms)
             ref_early, ref_late = _early_late(target, rate, window_ms)
-            if np.isfinite(pred_early + pred_late + ref_early + ref_late):
-                prediction_value = 10.0 * np.log10(pred_early / pred_late)
-                reference_value = 10.0 * np.log10(ref_early / ref_late)
-                channel_score = abs(prediction_value - reference_value)
-                channel_errors.append(channel_score)
-                channel_rows.append({"channel": channel, "prediction_c": prediction_value, "reference_c": reference_value, "score": channel_score, "unit": "dB"})
-        if not channel_errors:
-            raise ValueError(f"C{int(window_ms)} could not be estimated for {sample.sample_id}")
+            if not np.isfinite(pred_early + pred_late + ref_early + ref_late):
+                raise ValueError(f"C{int(window_ms)} could not be estimated for {sample.sample_id}, channel {channel}")
+            prediction_value = 10.0 * np.log10(pred_early / pred_late)
+            reference_value = 10.0 * np.log10(ref_early / ref_late)
+            channel_score = abs(prediction_value - reference_value)
+            channel_errors.append(channel_score)
+            channel_rows.append({"channel": channel, "prediction_c": prediction_value, "reference_c": reference_value, "score": channel_score, "unit": "dB"})
         score = float(np.mean(channel_errors))
         values.append(score)
         per_sample.append({"sample_id": sample.sample_id, "score": score, "channels": channel_rows, "unit": "dB"})
@@ -469,14 +486,13 @@ def rir_drr_mae(samples: list[RIRSample]) -> MetricResult:
             predicted, target = _acoustic_pair(prediction[:, channel], reference[:, channel], rate)
             pred_early, pred_late = _early_late(predicted, rate, 2.5)
             ref_early, ref_late = _early_late(target, rate, 2.5)
-            if np.isfinite(pred_early + pred_late + ref_early + ref_late):
-                pred_drr = 10.0 * np.log10(pred_early / pred_late)
-                ref_drr = 10.0 * np.log10(ref_early / ref_late)
-                channel_score = abs(pred_drr - ref_drr)
-                channel_errors.append(channel_score)
-                channel_rows.append({"channel": channel, "prediction_drr": pred_drr, "reference_drr": ref_drr, "score": channel_score, "unit": "dB"})
-        if not channel_errors:
-            raise ValueError(f"DRR could not be estimated for {sample.sample_id}")
+            if not np.isfinite(pred_early + pred_late + ref_early + ref_late):
+                raise ValueError(f"DRR could not be estimated for {sample.sample_id}, channel {channel}")
+            pred_drr = 10.0 * np.log10(pred_early / pred_late)
+            ref_drr = 10.0 * np.log10(ref_early / ref_late)
+            channel_score = abs(pred_drr - ref_drr)
+            channel_errors.append(channel_score)
+            channel_rows.append({"channel": channel, "prediction_drr": pred_drr, "reference_drr": ref_drr, "score": channel_score, "unit": "dB"})
         score = float(np.mean(channel_errors))
         values.append(score)
         rows.append({"sample_id": sample.sample_id, "score": score, "channels": channel_rows, "unit": "dB"})
@@ -516,7 +532,7 @@ def _cross_correlation(
     mask = np.abs(lags) <= max_lag
     denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
     if denominator <= _EPSILON:
-        return lags[mask], np.zeros(int(mask.sum()), dtype="float64")
+        raise ValueError("cross-correlation requires nonzero centered energy in both channels")
     return lags[mask], correlation[mask] / denominator
 
 
@@ -541,7 +557,7 @@ def _itd(signal: np.ndarray, sample_rate: int) -> float:
     left, right = signal[:, 0], signal[:, 1]
     lags, correlation = _cross_correlation(left, right, sample_rate)
     if not correlation.size or not np.any(np.abs(correlation) > _EPSILON):
-        return 0.0
+        raise ValueError("ITD could not be estimated from the selected correlation window")
     return float(lags[int(np.argmax(np.abs(correlation)))]) / sample_rate
 
 
@@ -552,6 +568,8 @@ def _rir_iacc_mae(samples: list[RIRSample], window: str, metric_name: str) -> Me
         prediction, reference, rate = _binaural_pair(sample)
         prediction_iacc = _iacc(prediction, rate, window)
         reference_iacc = _iacc(reference, rate, window)
+        if not (np.isfinite(prediction_iacc) and np.isfinite(reference_iacc)):
+            raise ValueError(f"IACC {window} could not be estimated for {sample.sample_id}")
         score = float(abs(prediction_iacc - reference_iacc))
         values.append(score)
         rows.append(
@@ -694,16 +712,22 @@ def rir_doa_mae(samples: list[RIRSample]) -> MetricResult:
     rows = []
     for sample in samples:
         spacing = float(sample.metadata.get("microphone_spacing_m", 0.0))
-        if spacing <= 0:
+        if not np.isfinite(spacing) or spacing <= 0:
             raise ValueError(f"microphone_spacing_m is required for {sample.sample_id}")
         sound_speed = float(sample.metadata.get("sound_speed_mps", 343.0))
+        if not np.isfinite(sound_speed) or sound_speed <= 0:
+            raise ValueError(f"sound_speed_mps must be finite and positive for {sample.sample_id}")
         prediction, reference, rate = _spatial_pair(sample)
         pair_rows = []
         pair_spacings = sample.metadata.get("channel_spacings_m")
+        if pair_spacings is not None and (
+            not isinstance(pair_spacings, (list, tuple)) or len(pair_spacings) != prediction.shape[1] - 1
+        ):
+            raise ValueError(f"channel_spacings_m must contain one spacing per channel-0 pair for {sample.sample_id}")
         for channel, prediction_pair in _channel_pairs(prediction):
             reference_pair = reference[:, [0, channel]]
             pair_spacing = float(pair_spacings[channel - 1]) if pair_spacings else spacing * channel
-            if pair_spacing <= 0:
+            if not np.isfinite(pair_spacing) or pair_spacing <= 0:
                 raise ValueError(f"invalid channel spacing for {sample.sample_id}, channel {channel}")
             pred_lag = _itd(prediction_pair, rate)
             ref_lag = _itd(reference_pair, rate)
