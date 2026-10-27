@@ -80,15 +80,16 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Regenerate catalog
+      - name: Regenerate catalog and atlas
         run: |
           uv run \
             --python 3.11 \
             --extra dev \
             --extra canonical \
             python scripts/generate_pipeline_catalog.py
-      - name: Catalog must be committed
-        run: git diff --exit-code docs/pipeline_catalog.jsonl
+          python scripts/generate_pipeline_atlas.py
+      - name: Catalog and atlas must be committed
+        run: git diff --exit-code docs/pipeline_catalog.jsonl docs/atlas/index.html docs/atlas/pipeline_atlas.svg docs/atlas/pipeline_atlas_dark.svg
 
   cli-smoke:
     name: CLI smoke
