@@ -163,6 +163,12 @@ def _task_language_profiles(task: str) -> tuple[str | None, ...]:
                 normalized = str(language).lower()
                 if normalized not in profiles:
                     profiles.append(normalized)
+    for route in routes.get("routes") or ():
+        language = route.get("language")
+        if language:
+            normalized = str(language).lower()
+            if normalized not in profiles:
+                profiles.append(normalized)
     if not profiles:
         raise ValueError(f"Task {task!r} has templated routes but no declared language profiles")
     return tuple(profiles)

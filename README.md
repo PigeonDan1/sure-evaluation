@@ -200,7 +200,8 @@ packages and Git.
 | SD | DER | [SD](docs/tasks/sd.md) |
 | SV | EER, minDCF | [SV](docs/tasks/sv.md) |
 | SA-ASR | cpWER, DER companion result | [SA-ASR](docs/tasks/sa_asr.md) |
-| TTS | CER, WER, speaker similarity, DNSMOS, WV-MOS, UTMOS | [TTS](docs/tasks/tts.md) |
+| TTS | CER, WER, speaker similarity, DNSMOS, WV-MOS, UTMOS, KOMOS (Korean) | [TTS](docs/tasks/tts.md) |
+| TTA | FAD, FD, KL, IS, CLAP score, AudioBox Aesthetics CE/CU/PC/PQ | [TTA](docs/tasks/tta.md) |
 | VC | CER, WER, speaker similarity, DNSMOS, WV-MOS, UTMOS | [VC](docs/tasks/vc.md) |
 | SE | SI-SDR, STOI, PESQ, DNSMOS, WV-MOS, UTMOS | [SE](docs/tasks/se.md) |
 | RIR estimation | NPM, RT30/RT60 MAE, DRR/C50/C80/EDC, IACC full/early/late, ITD/ILD/IPD/DOA errors | [RIR estimation](docs/tasks/rir.md) |

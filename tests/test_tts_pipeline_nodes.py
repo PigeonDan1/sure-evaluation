@@ -41,6 +41,62 @@ def test_qwen3_asr_result_extraction_unwraps_single_result_list() -> None:
     assert language == "English"
 
 
+def test_tts_ko_komos_route_scores_generated_audio() -> None:
+    from sure_eval.evaluation.tasks.tts.compat import TTSSample
+    from sure_eval.evaluation.tasks.tts.pipeline import evaluate_tts_samples
+
+    report = evaluate_tts_samples(
+        [
+            TTSSample(
+                prediction_audio="hyp.wav",
+                reference_text="안녕하세요",
+                language="ko",
+                sample_id="utt1",
+            )
+        ],
+        metrics=("komos",),
+        mos_providers={"komos": lambda prediction, reference="": {"score": 4.1}},
+    )
+
+    assert report.pipeline_id == "tts.ko.komos.komos_v1"
+    assert report.metric == "komos"
+    assert report.score == 4.1
+    assert report.details["results"]["komos"]["score"] == 4.1
+    assert report.details["rows"][0]["mos"]["komos"]["score"] == 4.1
+    assert [node.node_id for node in report.pipeline_trace] == ["scoring/komos"]
+
+
+def test_tts_ko_komos_route_is_discoverable_by_exact_identity() -> None:
+    from sure_eval.evaluation.scripts.tts import describe_pipeline
+
+    description = describe_pipeline(language="ko", metrics=("komos",))
+
+    assert description.pipeline_id == "tts.ko.komos.komos_v1"
+    assert description.computation_node_ids == ("scoring/komos",)
+    assert description.required_roles == ("prediction_audio",)
+
+
+def test_tts_komos_rejects_non_korean_samples() -> None:
+    import pytest
+
+    from sure_eval.evaluation.tasks.tts.compat import TTSSample
+    from sure_eval.evaluation.tasks.tts.pipeline import evaluate_tts_samples
+
+    with pytest.raises(ValueError, match="only for Korean"):
+        evaluate_tts_samples(
+            [
+                TTSSample(
+                    prediction_audio="hyp.wav",
+                    reference_text="hello",
+                    language="en",
+                    sample_id="utt1",
+                )
+            ],
+            metrics=("komos",),
+            mos_providers={"komos": lambda prediction, reference="": {"score": 4.1}},
+        )
+
+
 def test_tts_zh_semantic_route_uses_punctuation_strip_norm() -> None:
     from sure_eval.evaluation.tasks.tts.pipeline import evaluate_tts_samples
     from sure_eval.evaluation.tasks.tts.compat import TTSSample
@@ -120,7 +176,9 @@ def test_tts_en_semantic_route_reuses_asr_wer_pipeline() -> None:
     assert report.task == "TTS"
     assert report.language == "en"
     assert report.metric == "wer"
-    assert report.pipeline_id == "tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1"
+    assert (
+        report.pipeline_id == "tts.en.wer.whisper_large_v3_v1.whisper_norm_english_v1.wenet_wer_v1"
+    )
     assert report.score > 0
     assert report.details["results"]["wer"]["score"] == report.score
     assert [node.node_id for node in report.pipeline_trace] == [
@@ -204,7 +262,9 @@ def test_tts_qwen_pipeline_id_deduplicates_sample_traces() -> None:
         "normalization/punctuation_strip_norm",
         "scoring/wenet_cer",
     )
-    assert [node.node_id for node in report.pipeline_trace].count("transcription/qwen3_asr_1_7b") == 2
+    assert [node.node_id for node in report.pipeline_trace].count(
+        "transcription/qwen3_asr_1_7b"
+    ) == 2
 
 
 def test_tts_semantic_route_can_explicitly_use_wetext_normalizer(monkeypatch) -> None:
@@ -228,8 +288,14 @@ def test_tts_semantic_route_can_explicitly_use_wetext_normalizer(monkeypatch) ->
         transcribers={"zh": transcriber},
     )
 
-    assert report.pipeline_id == "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
-    assert report.details["results"]["cer"]["asr_pipeline_id"] == "asr.zh.cer.wetext_norm_zh_tn_v1.wenet_cer_v1"
+    assert (
+        report.pipeline_id
+        == "tts.zh.cer.funasr_loader_16k_mono_v1.paraformer_zh_v1.wetext_norm_zh_tn_v1.wenet_cer_v1"
+    )
+    assert (
+        report.details["results"]["cer"]["asr_pipeline_id"]
+        == "asr.zh.cer.wetext_norm_zh_tn_v1.wenet_cer_v1"
+    )
     assert [node.node_id for node in report.pipeline_trace] == [
         "frontend/funasr_loader_16k_mono",
         "transcription/paraformer_zh",

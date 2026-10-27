@@ -173,8 +173,16 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     )
 
     runtime = build_tts_runtime(
-        metrics=("sim/wavlm-large", "sim/ecapa-tdnn", "sim/eres2net", "dnsmos", "wv-mos", "utmos"),
-        language="en",
+        metrics=(
+            "sim/wavlm-large",
+            "sim/ecapa-tdnn",
+            "sim/eres2net",
+            "dnsmos",
+            "wv-mos",
+            "utmos",
+            "komos",
+        ),
+        language="ko",
         device="cpu",
     )
 
@@ -190,6 +198,8 @@ def test_audio_runtime_uses_node_local_scoring_subprocesses() -> None:
     assert runtime["mos_providers"]["wv-mos"].node_id == "scoring/wv_mos"
     assert isinstance(runtime["mos_providers"]["utmos"], NodeLocalMOSProvider)
     assert runtime["mos_providers"]["utmos"].node_id == "scoring/utmos"
+    assert isinstance(runtime["mos_providers"]["komos"], NodeLocalMOSProvider)
+    assert runtime["mos_providers"]["komos"].node_id == "scoring/komos"
 
 
 def test_se_runtime_uses_in_process_full_reference_and_node_local_mos() -> None:
@@ -467,9 +477,7 @@ def test_env_setup_dry_run_uses_exact_pipeline_json(tmp_path: Path) -> None:
 
     assert setup_result.exit_code == 0, setup_result.stdout
     payload = json.loads(setup_result.stdout)
-    assert [action["node_id"] for action in payload["actions"]] == [
-        "transcription/qwen3_asr_1_7b"
-    ]
+    assert [action["node_id"] for action in payload["actions"]] == ["transcription/qwen3_asr_1_7b"]
 
 
 def test_env_setup_rejects_tampered_pipeline_identity(tmp_path: Path) -> None:

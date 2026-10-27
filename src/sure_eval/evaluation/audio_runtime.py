@@ -136,7 +136,11 @@ def _build_audio_runtime(
                 node_dir=NODES_ROOT / "transcription" / "qwen3_asr_1_7b",
                 device=device,
             )
-        elif transcription_node_id not in {None, "transcription/paraformer_zh", "transcription/whisper_large_v3"}:
+        elif transcription_node_id not in {
+            None,
+            "transcription/paraformer_zh",
+            "transcription/whisper_large_v3",
+        }:
             raise ValueError(f"Unsupported semantic transcription node: {transcription_node_id}")
         elif language.lower().startswith(("zh", "cmn", "yue")):
             from sure_eval.evaluation.nodes.transcription.common.providers import (
@@ -184,7 +188,7 @@ def _build_audio_runtime(
                 device=device,
             )
 
-    mos_metrics = requested & {"dnsmos", "wv-mos", "utmos"}
+    mos_metrics = requested & {"dnsmos", "wv-mos", "utmos", "komos"}
     if mos_metrics:
         from sure_eval.evaluation.nodes.scoring.common.node_local import NodeLocalMOSProvider
 
@@ -204,6 +208,12 @@ def _build_audio_runtime(
             mos_providers["utmos"] = NodeLocalMOSProvider(
                 node_id="scoring/utmos",
                 node_dir=NODES_ROOT / "scoring" / "utmos",
+                device=device,
+            )
+        if "komos" in mos_metrics:
+            mos_providers["komos"] = NodeLocalMOSProvider(
+                node_id="scoring/komos",
+                node_dir=NODES_ROOT / "scoring" / "komos",
                 device=device,
             )
 

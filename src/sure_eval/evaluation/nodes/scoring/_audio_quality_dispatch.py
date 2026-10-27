@@ -50,6 +50,10 @@ def score_mos_metric(
         from sure_eval.evaluation.nodes.scoring.utmos import score_utmos
 
         return score_utmos(rows, provider=provider)
+    if metric_name == "komos":
+        from sure_eval.evaluation.nodes.scoring.komos import score_komos
+
+        return score_komos(rows, provider=provider)
     raise ValueError(f"unsupported MOS metric: {metric_name}")
 
 

@@ -29,6 +29,27 @@ category applies.
 - Do not commit model weights, checkpoints, `.venv`, caches, reports, secrets,
   or private absolute paths.
 
+## Documentation Coverage
+
+Include documentation updates in the same PR as the behavior they describe:
+
+- For a new task, update the supported-task tables in both root READMEs,
+  the [task index](./tasks/README.md), the public task guide, and the
+  task-local README. The homepage tables must cover all supported tasks and
+  link to their guides; only list capabilities implemented in that branch.
+- For a new metric or route, update the existing task guide and task-local
+  README, the affected node READMEs, and the metric summary in both root
+  READMEs when applicable. State the exact route, required inputs, units,
+  aggregation, defaults, environment/checkpoint setup, and material limits.
+- For changed behavior, correct examples and explanations that depend on it.
+  Keep the English and Chinese homepage descriptions consistent. Link to
+  detailed task/node guides instead of duplicating every route on the homepage.
+- After route changes, regenerate `docs/pipeline_catalog.jsonl` and the atlas
+  artifacts with the commands below. Do not edit generated listings by hand.
+- In the PR description, identify the documentation updated, or explain why
+  no documentation changes are needed. Check relative links and run any new
+  command examples against the selected route.
+
 ## Common Checks
 
 Run focused tests for the changed task, then broader checks when shared code is
