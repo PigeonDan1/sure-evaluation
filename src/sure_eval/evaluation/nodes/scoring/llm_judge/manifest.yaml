@@ -1,0 +1,24 @@
+id: scoring/llm_judge
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: task_addressed_text_inputs
+output_schema: llm_judge_result
+implementation: sure_eval.evaluation.nodes.scoring.llm_judge.node
+metrics:
+  - llm_judge
+backend: llm_api
+method: direct_llm_judging
+internal_stages:
+  - input_validation
+  - prompt_construction
+  - llm_judging
+  - response_validation
+  - mean_aggregation
+used_by:
+  - SLU textual question-answer quality
+notes:
+  - Consumes hyp and prompt_jsonl with optional aligned ref text, and returns answer-quality scores.
+  - Does not consume raw audio.
+  - Judge model and inference parameters are supplied by configuration.
+  - Invalid responses are recorded as failures, not zero scores.
