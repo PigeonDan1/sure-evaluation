@@ -19,3 +19,10 @@ routes:
       - scoring/classify
     input_contract: prompt_norm_classify
     executor: sure_eval.evaluation.tasks.slu.pipeline.evaluate_slu_files
+  -
+    metric: llm_judge
+    pipeline_id: slu.any.llm_judge.llm_judge_v1
+    nodes:
+      - scoring/llm_judge
+    input_contract: llm_judge_answers
+    executor: sure_eval.evaluation.tasks.slu.pipeline.evaluate_slu_files

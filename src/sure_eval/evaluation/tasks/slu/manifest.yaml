@@ -2,7 +2,16 @@ task: SLU
 language_sensitive: false
 canonical_entry: sure_eval.evaluation.tasks.slu.pipeline.evaluate_slu_files
 default_metric: accuracy
+supported_metrics: [accuracy, llm_judge]
 input_contracts:
+  llm_judge_answers:
+    purpose: textual_spoken_language_understanding_answer_quality
+    required_roles: [hyp, prompt_jsonl]
+    optional_roles: [ref]
+    row_format: key_text_with_prompt_context
+    alignment_key: key
+    aggregation: segment_mean_complete_batch
+    main_report: true
   prompt_norm_classify:
     purpose: spoken_language_understanding_choice_accuracy
     required_roles: [hyp, ref, prompt_jsonl]
@@ -15,5 +24,6 @@ pipeline_nodes:
   - normalization/prompt_norm
   - scoring/classify
 notes:
+  - LLM Judge evaluates textual questions/answers, not raw audio, and requires explicit judge configuration.
   - Prompt choices may be structured or parsed from legacy prompt text.
   - Choice ids and choice counts are arbitrary; A/B/C/D is only one compatible case.

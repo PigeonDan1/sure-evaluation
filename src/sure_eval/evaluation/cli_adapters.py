@@ -87,6 +87,10 @@ def build_pipeline_spec(
     if normalized_task == "kws":
         run_args.update(target_fa_per_hour=0.1, include_roc=False, match_tolerance_sec=1.0)
     run_args["output_dir"] = None
+
+    if "scoring/llm_judge" in description.node_ids:
+        run_args["llm_config"] = None
+
     execution_metrics = tuple(description.execution_metrics) or _requested_metrics(
         normalized_task,
         metric=metric,
@@ -267,6 +271,13 @@ def validate_pipeline_identity(pipeline: dict[str, Any]) -> dict[str, Any]:
             f"Pipeline identity mismatch for nodes: expected {expected_node_ids!r}, "
             f"found {actual_node_ids!r}"
         )
+    for actual_node, expected_node in zip(pipeline.get("nodes") or (), expected["nodes"], strict=True):
+        for field in ("version", "stage"):
+            if field in actual_node and actual_node[field] != expected_node[field]:
+                raise ValueError(
+                    f"Pipeline identity mismatch for node {expected_node['node_id']} {field}: "
+                    f"expected {expected_node[field]!r}, found {actual_node[field]!r}"
+                )
     for slot in pipeline.get("pipeline") or ():
         selected = slot.get("selected")
         selected_node = slot.get("default") if selected == "default" else selected
@@ -408,6 +419,13 @@ def run_pipeline_spec(
     validate_pipeline_identity(pipeline)
     task = normalize_task(str(pipeline["task"]))
     kwargs = _run_kwargs_from_pipeline(pipeline)
+
+    effective_llm_config = (pipeline.get("run_args") or {}).get("llm_config")
+    if effective_llm_config is not None:
+        if "scoring/llm_judge" not in [node.get("node_id") for node in pipeline.get("nodes") or ()]:
+            raise ValueError("run_args.llm_config is only accepted by an LLM Judge pipeline")
+        kwargs["llm_config"] = effective_llm_config
+
     cli_values = {
         "ref_file": ref_file,
         "hyp_file": hyp_file,
