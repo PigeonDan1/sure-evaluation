@@ -1,0 +1,12 @@
+id: scoring/rir_c50_mae
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: rir_samples_jsonl
+output_schema: rir_c50_mae_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rir_c50_mae
+metric: rir_c50_mae
+backend: numpy-rir
+internal_stages: [audio_load, early_late_window, clarity_compute, mean_aggregation]
+used_by: [RIR spatial room acoustics]
+notes: [Lower is better. Unit is dB.]

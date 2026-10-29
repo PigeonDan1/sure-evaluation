@@ -1,0 +1,12 @@
+id: scoring/rir_npm
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: rir_samples_jsonl
+output_schema: rir_npm_score
+implementation: sure_eval.evaluation.tasks.rir.metrics.rir_npm
+metric: rir_npm
+backend: numpy-rir
+internal_stages: [audio_load, length_align, projection_scale, npm_db, mean_aggregation]
+used_by: [RIR signal error]
+notes: [Lower is better. Unit is dB.]

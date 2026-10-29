@@ -11,6 +11,7 @@ from sure_eval.evaluation.tasks.tse.types import TSESample
 from sure_eval.evaluation.tasks.vc.types import VCSample
 from sure_eval.evaluation.tasks.se.types import SESample
 from sure_eval.evaluation.tasks.tta.types import TTASample
+from sure_eval.evaluation.tasks.rir.types import RIRSample
 
 
 class SampleJsonlError(ValueError):
@@ -201,6 +202,40 @@ def load_tta_samples_jsonl(
     return samples
 
 
+def load_rir_samples_jsonl(
+    path: str | Path, *, metrics: tuple[str, ...] | list[str] | None = None
+) -> list[RIRSample]:
+    rows = _read_rows(Path(path))
+    _validate_common(rows)
+    samples: list[RIRSample] = []
+    for row in rows:
+        line_no = row["_line_no"]
+        _require_fields(row, line_no, ("sample_id", "prediction_rir", "reference_rir"))
+        for field in ("prediction_rir", "reference_rir"):
+            if not isinstance(row[field], str):
+                _fail(line_no, f"{field} must be a path string")
+        metadata = _metadata(row, line_no)
+        sample_rate = row.get("sample_rate", metadata.get("sample_rate"))
+        if sample_rate is not None:
+            try:
+                sample_rate = int(sample_rate)
+            except (TypeError, ValueError):
+                _fail(line_no, "sample_rate must be an integer")
+        samples.append(
+            RIRSample(
+                prediction_rir=_resolve_existing_path(row["prediction_rir"], path, line_no, "prediction_rir"),
+                reference_rir=_resolve_existing_path(row["reference_rir"], path, line_no, "reference_rir"),
+                observed_audio=_resolve_optional_path(row.get("observed_audio"), path, line_no, "observed_audio"),
+                reference_audio=_resolve_optional_path(row.get("reference_audio"), path, line_no, "reference_audio"),
+                sample_rate=sample_rate,
+                channel_layout=str(row.get("channel_layout", metadata.get("channel_layout", "auto"))),
+                sample_id=str(row["sample_id"]),
+                metadata=metadata,
+            )
+        )
+    return samples
+
+
 def _read_rows(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         raise SampleJsonlError(f"samples_jsonl file not found: {path}")
@@ -268,7 +303,9 @@ def _resolve_path(value: Any, jsonl_path: str | Path) -> Path:
 
 
 def _metadata(row: dict[str, Any], line_no: int) -> dict[str, Any]:
-    metadata = row.get("metadata") or {}
+    metadata = row.get("metadata")
+    if metadata is None:
+        metadata = {}
     if not isinstance(metadata, dict):
         _fail(line_no, "metadata must be an object when present")
     return dict(metadata)

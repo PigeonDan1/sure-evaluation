@@ -195,7 +195,7 @@ def run_metric_pipeline(
         None, "--match-tolerance-sec", help="KWS event matching tolerance in seconds (default 1.0)"
     ),
     samples_jsonl: Optional[str] = typer.Option(
-        None, "--samples-jsonl", help="TTS/TTA/VC/SE/TSE samples JSONL file"
+        None, "--samples-jsonl", help="TTS/TTA/VC/SE/TSE/RIR samples JSONL file"
     ),
     device: str = typer.Option(
         "cuda", "--device", help="Device passed to audio model runtime builders"
