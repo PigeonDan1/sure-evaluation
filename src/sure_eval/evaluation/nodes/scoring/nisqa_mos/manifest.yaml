@@ -1,0 +1,11 @@
+id: scoring/nisqa_mos
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.nisqa_mos.node
+metric: nisqa_mos
+backend: nisqa-v2-dim
+used_by: [SE no-reference quality]
+notes: [NISQA DIM overall MOS prediction; higher is better.]

@@ -118,6 +118,33 @@ def test_pip_runtime_node_checks_declared_imports(monkeypatch) -> None:
     assert "pip install" in result.fix
 
 
+def test_pip_runtime_verifies_external_model_asset(monkeypatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.env_check import NodeEnvChecker
+
+    root = tmp_path / "nodes"
+    node = root / "scoring" / "example"
+    node.mkdir(parents=True)
+    model = tmp_path / "model"
+    model.mkdir()
+    (model / "weights.bin").write_bytes(b"checkpoint")
+    (node / "node_env.yaml").write_text(
+        "runtime:\n  type: pip\nverify:\n  files:\n"
+        "    - path: weights.bin\n      relative_to_env: TEST_SE_MODEL_DIR\n"
+        "      default_base: checkpoints/model\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("TEST_SE_MODEL_DIR", str(model))
+    from sure_eval.evaluation.scripts.contracts import load_yaml
+
+    config = load_yaml(node / "node_env.yaml")
+    checker = NodeEnvChecker(nodes_root=root)
+    assert checker._check_pip_node("scoring/example", node, config).status == "ok"
+    (model / "weights.bin").unlink()
+    result = checker._check_pip_node("scoring/example", node, config)
+    assert result.status == "failed"
+    assert str(model / "weights.bin") in result.message
+
+
 def test_wetext_norm_env_check_uses_node_local_runtime() -> None:
     from sure_eval.evaluation.env_check import NodeEnvChecker
 

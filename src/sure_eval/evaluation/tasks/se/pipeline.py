@@ -11,7 +11,9 @@ from sure_eval.evaluation.nodes.scoring._audio_quality_dispatch import (
     score_full_reference_metric,
     score_mos_metric,
 )
-from sure_eval.evaluation.nodes.scoring._full_reference_audio import PESQProvider, SISDRProvider, STOIProvider
+from sure_eval.evaluation.nodes.scoring._full_reference_audio import (
+    ESTOIProvider, LSDProvider, PESQProvider, SISDRProvider, STOIProvider,
+)
 from sure_eval.evaluation.pipeline_identity import (
     build_atomic_pipeline_id,
     build_bundle_pipeline_id,
@@ -21,9 +23,25 @@ from sure_eval.evaluation.pipeline_identity import (
 from sure_eval.evaluation.tasks.se.types import SESample
 
 _ZIP_SENTINEL = object()
-_MOS_METRICS = {"dnsmos", "wv-mos", "utmos"}
-_FULL_REFERENCE_METRICS = {"si-sdr", "stoi", "pesq"}
+_MOS_METRICS = {"dnsmos", "dnsmos_p808", "dnsmos_sig", "dnsmos_bak", "wv-mos", "utmos", "nsrmr", "squim_stoi", "squim_pesq", "squim_si_sdr", "nisqa_mos", "nisqa_noi", "nisqa_dis", "nisqa_col", "nisqa_loud"}
+_FULL_REFERENCE_METRICS = {"si-sdr", "stoi", "estoi", "lsd", "pesq", "lps"}
 _DEFAULT_METRICS = ("si-sdr", "stoi", "pesq", "dnsmos", "wv-mos", "utmos")
+_NEW_METRIC_METADATA = {
+    "estoi": {"unit": "score", "higher_is_better": True},
+    "lsd": {"unit": "dB", "higher_is_better": False},
+    "lps": {"unit": "score", "higher_is_better": True},
+    "nsrmr": {"unit": "ratio", "higher_is_better": True},
+    "dnsmos_p808": {"unit": "predicted_mos", "higher_is_better": True},
+    "dnsmos_sig": {"unit": "predicted_mos", "higher_is_better": True},
+    "dnsmos_bak": {"unit": "predicted_mos", "higher_is_better": True},
+    "squim_stoi": {"unit": "predicted_stoi", "higher_is_better": True},
+    "squim_pesq": {"unit": "predicted_pesq", "higher_is_better": True},
+    "squim_si_sdr": {"unit": "predicted_dB", "higher_is_better": True},
+    **{
+        name: {"unit": "predicted_mos", "higher_is_better": True}
+        for name in ("nisqa_mos", "nisqa_noi", "nisqa_dis", "nisqa_col", "nisqa_loud")
+    },
+}
 
 _FULL_REFERENCE_CONTRACT = MetricInputContract(
     metric_id="scoring/full_reference_audio",
@@ -61,7 +79,6 @@ def evaluate_se_samples(
     unsupported = [metric for metric in requested_metrics if metric not in _MOS_METRICS | _FULL_REFERENCE_METRICS]
     if unsupported:
         raise ValueError(f"Unsupported SE metric(s): {', '.join(unsupported)}")
-
     rows = [_base_row(sample) for sample in samples]
     results: dict[str, dict[str, Any]] = {}
     result_keys: dict[str, str] = {}
@@ -78,6 +95,7 @@ def evaluate_se_samples(
         full_reference_payload = dict(full_reference_result.details["result"])
         full_reference_payload["metric_name"] = canonical_metric(metric_name)
         full_reference_payload["execution_metric"] = metric_name
+        full_reference_payload.update(_NEW_METRIC_METADATA.get(metric_name, {}))
         _store_result(results, result_keys, metric_name, full_reference_payload)
         trace.append(full_reference_result)
 
@@ -92,6 +110,7 @@ def evaluate_se_samples(
         mos_payload = dict(mos_result.details["result"])
         mos_payload["metric_name"] = canonical_metric(metric_name)
         mos_payload["execution_metric"] = metric_name
+        mos_payload.update(_NEW_METRIC_METADATA.get(metric_name, {}))
         _store_result(results, result_keys, metric_name, mos_payload)
         trace.append(mos_result)
 
@@ -207,6 +226,14 @@ def _default_reference_provider(metric_name: str):
         return SISDRProvider()
     if metric_name == "stoi":
         return STOIProvider()
+    if metric_name == "estoi":
+        return ESTOIProvider()
+    if metric_name == "lsd":
+        return LSDProvider()
+    if metric_name == "lps":
+        from sure_eval.evaluation.nodes.scoring.lps.node import LPSProvider
+
+        return LPSProvider()
     if metric_name == "pesq":
         return PESQProvider()
     raise ValueError(f"Unsupported SE full-reference metric: {metric_name}")
@@ -249,8 +276,23 @@ def _normalize_metric(metric: str) -> str:
         "wvmos": "wv-mos",
         "wv-mos": "wv-mos",
         "dnsmos": "dnsmos",
+        "dnsmos-p808": "dnsmos_p808",
+        "dnsmos-sig": "dnsmos_sig",
+        "dnsmos-bak": "dnsmos_bak",
         "utmos": "utmos",
         "stoi": "stoi",
+        "estoi": "estoi",
+        "lsd": "lsd",
+        "lps": "lps",
+        "nsrmr": "nsrmr",
+        "squim-stoi": "squim_stoi",
+        "squim-pesq": "squim_pesq",
+        "squim-si-sdr": "squim_si_sdr",
+        "nisqa-mos": "nisqa_mos",
+        "nisqa-noi": "nisqa_noi",
+        "nisqa-dis": "nisqa_dis",
+        "nisqa-col": "nisqa_col",
+        "nisqa-loud": "nisqa_loud",
         "pesq": "pesq",
     }
     return aliases.get(normalized, normalized)
@@ -269,8 +311,23 @@ def _node_id_for_metric(metric_name: str) -> str:
     return {
         "si-sdr": "scoring/si_sdr",
         "stoi": "scoring/stoi",
+        "estoi": "scoring/estoi",
+        "lsd": "scoring/lsd",
+        "lps": "scoring/lps",
+        "nsrmr": "scoring/nsrmr",
+        "squim_stoi": "scoring/squim_stoi",
+        "squim_pesq": "scoring/squim_pesq",
+        "squim_si_sdr": "scoring/squim_si_sdr",
+        "nisqa_mos": "scoring/nisqa_mos",
+        "nisqa_noi": "scoring/nisqa_noi",
+        "nisqa_dis": "scoring/nisqa_dis",
+        "nisqa_col": "scoring/nisqa_col",
+        "nisqa_loud": "scoring/nisqa_loud",
         "pesq": "scoring/pesq",
         "dnsmos": "scoring/dnsmos",
+        "dnsmos_p808": "scoring/dnsmos_p808",
+        "dnsmos_sig": "scoring/dnsmos_sig",
+        "dnsmos_bak": "scoring/dnsmos_bak",
         "wv-mos": "scoring/wv_mos",
         "utmos": "scoring/utmos",
     }[metric_name]

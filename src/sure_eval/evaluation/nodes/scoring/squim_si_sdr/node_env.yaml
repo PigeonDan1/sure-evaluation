@@ -1,0 +1,22 @@
+id: scoring/squim_si_sdr
+group: se-no-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: optional
+packages:
+  - name: torch
+    version: "==2.2.0"
+  - name: torchaudio
+    version: "==2.2.0"
+models:
+  - id: torchaudio/squim_objective_dns2020
+    provider: manual
+    target: checkpoints/squim_objective_dns2020.pth
+    env: SURE_SE_SQUIM_OBJECTIVE_CKPT
+verify:
+  imports: [torch, torchaudio]
+  files:
+    - path: squim_objective_dns2020.pth
+      relative_to_env: SURE_SE_SQUIM_OBJECTIVE_CKPT
+      default_base: checkpoints

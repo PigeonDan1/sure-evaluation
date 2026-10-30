@@ -1,0 +1,21 @@
+id: scoring/nisqa_noi
+group: se-no-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: optional
+packages:
+  - name: nisqa
+    version: "==2.0.post2"
+models:
+  - id: gabrielmittag/NISQA-DIM-v2
+    provider: manual
+    target: checkpoints/nisqa.tar
+    env: SURE_SE_NISQA_DIM_CKPT
+    license: cc-by-nc-sa-4.0
+verify:
+  imports: [nisqa, torch, pandas]
+  files:
+    - path: nisqa.tar
+      relative_to_env: SURE_SE_NISQA_DIM_CKPT
+      default_base: checkpoints

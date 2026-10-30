@@ -183,6 +183,48 @@ class STOIProvider:
         }
 
 
+class ESTOIProvider:
+    """Extended STOI against a clean 16 kHz reference."""
+
+    def __call__(self, enhanced_audio: str, reference_audio: str, **kwargs: Any) -> dict[str, Any]:
+        try:
+            from pystoi import stoi
+        except ModuleNotFoundError as exc:
+            raise RuntimeError("eSTOI scoring requires `python -m pip install pystoi`") from exc
+        reference, _ = read_audio_mono(reference_audio, target_sample_rate=16000)
+        enhanced, _ = read_audio_mono(enhanced_audio, target_sample_rate=16000)
+        reference, enhanced = align_pair(reference, enhanced)
+        score = float(stoi(reference, enhanced, 16000, extended=True))
+        if not math.isfinite(score):
+            raise ValueError("eSTOI score is non-finite")
+        return {"estoi": score, "sample_rate": 16000, "extended": True}
+
+
+class LSDProvider:
+    """The local OpenBench leaderboard's log-spectral distance in dB."""
+
+    def __call__(self, enhanced_audio: str, reference_audio: str, **kwargs: Any) -> dict[str, Any]:
+        try:
+            import librosa
+        except ModuleNotFoundError as exc:
+            raise RuntimeError("LSD scoring requires `python -m pip install librosa`") from exc
+        reference, reference_rate = read_audio_mono(reference_audio)
+        enhanced, enhanced_rate = read_audio_mono(enhanced_audio)
+        if reference_rate != 16000:
+            reference = librosa.resample(reference, orig_sr=reference_rate, target_sr=16000)
+        if enhanced_rate != 16000:
+            enhanced = librosa.resample(enhanced, orig_sr=enhanced_rate, target_sr=16000)
+        reference, enhanced = align_pair(reference, enhanced)
+        estimate_spec = np.abs(librosa.stft(enhanced, n_fft=512, hop_length=128, win_length=512))
+        reference_spec = np.abs(librosa.stft(reference, n_fft=512, hop_length=128, win_length=512))
+        estimate_db = 20.0 * np.log10(np.maximum(estimate_spec, 1e-7))
+        reference_db = 20.0 * np.log10(np.maximum(reference_spec, 1e-7))
+        score = float(np.sqrt(np.mean((estimate_db - reference_db) ** 2)))
+        if not math.isfinite(score):
+            raise ValueError("LSD score is non-finite")
+        return {"lsd": score, "unit": "dB", "sample_rate": 16000}
+
+
 class PESQProvider:
     """PESQ provider using the optional pesq package."""
 
@@ -220,6 +262,9 @@ def _score_key(metric_name: str) -> str:
     return {
         "si-sdr": "si_sdr",
         "stoi": "stoi",
+        "estoi": "estoi",
+        "lsd": "lsd",
+        "lps": "lps",
         "pesq": "pesq",
     }.get(metric_name, "score")
 
@@ -228,6 +273,9 @@ def _fallback_score_key(row: dict[str, Any], metric_name: str) -> str | None:
     candidates = {
         "si-sdr": ("si_sdr", "sisdr", "si-sdr", "sdr", "score"),
         "stoi": ("stoi", "estoi", "score"),
+        "estoi": ("estoi", "score"),
+        "lsd": ("lsd", "score"),
+        "lps": ("lps", "score"),
         "pesq": ("pesq", "mos_lqo", "score"),
     }.get(metric_name, ("score",))
     for key in candidates:
