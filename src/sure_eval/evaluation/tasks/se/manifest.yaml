@@ -4,8 +4,23 @@ canonical_entry: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
 implemented_metrics:
   - si_sdr
   - stoi
+  - estoi
+  - lsd
+  - lps
   - pesq
+  - nsrmr
+  - squim_stoi
+  - squim_pesq
+  - squim_si_sdr
+  - nisqa_mos
+  - nisqa_noi
+  - nisqa_dis
+  - nisqa_col
+  - nisqa_loud
   - dnsmos
+  - dnsmos_p808
+  - dnsmos_sig
+  - dnsmos_bak
   - wv_mos
   - utmos
 default_metrics:
@@ -42,6 +57,30 @@ input_contracts:
     alignment_key: sample_id
     aggregation: mean
     main_report: true
+  scoring/estoi:
+    purpose: se_full_reference_extended_intelligibility
+    required_roles: [enhanced_audio, reference_audio]
+    optional_roles: [noisy_audio]
+    row_format: speech_enhancement_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/lsd:
+    purpose: se_full_reference_log_spectral_distortion
+    required_roles: [enhanced_audio, reference_audio]
+    optional_roles: [noisy_audio]
+    row_format: speech_enhancement_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/lps:
+    purpose: se_full_reference_phoneme_similarity
+    required_roles: [enhanced_audio, reference_audio]
+    optional_roles: [noisy_audio]
+    row_format: speech_enhancement_audio_pairs
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
   scoring/pesq:
     purpose: se_full_reference_perceptual_quality
     required_roles: [enhanced_audio, reference_audio]
@@ -52,6 +91,30 @@ input_contracts:
     main_report: true
   scoring/dnsmos:
     purpose: se_no_reference_speech_quality
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/dnsmos_p808:
+    purpose: se_no_reference_predicted_p808_mos
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/dnsmos_sig:
+    purpose: se_no_reference_predicted_p835_signal
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/dnsmos_bak:
+    purpose: se_no_reference_predicted_p835_background
     required_roles: [enhanced_audio]
     optional_roles: [noisy_audio, reference_audio]
     row_format: enhanced_audio_rows
@@ -74,15 +137,102 @@ input_contracts:
     alignment_key: sample_id
     aggregation: mean
     main_report: true
+  scoring/nsrmr:
+    purpose: se_no_reference_reverberation_quality
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/squim_stoi:
+    purpose: se_no_reference_predicted_stoi
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/squim_pesq:
+    purpose: se_no_reference_predicted_pesq
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/squim_si_sdr:
+    purpose: se_no_reference_predicted_si_sdr
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/nisqa_mos:
+    purpose: se_no_reference_predicted_overall_mos
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/nisqa_noi:
+    purpose: se_no_reference_predicted_noise_quality
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/nisqa_dis:
+    purpose: se_no_reference_predicted_discontinuity_quality
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/nisqa_col:
+    purpose: se_no_reference_predicted_coloration_quality
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
+  scoring/nisqa_loud:
+    purpose: se_no_reference_predicted_loudness_quality
+    required_roles: [enhanced_audio]
+    optional_roles: [noisy_audio, reference_audio]
+    row_format: enhanced_audio_rows
+    alignment_key: sample_id
+    aggregation: mean
+    main_report: true
 pipeline_nodes:
   full_reference:
     si-sdr: scoring/si_sdr
     stoi: scoring/stoi
+    estoi: scoring/estoi
+    lsd: scoring/lsd
+    lps: scoring/lps
     pesq: scoring/pesq
   no_reference:
     dnsmos: scoring/dnsmos
+    dnsmos_p808: scoring/dnsmos_p808
+    dnsmos_sig: scoring/dnsmos_sig
+    dnsmos_bak: scoring/dnsmos_bak
     wv-mos: scoring/wv_mos
     utmos: scoring/utmos
+    nsrmr: scoring/nsrmr
+    squim_stoi: scoring/squim_stoi
+    squim_pesq: scoring/squim_pesq
+    squim_si_sdr: scoring/squim_si_sdr
+    nisqa_mos: scoring/nisqa_mos
+    nisqa_noi: scoring/nisqa_noi
+    nisqa_dis: scoring/nisqa_dis
+    nisqa_col: scoring/nisqa_col
+    nisqa_loud: scoring/nisqa_loud
 notes:
   - SE evaluates enhanced audio produced from noisy speech.
   - Full-reference metrics compare enhanced_audio with clean reference_audio.

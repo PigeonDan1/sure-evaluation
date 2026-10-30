@@ -1,0 +1,11 @@
+id: scoring/nsrmr
+group: se-no-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+packages:
+  - name: srmrpy
+    version: "==1.0"
+verify:
+  imports: [srmrpy]

@@ -1,0 +1,13 @@
+id: scoring/nsrmr
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.nsrmr.node
+metric: nsrmr
+backend: srmrpy-fast-normalized
+used_by:
+  - SE no-reference reverberation quality
+notes:
+  - Higher is better; output is a dimensionless modulation-energy ratio.

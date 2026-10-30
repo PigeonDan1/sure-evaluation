@@ -1,0 +1,11 @@
+id: scoring/lsd
+group: se-full-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+packages:
+  - name: librosa
+    version: ">=0.10.0"
+verify:
+  imports: [librosa]

@@ -1,0 +1,13 @@
+id: scoring/estoi
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: speech_enhancement_audio_pairs
+output_schema: full_reference_audio_metric
+implementation: sure_eval.evaluation.nodes.scoring.estoi.node
+metric: estoi
+backend: pystoi-extended
+used_by:
+  - SE full-reference intelligibility
+notes:
+  - Higher is better; separate definition from standard STOI.

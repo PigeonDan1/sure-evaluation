@@ -1,0 +1,11 @@
+id: scoring/nisqa_col
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.nisqa_col.node
+metric: nisqa_col
+backend: nisqa-v2-dim
+used_by: [SE no-reference quality]
+notes: [NISQA DIM coloration dimension prediction; higher is better.]

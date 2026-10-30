@@ -1,0 +1,13 @@
+id: scoring/dnsmos_p808
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.dnsmos_p808.node
+metric: dnsmos_p808
+backend: dnsmos-p808-model-v8
+used_by:
+  - SE no-reference quality
+notes:
+  - Selects P808_MOS from the existing scoring/dnsmos provider; higher is better.

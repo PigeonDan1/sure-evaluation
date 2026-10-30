@@ -1,0 +1,13 @@
+id: scoring/lsd
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: speech_enhancement_audio_pairs
+output_schema: full_reference_audio_metric
+implementation: sure_eval.evaluation.nodes.scoring.lsd.node
+metric: lsd
+backend: librosa-stft-db-rms
+used_by:
+  - SE full-reference spectral distortion
+notes:
+  - Lower is better; output in dB.
