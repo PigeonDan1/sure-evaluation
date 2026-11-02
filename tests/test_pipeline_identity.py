@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from sure_eval.evaluation.cli_adapters import build_pipeline_spec
 from sure_eval.evaluation.scripts import describe_pipeline
 from sure_eval.evaluation.scripts.contracts import route_pipeline_id
 
@@ -123,6 +124,32 @@ def test_audio_multi_descriptions_are_bundles_with_atomic_members() -> None:
         assert desc.metric == "multi"
         assert desc.member_pipeline_ids == members
         assert len(desc.execution_metrics) == len(members)
+
+
+def test_multi_metric_pipeline_slots_report_their_member_metrics() -> None:
+    cases = [
+        ("se", {"metric": "estoi,lsd"}, ["estoi", "lsd"]),
+        (
+            "tts",
+            {"language": "zh", "metric": "tts_cer,sim/wavlm-large,dnsmos"},
+            ["cer", "spk_sim", "dnsmos"],
+        ),
+        (
+            "vc",
+            {"language": "zh", "metric": "vc_cer,sim/ecapa-tdnn,utmos"},
+            ["cer", "spk_sim", "utmos"],
+        ),
+        (
+            "tse",
+            {"language": "zh", "metric": "si_sdr,sim/wavlm-large,dnsmos"},
+            ["si_sdr", "spk_sim", "dnsmos"],
+        ),
+    ]
+
+    for task, kwargs, expected_metrics in cases:
+        spec = build_pipeline_spec(task, **kwargs)
+        scoring_slots = [slot for slot in spec["pipeline"] if slot["stage"] == "scoring"]
+        assert [slot["metric"] for slot in scoring_slots] == expected_metrics
 
 
 def test_sa_asr_conversion_is_part_of_computation_identity() -> None:

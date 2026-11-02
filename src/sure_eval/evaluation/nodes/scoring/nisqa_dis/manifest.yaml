@@ -1,0 +1,11 @@
+id: scoring/nisqa_dis
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.nisqa_dis.node
+metric: nisqa_dis
+backend: nisqa-v2-dim
+used_by: [SE no-reference quality]
+notes: [NISQA DIM discontinuity dimension prediction; higher is better.]

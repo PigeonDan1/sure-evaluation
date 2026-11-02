@@ -1,0 +1,11 @@
+id: scoring/squim_pesq
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.squim_pesq.node
+metric: squim_pesq
+backend: torchaudio-squim-objective-dns2020
+used_by: [SE no-reference quality]
+notes: [Predicted PESQ, not full-reference PESQ; higher is better.]

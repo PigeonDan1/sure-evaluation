@@ -15,7 +15,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from sure_eval.evaluation.base import MetricResult
 from sure_eval.evaluation.cache import get_cache_dir
-from sure_eval.evaluation.nodes.scoring._full_reference_audio import PESQProvider, SISDRProvider, STOIProvider
+from sure_eval.evaluation.nodes.scoring._full_reference_audio import (
+    ESTOIProvider, LSDProvider, PESQProvider, SISDRProvider, STOIProvider,
+)
 from sure_eval.evaluation.tasks.se.pipeline import evaluate_se_samples
 from sure_eval.evaluation.tasks.se.types import SESample
 
@@ -45,12 +47,27 @@ def _build_stub_providers() -> tuple[dict[str, Any], dict[str, Any]]:
     return (
         {
             "dnsmos": lambda prediction, reference="", **kwargs: {"OVRL": 3.1, "SIG": 3.3},
+            "dnsmos_p808": lambda prediction, reference="", **kwargs: {"P808_MOS": 3.6},
+            "dnsmos_sig": lambda prediction, reference="", **kwargs: {"SIG": 3.3},
+            "dnsmos_bak": lambda prediction, reference="", **kwargs: {"BAK": 3.5},
             "wv-mos": lambda prediction, reference="", **kwargs: {"mos": 3.4},
             "utmos": lambda prediction, reference="", **kwargs: {"utmos": 3.2},
+            "nsrmr": lambda prediction, reference="", **kwargs: {"score": 4.1},
+            "squim_stoi": lambda prediction, reference="", **kwargs: {"squim_stoi": 0.89},
+            "squim_pesq": lambda prediction, reference="", **kwargs: {"squim_pesq": 2.9},
+            "squim_si_sdr": lambda prediction, reference="", **kwargs: {"squim_si_sdr": 10.0},
+            "nisqa_mos": lambda prediction, reference="", **kwargs: {"nisqa_mos": 3.8},
+            "nisqa_noi": lambda prediction, reference="", **kwargs: {"nisqa_noi": 3.6},
+            "nisqa_dis": lambda prediction, reference="", **kwargs: {"nisqa_dis": 3.7},
+            "nisqa_col": lambda prediction, reference="", **kwargs: {"nisqa_col": 3.5},
+            "nisqa_loud": lambda prediction, reference="", **kwargs: {"nisqa_loud": 3.9},
         },
         {
             "si-sdr": lambda prediction, reference, **kwargs: {"si_sdr": 8.0},
             "stoi": lambda prediction, reference, **kwargs: {"stoi": 0.91},
+            "estoi": lambda prediction, reference, **kwargs: {"estoi": 0.88},
+            "lsd": lambda prediction, reference, **kwargs: {"lsd": 5.2},
+            "lps": lambda prediction, reference, **kwargs: {"lps": 0.82},
             "pesq": lambda prediction, reference, **kwargs: {"pesq": 2.8},
         },
     )
@@ -59,12 +76,17 @@ def _build_stub_providers() -> tuple[dict[str, Any], dict[str, Any]]:
 def _build_real_providers(*, device: str, cache_dir: Path, metrics: tuple[str, ...]) -> tuple[dict[str, Any], dict[str, Any]]:
     mos_providers: dict[str, Any] = {}
     reference_providers: dict[str, Any] = {}
-    if set(metrics) & {"dnsmos", "wv-mos", "utmos"}:
+    if set(metrics) & {"dnsmos", "dnsmos_p808", "dnsmos_sig", "dnsmos_bak", "wv-mos", "utmos"}:
         mos_cache = cache_dir / "mos"
-        if "dnsmos" in metrics:
+        if set(metrics) & {"dnsmos", "dnsmos_p808", "dnsmos_sig", "dnsmos_bak"}:
             from sure_eval.evaluation.nodes.scoring.common.mos_providers import DNSMOSProvider
 
-            mos_providers["dnsmos"] = DNSMOSProvider(cache_dir=mos_cache)
+            dns_provider = DNSMOSProvider(cache_dir=mos_cache)
+            if "dnsmos" in metrics:
+                mos_providers["dnsmos"] = dns_provider
+            for metric in ("dnsmos_p808", "dnsmos_sig", "dnsmos_bak"):
+                if metric in metrics:
+                    mos_providers[metric] = dns_provider
         if "wv-mos" in metrics:
             from sure_eval.evaluation.nodes.scoring.common.mos_providers import WVMOSProvider
 
@@ -73,10 +95,36 @@ def _build_real_providers(*, device: str, cache_dir: Path, metrics: tuple[str, .
             from sure_eval.evaluation.nodes.scoring.common.mos_providers import UTMOSProvider
 
             mos_providers["utmos"] = UTMOSProvider(cache_dir=mos_cache, device=device)
+    if "nsrmr" in metrics:
+        from sure_eval.evaluation.nodes.scoring.nsrmr.node import NSRMRProvider
+
+        mos_providers["nsrmr"] = NSRMRProvider()
+    squim_metrics = set(metrics) & {"squim_stoi", "squim_pesq", "squim_si_sdr"}
+    if squim_metrics:
+        from sure_eval.evaluation.nodes.scoring._squim_objective import SQUIMObjectiveProvider
+
+        squim_provider = SQUIMObjectiveProvider(device=device)
+        for metric in squim_metrics:
+            mos_providers[metric] = squim_provider
+    nisqa_metrics = set(metrics) & {"nisqa_mos", "nisqa_noi", "nisqa_dis", "nisqa_col", "nisqa_loud"}
+    if nisqa_metrics:
+        from sure_eval.evaluation.nodes.scoring._nisqa_dim import NISQADIMProvider
+
+        nisqa_provider = NISQADIMProvider(device=device)
+        for metric in nisqa_metrics:
+            mos_providers[metric] = nisqa_provider
     if "si-sdr" in metrics:
         reference_providers["si-sdr"] = SISDRProvider()
     if "stoi" in metrics:
         reference_providers["stoi"] = STOIProvider()
+    if "estoi" in metrics:
+        reference_providers["estoi"] = ESTOIProvider()
+    if "lsd" in metrics:
+        reference_providers["lsd"] = LSDProvider()
+    if "lps" in metrics:
+        from sure_eval.evaluation.nodes.scoring.lps.node import LPSProvider
+
+        reference_providers["lps"] = LPSProvider(device=device)
     if "pesq" in metrics:
         reference_providers["pesq"] = PESQProvider()
     return mos_providers, reference_providers
@@ -108,6 +156,17 @@ def _normalize_metric(metric: str) -> str:
         "si-sdr": "si-sdr",
         "wvmos": "wv-mos",
         "wv-mos": "wv-mos",
+        "dnsmos-p808": "dnsmos_p808",
+        "dnsmos-sig": "dnsmos_sig",
+        "dnsmos-bak": "dnsmos_bak",
+        "squim-stoi": "squim_stoi",
+        "squim-pesq": "squim_pesq",
+        "squim-si-sdr": "squim_si_sdr",
+        "nisqa-mos": "nisqa_mos",
+        "nisqa-noi": "nisqa_noi",
+        "nisqa-dis": "nisqa_dis",
+        "nisqa-col": "nisqa_col",
+        "nisqa-loud": "nisqa_loud",
     }.get(normalized, normalized)
 
 

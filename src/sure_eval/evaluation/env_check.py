@@ -403,8 +403,8 @@ class NodeEnvChecker:
         details["imports"] = imports
 
         missing_files = []
-        for file_name in verify.get("files") or ():
-            file_path = node_path / str(file_name)
+        for file_spec in verify.get("files") or ():
+            file_path = _resolve_verify_file(node_path, file_spec)
             if not file_path.exists():
                 missing_files.append(str(file_path))
         if missing_files:

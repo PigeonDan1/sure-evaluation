@@ -1,0 +1,13 @@
+id: scoring/dnsmos_sig
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.dnsmos_sig.node
+metric: dnsmos_sig
+backend: dnsmos-p835-sig
+used_by:
+  - SE no-reference quality
+notes:
+  - Selects calibrated SIG from the existing scoring/dnsmos provider; higher is better.
