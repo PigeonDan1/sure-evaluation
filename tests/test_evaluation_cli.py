@@ -120,7 +120,7 @@ def test_metric_routes_lists_exact_language_and_metric_variants() -> None:
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
     assert payload["schema"] == "sure.metric.routes.v1"
-    assert payload["count"] == 5
+    assert payload["count"] == 6
     assert payload["default_pipeline_id"] == (
         "asr.zh.cer.wetext_norm_zh_itn_v1.wenet_cer_v1"
     )
@@ -130,6 +130,7 @@ def test_metric_routes_lists_exact_language_and_metric_variants() -> None:
         "asr.zh.cer.canonical_itn_zh_v2.token_cer_v1",
         "asr.zh.cer.giga_norm_chn_v1.wenet_cer_v1",
         "asr.zh.cer.xnorm_zh_v1.wenet_cer_v1",
+        "asr.zh.cer.etc_canonicalization_zh_v1.wenet_cer_v1",
     }
     assert all(route["language"] == "zh" for route in payload["routes"])
     assert all(route["metric"] == "cer" for route in payload["routes"])
