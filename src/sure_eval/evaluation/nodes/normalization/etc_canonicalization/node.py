@@ -168,15 +168,24 @@ def _normalize_file(
                 )
             key, original_text = line.rstrip("\r\n").split("\t", 1)
             source_rows.append((key, original_text, line_number))
+    infer_rows = [
+        (index, row)
+        for index, row in enumerate(source_rows)
+        if row[1].strip()
+    ]
     predictions = canonicalize_batch(
-        [original for _, original, _ in source_rows], language=language, model=model
+        [row[1] for _, row in infer_rows], language=language, model=model
     )
+    predictions_by_index = {
+        index: prediction for (index, _), prediction in zip(infer_rows, predictions)
+    }
     output_handle = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8")
     rows: list[dict[str, str]] = []
     try:
         with output_handle as target:
-            for (key, original_text, line_number), normalized_text in zip(source_rows, predictions):
-                if not normalized_text and original_text:
+            for index, (key, original_text, line_number) in enumerate(source_rows):
+                normalized_text = predictions_by_index.get(index, "")
+                if not normalized_text and original_text.strip():
                     raise ValueError(
                         f"{input_file}:{line_number}: canonicalizer returned empty output for nonempty input"
                     )

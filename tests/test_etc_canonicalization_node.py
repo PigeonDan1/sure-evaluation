@@ -115,7 +115,8 @@ def test_etc_preserves_valid_empty_input_row(monkeypatch: pytest.MonkeyPatch, tm
     from sure_eval.evaluation.core.types import KeyTextFiles
     from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
 
-    monkeypatch.setattr(node, "canonicalize_batch", lambda texts, **_: [""] * len(texts))
+    seen: list[str] = []
+    monkeypatch.setattr(node, "canonicalize_batch", lambda texts, **_: seen.extend(texts) or ["hello"] * len(texts))
     ref = tmp_path / "ref.txt"
     hyp = tmp_path / "hyp.txt"
     ref.write_text("utt-1\t\n", encoding="utf-8")
@@ -124,6 +125,7 @@ def test_etc_preserves_valid_empty_input_row(monkeypatch: pytest.MonkeyPatch, tm
     try:
         assert Path(normalized.ref_file).read_text(encoding="utf-8") == "utt-1\t\n"
         assert trace.details["row_counts"] == {"ref": 1, "hyp": 1}
+        assert seen == []
     finally:
         Path(normalized.ref_file).unlink(missing_ok=True)
         Path(normalized.hyp_file).unlink(missing_ok=True)
@@ -147,6 +149,64 @@ def test_etc_multiline_output_cannot_turn_mismatch_into_zero_wer(
     report = evaluate_asr_files(str(ref), str(hyp), language="en", metric="wer", normalizer="etc:en")
     assert report.score == 0.5
     assert report.pipeline_trace[0].details["row_counts"] == {"ref": 1, "hyp": 1}
+
+
+def test_etc_empty_and_whitespace_hypotheses_bypass_model_and_score_deletions(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
+    from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
+
+    seen: list[str] = []
+
+    def fake_batch(texts: list[str], **_: object) -> list[str]:
+        seen.extend(texts)
+        return ["hello" for _ in texts]
+
+    monkeypatch.setattr(node, "canonicalize_batch", fake_batch)
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    ref.write_text("utt-1\thello\n", encoding="utf-8")
+    hyp.write_text("utt-1\t   \n", encoding="utf-8")
+
+    report = evaluate_asr_files(str(ref), str(hyp), language="en", metric="wer", normalizer="etc:en")
+    trace = report.pipeline_trace[0]
+    assert report.score == 1.0
+    assert trace.details["row_counts"] == {"ref": 1, "hyp": 1}
+    assert trace.details["ref_rows"][0]["normalized_text"] == "hello"
+    assert trace.details["hyp_rows"][0]["normalized_text"] == ""
+    assert seen == ["hello"]
+
+
+def test_etc_mixed_empty_and_nonempty_rows_keep_order_and_keys(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from sure_eval.evaluation.core.types import KeyTextFiles
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
+
+    seen: list[str] = []
+
+    def fake_batch(texts: list[str], **_: object) -> list[str]:
+        seen.extend(texts)
+        return [text.upper() for text in texts]
+
+    monkeypatch.setattr(node, "canonicalize_batch", fake_batch)
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    ref.write_text("utt-1\t\nutt-2\tsecond\nutt-3\t   \nutt-4\tfourth\n", encoding="utf-8")
+    hyp.write_text("utt-1\t\nutt-2\tsecond\nutt-3\t   \nutt-4\tfourth\n", encoding="utf-8")
+    normalized, trace = node.normalize_etc_key_text_files(KeyTextFiles(str(ref), str(hyp)), language="en")
+    try:
+        assert seen == ["second", "fourth", "second", "fourth"]
+        assert Path(normalized.ref_file).read_text(encoding="utf-8") == (
+            "utt-1\t\nutt-2\tSECOND\nutt-3\t\nutt-4\tFOURTH\n"
+        )
+        assert [row["key"] for row in trace.details["ref_rows"]] == [
+            "utt-1", "utt-2", "utt-3", "utt-4"
+        ]
+    finally:
+        Path(normalized.ref_file).unlink(missing_ok=True)
+        Path(normalized.hyp_file).unlink(missing_ok=True)
 
 
 def test_etc_generation_budget_exhaustion_is_explicit() -> None:
