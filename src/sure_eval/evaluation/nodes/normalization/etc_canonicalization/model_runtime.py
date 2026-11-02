@@ -19,7 +19,10 @@ SYSTEM_PROMPT = (
 
 def canonicalize_batch(texts: list[str], *, model: str) -> list[str]:
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.bfloat16 if device != "cpu" else torch.float32
+    if device == "cuda":
+        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    else:
+        dtype = torch.float32
     tokenizer = AutoTokenizer.from_pretrained(model, local_files_only=True)
     template = Path(model) / "chat_template.jinja"
     if template.exists():
