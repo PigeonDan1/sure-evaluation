@@ -1,0 +1,11 @@
+id: scoring/squim_si_sdr
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: enhanced_audio_rows
+output_schema: provider_normalized_mos
+implementation: sure_eval.evaluation.nodes.scoring.squim_si_sdr.node
+metric: squim_si_sdr
+backend: torchaudio-squim-objective-dns2020
+used_by: [SE no-reference quality]
+notes: [Predicted SI-SDR in dB, not full-reference SI-SDR; higher is better.]

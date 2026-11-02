@@ -1,0 +1,39 @@
+id: scoring/lps
+group: se-full-reference
+runtime:
+  type: pip
+  optional: true
+  gpu: optional
+packages:
+  - name: transformers
+    version: "==4.24.0"
+  - name: torch
+    version: ">=1.12,<3"
+  - name: soundfile
+    version: ">=0.12"
+  - name: soxr
+    version: ">=0.3,<2"
+models:
+  - id: facebook/wav2vec2-lv-60-espeak-cv-ft
+    revision: ae45363bf3413b374fecd9dc8bc1df0e24c3b7f4
+    provider: manual
+    target: checkpoints/wav2vec2-lv-60-espeak-cv-ft/pytorch_model.bin
+    env: SURE_SE_LPS_MODEL_DIR
+verify:
+  imports: [transformers, torch, soundfile, soxr]
+  files:
+    - path: pytorch_model.bin
+      relative_to_env: SURE_SE_LPS_MODEL_DIR
+      default_base: checkpoints/wav2vec2-lv-60-espeak-cv-ft
+    - path: config.json
+      relative_to_env: SURE_SE_LPS_MODEL_DIR
+      default_base: checkpoints/wav2vec2-lv-60-espeak-cv-ft
+    - path: vocab.json
+      relative_to_env: SURE_SE_LPS_MODEL_DIR
+      default_base: checkpoints/wav2vec2-lv-60-espeak-cv-ft
+    - path: tokenizer_config.json
+      relative_to_env: SURE_SE_LPS_MODEL_DIR
+      default_base: checkpoints/wav2vec2-lv-60-espeak-cv-ft
+    - path: preprocessor_config.json
+      relative_to_env: SURE_SE_LPS_MODEL_DIR
+      default_base: checkpoints/wav2vec2-lv-60-espeak-cv-ft

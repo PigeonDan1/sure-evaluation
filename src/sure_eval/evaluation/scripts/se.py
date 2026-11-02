@@ -167,4 +167,9 @@ def _normalize_metric(metric: str) -> str:
         "si-sdr": "si-sdr",
         "wvmos": "wv-mos",
         "wv-mos": "wv-mos",
+        **{name.replace("_", "-"): name for name in (
+            "dnsmos_p808", "dnsmos_sig", "dnsmos_bak", "squim_stoi",
+            "squim_pesq", "squim_si_sdr", "nisqa_mos", "nisqa_noi",
+            "nisqa_dis", "nisqa_col", "nisqa_loud",
+        )},
     }.get(normalized, normalized)

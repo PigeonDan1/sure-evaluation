@@ -21,6 +21,30 @@ routes:
     input_contract: scoring/stoi
     executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
   -
+    metric: estoi
+    family: full_reference_intelligibility
+    pipeline_id: se.any.estoi.estoi_v1
+    nodes:
+      - scoring/estoi
+    input_contract: scoring/estoi
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: lsd
+    family: full_reference_spectral_distortion
+    pipeline_id: se.any.lsd.lsd_v1
+    nodes:
+      - scoring/lsd
+    input_contract: scoring/lsd
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: lps
+    family: full_reference_phoneme_intelligibility
+    pipeline_id: se.any.lps.lps_v1
+    nodes:
+      - scoring/lps
+    input_contract: scoring/lps
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
     metric: pesq
     family: full_reference_quality
     pipeline_id: se.any.pesq.pesq_v1
@@ -35,6 +59,30 @@ routes:
     nodes:
       - scoring/dnsmos
     input_contract: scoring/dnsmos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: dnsmos_p808
+    family: no_reference_quality
+    pipeline_id: se.any.dnsmos_p808.dnsmos_p808_v1
+    nodes:
+      - scoring/dnsmos_p808
+    input_contract: scoring/dnsmos_p808
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: dnsmos_sig
+    family: no_reference_quality
+    pipeline_id: se.any.dnsmos_sig.dnsmos_sig_v1
+    nodes:
+      - scoring/dnsmos_sig
+    input_contract: scoring/dnsmos_sig
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: dnsmos_bak
+    family: no_reference_quality
+    pipeline_id: se.any.dnsmos_bak.dnsmos_bak_v1
+    nodes:
+      - scoring/dnsmos_bak
+    input_contract: scoring/dnsmos_bak
     executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
   -
     metric: wv_mos
@@ -54,4 +102,76 @@ routes:
     nodes:
       - scoring/utmos
     input_contract: scoring/utmos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: nsrmr
+    family: no_reference_reverberation_quality
+    pipeline_id: se.any.nsrmr.nsrmr_v1
+    nodes:
+      - scoring/nsrmr
+    input_contract: scoring/nsrmr
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: squim_stoi
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.squim_stoi.squim_stoi_v1
+    nodes:
+      - scoring/squim_stoi
+    input_contract: scoring/squim_stoi
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: squim_pesq
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.squim_pesq.squim_pesq_v1
+    nodes:
+      - scoring/squim_pesq
+    input_contract: scoring/squim_pesq
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: squim_si_sdr
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.squim_si_sdr.squim_si_sdr_v1
+    nodes:
+      - scoring/squim_si_sdr
+    input_contract: scoring/squim_si_sdr
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: nisqa_mos
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.nisqa_mos.nisqa_mos_v1
+    nodes:
+      - scoring/nisqa_mos
+    input_contract: scoring/nisqa_mos
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: nisqa_noi
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.nisqa_noi.nisqa_noi_v1
+    nodes:
+      - scoring/nisqa_noi
+    input_contract: scoring/nisqa_noi
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: nisqa_dis
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.nisqa_dis.nisqa_dis_v1
+    nodes:
+      - scoring/nisqa_dis
+    input_contract: scoring/nisqa_dis
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: nisqa_col
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.nisqa_col.nisqa_col_v1
+    nodes:
+      - scoring/nisqa_col
+    input_contract: scoring/nisqa_col
+    executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples
+  -
+    metric: nisqa_loud
+    family: no_reference_quality_prediction
+    pipeline_id: se.any.nisqa_loud.nisqa_loud_v1
+    nodes:
+      - scoring/nisqa_loud
+    input_contract: scoring/nisqa_loud
     executor: sure_eval.evaluation.tasks.se.pipeline.evaluate_se_samples

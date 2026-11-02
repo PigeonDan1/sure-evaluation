@@ -42,6 +42,18 @@ def score_mos_metric(
         from sure_eval.evaluation.nodes.scoring.dnsmos import score_dnsmos
 
         return score_dnsmos(rows, provider=provider)
+    if metric_name == "dnsmos_p808":
+        from sure_eval.evaluation.nodes.scoring.dnsmos_p808 import score_dnsmos_p808
+
+        return score_dnsmos_p808(rows, provider=provider)
+    if metric_name == "dnsmos_sig":
+        from sure_eval.evaluation.nodes.scoring.dnsmos_sig import score_dnsmos_sig
+
+        return score_dnsmos_sig(rows, provider=provider)
+    if metric_name == "dnsmos_bak":
+        from sure_eval.evaluation.nodes.scoring.dnsmos_bak import score_dnsmos_bak
+
+        return score_dnsmos_bak(rows, provider=provider)
     if metric_name == "wv-mos":
         from sure_eval.evaluation.nodes.scoring.wv_mos import score_wv_mos
 
@@ -50,6 +62,42 @@ def score_mos_metric(
         from sure_eval.evaluation.nodes.scoring.utmos import score_utmos
 
         return score_utmos(rows, provider=provider)
+    if metric_name == "nsrmr":
+        from sure_eval.evaluation.nodes.scoring.nsrmr import score_nsrmr
+
+        return score_nsrmr(rows, provider=provider)
+    if metric_name == "squim_stoi":
+        from sure_eval.evaluation.nodes.scoring.squim_stoi import score_squim_stoi
+
+        return score_squim_stoi(rows, provider=provider)
+    if metric_name == "squim_pesq":
+        from sure_eval.evaluation.nodes.scoring.squim_pesq import score_squim_pesq
+
+        return score_squim_pesq(rows, provider=provider)
+    if metric_name == "squim_si_sdr":
+        from sure_eval.evaluation.nodes.scoring.squim_si_sdr import score_squim_si_sdr
+
+        return score_squim_si_sdr(rows, provider=provider)
+    if metric_name == "nisqa_mos":
+        from sure_eval.evaluation.nodes.scoring.nisqa_mos import score_nisqa_mos
+
+        return score_nisqa_mos(rows, provider=provider)
+    if metric_name == "nisqa_noi":
+        from sure_eval.evaluation.nodes.scoring.nisqa_noi import score_nisqa_noi
+
+        return score_nisqa_noi(rows, provider=provider)
+    if metric_name == "nisqa_dis":
+        from sure_eval.evaluation.nodes.scoring.nisqa_dis import score_nisqa_dis
+
+        return score_nisqa_dis(rows, provider=provider)
+    if metric_name == "nisqa_col":
+        from sure_eval.evaluation.nodes.scoring.nisqa_col import score_nisqa_col
+
+        return score_nisqa_col(rows, provider=provider)
+    if metric_name == "nisqa_loud":
+        from sure_eval.evaluation.nodes.scoring.nisqa_loud import score_nisqa_loud
+
+        return score_nisqa_loud(rows, provider=provider)
     if metric_name == "komos":
         from sure_eval.evaluation.nodes.scoring.komos import score_komos
 
@@ -71,6 +119,18 @@ def score_full_reference_metric(
         from sure_eval.evaluation.nodes.scoring.stoi import score_stoi
 
         return score_stoi(rows, provider=provider)
+    if metric_name == "estoi":
+        from sure_eval.evaluation.nodes.scoring.estoi import score_estoi
+
+        return score_estoi(rows, provider=provider)
+    if metric_name == "lsd":
+        from sure_eval.evaluation.nodes.scoring.lsd import score_lsd
+
+        return score_lsd(rows, provider=provider)
+    if metric_name == "lps":
+        from sure_eval.evaluation.nodes.scoring.lps import score_lps
+
+        return score_lps(rows, provider=provider)
     if metric_name == "pesq":
         from sure_eval.evaluation.nodes.scoring.pesq import score_pesq
 

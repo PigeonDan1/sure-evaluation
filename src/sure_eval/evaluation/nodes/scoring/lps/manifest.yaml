@@ -1,0 +1,11 @@
+id: scoring/lps
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: speech_enhancement_audio_pairs
+output_schema: full_reference_audio_metric
+implementation: sure_eval.evaluation.nodes.scoring.lps.node
+metric: lps
+backend: urgent2025-wav2vec2-espeak-phoneme-similarity
+used_by: [SE full-reference phoneme intelligibility]
+notes: [Higher is better; the score may be negative.]
