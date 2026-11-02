@@ -1,0 +1,31 @@
+id: normalization/etc_canonicalization
+version: v1
+stage: normalization
+language_sensitive: true
+input_schema: key_text_files
+output_schema: key_text_files
+implementation: sure_eval.evaluation.nodes.normalization.etc_canonicalization.node
+runtime: node_local_optional
+package:
+  name: etc-canonicalizer
+  version: "1.0.0"
+  source: etc-bench model-canonicalizer adapter
+  upstream: https://github.com/zh-qian2004/etc-bench
+  upstream_commit: c317d5de3f9462370057df42441a3b7f3ecee728
+profiles:
+  ar: {language: ar, canonicalizer: etc-qwen3.5}
+  bn: {language: bn, canonicalizer: etc-qwen3.5}
+  de: {language: de, canonicalizer: etc-qwen3.5}
+  en: {language: en, canonicalizer: etc-qwen3.5}
+  fa: {language: fa, canonicalizer: etc-qwen3.5}
+  fr: {language: fr, canonicalizer: etc-qwen3.5}
+  hi: {language: hi, canonicalizer: etc-qwen3.5}
+  id: {language: id, canonicalizer: etc-qwen3.5}
+  ja: {language: ja, canonicalizer: etc-qwen3.5}
+  ru: {language: ru, canonicalizer: etc-qwen3.5}
+  vi: {language: vi, canonicalizer: etc-qwen3.5}
+  zh: {language: zh, canonicalizer: etc-qwen3.5}
+notes:
+  - The model canonicalizes reference and hypothesis independently according to ETC-Bench.
+  - Model weights are external and must not be committed to the repository.
+  - The node loads checkpoints only from a user-prepared local directory or local Hugging Face cache.
