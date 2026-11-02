@@ -18,6 +18,7 @@ NODE_ID = "normalization/etc_canonicalization"
 NODE_VERSION = "v1"
 DEFAULT_MODEL = "zhiheng-qian/etc-qwen3.5-0.8b"
 ETC_BENCH_VERSION = "2026.10"
+MAX_NEW_TOKENS = 256
 NODE_DIR = Path(__file__).resolve().parent
 MODULE_NAME = "sure_eval.evaluation.nodes.normalization.etc_canonicalization.runner"
 SUPPORTED_PROFILES = ("ar", "bn", "de", "en", "fa", "fr", "hi", "id", "ja", "ru", "vi", "zh")
@@ -139,6 +140,12 @@ def normalize_etc_key_text_files(
             "hyp_file": hyp_output,
             "changed_counts": changed_counts,
             "num_empty_after_normalization": empty_counts,
+            "generation": {"max_new_tokens": MAX_NEW_TOKENS, "decoding": "greedy"},
+            "serialization": {
+                "policy": "replace_cr_lf_tab_with_spaces",
+                "ref_replacements": sum(row["serialization_replacements"] for row in ref_rows),
+                "hyp_replacements": sum(row["serialization_replacements"] for row in hyp_rows),
+            },
             "ref_rows": ref_rows,
             "hyp_rows": hyp_rows,
         },
@@ -150,22 +157,45 @@ def normalize_etc_key_text_files(
 def _normalize_file(
     input_file: str, language: str, *, model: str | None
 ) -> tuple[str, list[dict[str, str]]]:
-    source_rows: list[tuple[str, str]] = []
+    source_rows: list[tuple[str, str, int]] = []
     with open(input_file, encoding="utf-8") as source:
-        for line in source:
-            if "\t" in line:
-                source_rows.append(tuple(line.rstrip("\n").split("\t", 1)))
+        for line_number, line in enumerate(source, 1):
+            if not line.strip():
+                continue
+            if "\t" not in line:
+                raise ValueError(
+                    f"{input_file}:{line_number}: nonblank key-text row is missing a tab separator"
+                )
+            key, original_text = line.rstrip("\r\n").split("\t", 1)
+            source_rows.append((key, original_text, line_number))
     predictions = canonicalize_batch(
-        [original for _, original in source_rows], language=language, model=model
+        [original for _, original, _ in source_rows], language=language, model=model
     )
     output_handle = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8")
     rows: list[dict[str, str]] = []
     try:
         with output_handle as target:
-            for (key, original_text), normalized_text in zip(source_rows, predictions):
-                target.write(f"{key}\t{normalized_text}\n")
-                rows.append({"key": key, "original_text": original_text, "normalized_text": normalized_text})
+            for (key, original_text, line_number), normalized_text in zip(source_rows, predictions):
+                if not normalized_text and original_text:
+                    raise ValueError(
+                        f"{input_file}:{line_number}: canonicalizer returned empty output for nonempty input"
+                    )
+                safe_text, replacement_count = _serialize_text(normalized_text)
+                target.write(f"{key}\t{safe_text}\n")
+                rows.append({
+                    "key": key,
+                    "original_text": original_text,
+                    "normalized_text": safe_text,
+                    "serialization_replacements": replacement_count,
+                })
     except Exception:
         Path(output_handle.name).unlink(missing_ok=True)
         raise
     return output_handle.name, rows
+
+
+def _serialize_text(text: str) -> tuple[str, int]:
+    """Keep model output inside one key-text physical row without dropping content."""
+
+    replacements = sum(text.count(character) for character in ("\r", "\n", "\t"))
+    return text.replace("\r", " ").replace("\n", " ").replace("\t", " "), replacements

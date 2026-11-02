@@ -160,8 +160,6 @@ The route config is
 - `scoring/sctk_sclite` - optional binary-backed scorer wrapping NIST SCTK
   `sclite`; default ASR pipelines continue to use WeNet-compatible scorers.
 
-## Canonical ITN Pipelines
-
 ## ETC-Bench Canonicalization Routes
 
 ETC-Bench is a multilingual benchmark for evaluation-side transcript
@@ -191,6 +189,15 @@ sure-eval metric run --pipeline /tmp/asr_etc.json \
 
 The environment and model checkpoint are user-managed runtime assets and are
 not included in the repository.
+
+The model uses a fixed greedy `max_new_tokens=256` generation budget. If a
+transcript reaches that budget without an EOS token, the node fails explicitly
+instead of scoring a partial canonical transcript. Because this is a learned
+canonicalizer, it can change content such as fillers, repetitions, casing,
+punctuation, numbers, and symbols; users should inspect the node trace when
+comparing runs.
+
+## Canonical ITN Pipelines
 
 Canonical ITN pipelines keep the same reported metrics (`cer`, `wer`, `mer`)
 but change the normalization and scorer chain. Text is canonicalized via ITN

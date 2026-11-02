@@ -6,6 +6,7 @@ from pathlib import Path
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from .generation_policy import MAX_NEW_TOKENS, ensure_generation_completed
 
 SYSTEM_PROMPT = (
     "You are an ASR post-processing normalizer. Rewrite the given transcript into one "
@@ -15,6 +16,12 @@ SYSTEM_PROMPT = (
     "Keep all other content unchanged. Output only the normalized text, with no "
     "explanation, quotes, JSON or markup."
 )
+def _decode_generation(tokenizer, generated, input_length: int) -> str:
+    """Decode one result and reject output that exhausted the generation budget."""
+
+    generated_tokens = generated[0, input_length:]
+    ensure_generation_completed(len(generated_tokens), int(generated_tokens[-1]), tokenizer.eos_token_id)
+    return tokenizer.decode(generated_tokens, skip_special_tokens=True).strip()
 
 
 def canonicalize_batch(texts: list[str], *, model: str) -> list[str]:
@@ -46,14 +53,10 @@ def canonicalize_batch(texts: list[str], *, model: str) -> list[str]:
         with torch.no_grad():
             generated = loaded.generate(
                 **inputs,
-                max_new_tokens=256,
+                max_new_tokens=MAX_NEW_TOKENS,
                 do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
             )
-        outputs.append(
-            tokenizer.decode(
-                generated[0, inputs.input_ids.shape[1] :], skip_special_tokens=True
-            ).strip()
-        )
+        outputs.append(_decode_generation(tokenizer, generated, inputs.input_ids.shape[1]))
     return outputs

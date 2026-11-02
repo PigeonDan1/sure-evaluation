@@ -64,4 +64,8 @@ replace the task scorer or use benchmark pairs as a lookup table.
 - Real inference requires a user-prepared checkpoint and the optional node
   environment; the base SURE installation does not include either.
 - The model may conservatively retain ambiguous homophones or abbreviations.
+- Generation uses greedy decoding with `max_new_tokens=256`; output that
+  reaches the budget without EOS is rejected rather than scored as complete.
+- The learned canonicalizer may change fillers, repetitions, casing,
+  punctuation, numbers, symbols, and other transcript surface content.
 - The node currently exposes the ETC-Bench 12-language profile set.

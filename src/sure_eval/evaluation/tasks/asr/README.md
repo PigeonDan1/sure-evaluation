@@ -60,5 +60,16 @@ converts written tokens to spoken Arabic on both sides before CER scoring.
 Prepare its frozen node-local environment with
 `sure-eval env setup --node normalization/nemo_norm` before scoring.
 
+### ETC-Bench canonicalization
+
+`normalization/etc_canonicalization` is an optional evaluation-side
+canonicalizer for the 12 ETC-Bench languages. It independently canonicalizes
+reference and hypothesis text before the existing WER/CER scorer. Select an
+exact route such as
+`asr.en.wer.etc_canonicalization_en_v1.wenet_wer_v1`, then prepare the
+node-local environment and provide `SURE_ETC_CANONICALIZATION_MODEL`; model
+weights and the virtual environment are user-managed. See the [ETC node
+README](../../src/sure_eval/evaluation/nodes/normalization/etc_canonicalization/README.md).
+
 `scoring/sctk_sclite` is an optional binary-backed scorer wrapping NIST SCTK
 `sclite`; default ASR pipelines continue to use WeNet-compatible scorers.

@@ -37,7 +37,7 @@ def test_etc_key_text_adapter_processes_ref_and_hyp_independently(
     monkeypatch.setattr(node, "canonicalize_batch", lambda texts, **_: [text.replace("two", "2") for text in texts])
     ref = tmp_path / "ref.txt"
     hyp = tmp_path / "hyp.txt"
-    ref.write_text("utt-1\tThey need two eggs.\nmalformed\n", encoding="utf-8")
+    ref.write_text("utt-1\tThey need two eggs.\n", encoding="utf-8")
     hyp.write_text("utt-1\tThey need 2 eggs.\n", encoding="utf-8")
 
     normalized, trace = node.normalize_etc_key_text_files(
@@ -58,6 +58,106 @@ def test_etc_key_text_adapter_processes_ref_and_hyp_independently(
     finally:
         Path(normalized.ref_file).unlink(missing_ok=True)
         Path(normalized.hyp_file).unlink(missing_ok=True)
+
+
+def test_etc_serializes_multiline_crlf_and_tab_output_without_row_injection(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from sure_eval.evaluation.core.types import KeyTextFiles
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
+
+    monkeypatch.setattr(node, "canonicalize_batch", lambda texts, **_: ["a\r\nb\tc"] * len(texts))
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    ref.write_text("utt-1\tinput\n", encoding="utf-8")
+    hyp.write_text("utt-1\tinput\n", encoding="utf-8")
+
+    normalized, trace = node.normalize_etc_key_text_files(
+        KeyTextFiles(ref_file=str(ref), hyp_file=str(hyp)), language="en"
+    )
+    try:
+        assert Path(normalized.ref_file).read_text(encoding="utf-8") == "utt-1\ta  b c\n"
+        assert Path(normalized.hyp_file).read_text(encoding="utf-8") == "utt-1\ta  b c\n"
+        assert trace.details["serialization"]["ref_replacements"] == 3
+        assert trace.details["serialization"]["hyp_replacements"] == 3
+    finally:
+        Path(normalized.ref_file).unlink(missing_ok=True)
+        Path(normalized.hyp_file).unlink(missing_ok=True)
+
+
+def test_etc_rejects_empty_model_output_for_nonempty_input(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.core.types import KeyTextFiles
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
+
+    monkeypatch.setattr(node, "canonicalize_batch", lambda texts, **_: [""] * len(texts))
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    ref.write_text("utt-1\tinput\n", encoding="utf-8")
+    hyp.write_text("utt-1\tinput\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="canonicalizer returned empty output"):
+        node.normalize_etc_key_text_files(KeyTextFiles(str(ref), str(hyp)), language="en")
+
+
+def test_etc_rejects_nonblank_malformed_rows(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.core.types import KeyTextFiles
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
+
+    monkeypatch.setattr(node, "canonicalize_batch", lambda texts, **_: list(texts))
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    ref.write_text("utt-1\tinput\nmalformed\n", encoding="utf-8")
+    hyp.write_text("utt-1\tinput\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=r"ref.txt:2: nonblank key-text row"):
+        node.normalize_etc_key_text_files(KeyTextFiles(str(ref), str(hyp)), language="en")
+
+
+def test_etc_preserves_valid_empty_input_row(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from sure_eval.evaluation.core.types import KeyTextFiles
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
+
+    monkeypatch.setattr(node, "canonicalize_batch", lambda texts, **_: [""] * len(texts))
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    ref.write_text("utt-1\t\n", encoding="utf-8")
+    hyp.write_text("utt-1\t\n", encoding="utf-8")
+    normalized, trace = node.normalize_etc_key_text_files(KeyTextFiles(str(ref), str(hyp)), language="en")
+    try:
+        assert Path(normalized.ref_file).read_text(encoding="utf-8") == "utt-1\t\n"
+        assert trace.details["row_counts"] == {"ref": 1, "hyp": 1}
+    finally:
+        Path(normalized.ref_file).unlink(missing_ok=True)
+        Path(normalized.hyp_file).unlink(missing_ok=True)
+
+
+def test_etc_multiline_output_cannot_turn_mismatch_into_zero_wer(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization import node
+    from sure_eval.evaluation.tasks.asr.pipeline import evaluate_asr_files
+
+    monkeypatch.setattr(
+        node,
+        "canonicalize_batch",
+        lambda texts, **_: ["a\nb" if "b" in text else "a\nc" for text in texts],
+    )
+    ref = tmp_path / "ref.txt"
+    hyp = tmp_path / "hyp.txt"
+    ref.write_text("utt-1\ta b\n", encoding="utf-8")
+    hyp.write_text("utt-1\ta c\n", encoding="utf-8")
+    report = evaluate_asr_files(str(ref), str(hyp), language="en", metric="wer", normalizer="etc:en")
+    assert report.score == 0.5
+    assert report.pipeline_trace[0].details["row_counts"] == {"ref": 1, "hyp": 1}
+
+
+def test_etc_generation_budget_exhaustion_is_explicit() -> None:
+    from sure_eval.evaluation.nodes.normalization.etc_canonicalization.generation_policy import (
+        ensure_generation_completed,
+    )
+
+    with pytest.raises(RuntimeError, match="exhausted max_new_tokens=256"):
+        ensure_generation_completed(256, 7, 2)
+    ensure_generation_completed(256, 2, 2)
+    ensure_generation_completed(12, 7, 2)
 
 
 def test_etc_manifest_declares_runtime_and_profiles() -> None:
