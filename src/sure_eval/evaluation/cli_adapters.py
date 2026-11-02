@@ -75,9 +75,8 @@ def build_pipeline_spec(
     routes, _ = load_task_routes(TASK_ALIASES.get(normalized_task, normalized_task))
     route_choices = _route_choices(routes, language=description.language)
     selected_routes = _match_selected_routes(route_choices, description)
-    selected_route = selected_routes[0]
     node_slots = _node_slots(
-        description.node_ids, selected_route=selected_route, route_choices=route_choices
+        description.node_ids, selected_routes=selected_routes, route_choices=route_choices
     )
     run_args = {ROLE_TO_CLI_ARG.get(role, role): None for role in description.required_roles}
     required_roles = list(description.required_roles)
@@ -689,13 +688,32 @@ def _match_route(route_choices: list[dict[str, Any]], key: str, value: str) -> d
 def _node_slots(
     node_ids: tuple[str, ...],
     *,
-    selected_route: dict[str, Any],
+    selected_routes: list[dict[str, Any]],
     route_choices: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
+    selected_route = selected_routes[0] if selected_routes else {}
     route_nodes = selected_route.get("nodes") or list(node_ids)
+    scoring_metrics_by_node: dict[str, list[str]] = {}
+    for route in selected_routes:
+        metric = route.get("metric")
+        if not metric:
+            continue
+        for route_node in route.get("nodes") or ():
+            if str(route_node).startswith("scoring/"):
+                scoring_metrics_by_node.setdefault(str(route_node), []).append(str(metric))
+    scoring_metric_indexes: dict[str, int] = {}
+
+    def slot_metric(node_id: str) -> str | None:
+        candidates = scoring_metrics_by_node.get(node_id, [])
+        index = scoring_metric_indexes.get(node_id, 0)
+        if index < len(candidates):
+            scoring_metric_indexes[node_id] = index + 1
+            return candidates[index]
+        return str(selected_route.get("metric")) if selected_route.get("metric") else None
+
     slots: list[dict[str, Any]] = []
     stage_counts: dict[str, int] = {}
-    for index, node_id in enumerate(node_ids):
+    for node_id in node_ids:
         stage = node_id.split("/", 1)[0]
         stage_counts[stage] = stage_counts.get(stage, 0) + 1
         stage_choices = _stage_choices(stage, route_choices)
@@ -706,13 +724,13 @@ def _node_slots(
                 "selected": "default",
                 "default": node_id,
                 "nullable": stage != "scoring",
-                "metric": selected_route.get("metric") if stage == "scoring" else None,
+                "metric": slot_metric(node_id) if stage == "scoring" else None,
                 "choices": stage_choices or [node_id],
             }
         )
     if not slots and route_nodes:
         stage_counts = {}
-        for index, node_id in enumerate(route_nodes):
+        for node_id in route_nodes:
             stage = node_id.split("/", 1)[0]
             stage_counts[stage] = stage_counts.get(stage, 0) + 1
             slots.append(
@@ -722,7 +740,7 @@ def _node_slots(
                     "selected": "default",
                     "default": node_id,
                     "nullable": stage != "scoring",
-                    "metric": selected_route.get("metric") if stage == "scoring" else None,
+                    "metric": slot_metric(node_id) if stage == "scoring" else None,
                     "choices": _stage_choices(stage, route_choices) or [node_id],
                 }
             )
