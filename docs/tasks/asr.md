@@ -160,6 +160,43 @@ The route config is
 - `scoring/sctk_sclite` - optional binary-backed scorer wrapping NIST SCTK
   `sclite`; default ASR pipelines continue to use WeNet-compatible scorers.
 
+## ETC-Bench Canonicalization Routes
+
+ETC-Bench is a multilingual benchmark for evaluation-side transcript
+canonicalization. It maps speech-equivalent written variants to one canonical
+form before comparing a hypothesis with its reference. The same model is
+applied independently to both sides; this node does not score the transcript.
+
+This PR adds optional ASR routes using
+`normalization/etc_canonicalization` followed by the existing WeNet scorer:
+
+- CER: `ar`, `ja`, `zh`
+- WER: `bn`, `de`, `en`, `fa`, `fr`, `hi`, `id`, `ru`, `vi`
+
+For example, the exact English route is
+`asr.en.wer.etc_canonicalization_en_v1.wenet_wer_v1`. Prepare the node after
+cloning and provide a checkpoint locally:
+
+```bash
+sure-eval metric describe asr \
+  --pipeline-id asr.en.wer.etc_canonicalization_en_v1.wenet_wer_v1 \
+  --output /tmp/asr_etc.json
+sure-eval env setup --pipeline /tmp/asr_etc.json
+export SURE_ETC_CANONICALIZATION_MODEL=/path/to/etc-qwen3.5-0.8b
+sure-eval metric run --pipeline /tmp/asr_etc.json \
+  --ref-file ref.txt --hyp-file hyp.txt --output-dir /tmp/asr-etc-run
+```
+
+The environment and model checkpoint are user-managed runtime assets and are
+not included in the repository.
+
+The model uses a fixed greedy `max_new_tokens=256` generation budget. If a
+transcript reaches that budget without an EOS token, the node fails explicitly
+instead of scoring a partial canonical transcript. Because this is a learned
+canonicalizer, it can change content such as fillers, repetitions, casing,
+punctuation, numbers, and symbols; users should inspect the node trace when
+comparing runs.
+
 ## Canonical ITN Pipelines
 
 Canonical ITN pipelines keep the same reported metrics (`cer`, `wer`, `mer`)

@@ -124,6 +124,8 @@ def _executor_selectors_from_route(route: dict) -> dict[str, str]:
             selectors["normalizer"] = "nemo:ar_tn"
         elif node_id == "normalization/xnorm":
             selectors["normalizer"] = f"xnorm:{route.get('language')}"
+        elif node_id == "normalization/etc_canonicalization":
+            selectors["normalizer"] = f"etc:{route.get('language')}"
         elif node_id in {"scoring/wenet_cer", "scoring/wenet_wer", "scoring/wenet_mer"}:
             selectors["scorer"] = "wenet"
         elif node_id == "scoring/token_cer":

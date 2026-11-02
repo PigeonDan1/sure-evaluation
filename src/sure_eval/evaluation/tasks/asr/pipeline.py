@@ -42,6 +42,10 @@ from sure_eval.evaluation.nodes.normalization.xnorm import (
     SUPPORTED_PROFILES as XNORM_PROFILES,
     normalize_xnorm_key_text_files,
 )
+from sure_eval.evaluation.nodes.normalization.etc_canonicalization import (
+    SUPPORTED_PROFILES as ETC_SUPPORTED_PROFILES,
+    normalize_etc_key_text_files,
+)
 from sure_eval.evaluation.nodes.scoring.sctk_sclite import (
     score_sctk_sclite_cer,
     score_sctk_sclite_wer,
@@ -320,6 +324,18 @@ def _normalize_normalizer(*, language: str, metric: str, normalizer: str | None)
         profile = normalized.split(":", 1)[1]
         _validate_xnorm_profile_for_language(language=language, profile=profile)
         return f"xnorm:{profile}"
+    if normalized in {
+        "etc",
+        "etc_canonicalization",
+        "etc-canonicalization",
+        "normalization/etc_canonicalization",
+    }:
+        _validate_etc_profile_for_language(language=language, profile=language)
+        return f"etc:{language}"
+    if normalized.startswith("etc:"):
+        profile = normalized.split(":", 1)[1]
+        _validate_etc_profile_for_language(language=language, profile=profile)
+        return f"etc:{profile}"
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -402,6 +418,12 @@ def _normalization_node(*, language: str, normalizer: str):
             lambda files: normalize_xnorm_key_text_files(files, language=profile),
             f"xnorm_{profile}",
         )
+    if normalizer.startswith("etc:"):
+        profile = normalizer.split(":", 1)[1]
+        return (
+            lambda files: normalize_etc_key_text_files(files, language=profile),
+            f"etc_{profile}",
+        )
     raise ValueError(f"Unsupported ASR normalizer: {normalizer}")
 
 
@@ -456,6 +478,11 @@ def _normalizer_component(*, language: str, normalizer_label: str):
         return node_component(
             "normalization/xnorm",
             profile=normalizer_label.removeprefix("xnorm_"),
+        )
+    if normalizer_label.startswith("etc_"):
+        return node_component(
+            "normalization/etc_canonicalization",
+            profile=normalizer_label.removeprefix("etc_"),
         )
     raise ValueError(f"Unsupported ASR normalizer label: {normalizer_label}")
 
@@ -520,6 +547,18 @@ def _validate_xnorm_profile_for_language(*, language: str, profile: str) -> None
         raise ValueError(f"Unsupported xnorm profile {profile!r}; supported: {supported}")
     if profile != language:
         raise ValueError(f"xnorm profile {profile!r} does not match ASR language {language!r}")
+
+
+def _validate_etc_profile_for_language(*, language: str, profile: str) -> None:
+    if profile not in ETC_SUPPORTED_PROFILES:
+        supported = ", ".join(sorted(ETC_SUPPORTED_PROFILES))
+        raise ValueError(
+            f"Unsupported etc_canonicalization profile {profile!r}; supported: {supported}"
+        )
+    if profile != language:
+        raise ValueError(
+            f"etc_canonicalization profile {profile!r} does not match ASR language {language!r}"
+        )
 
 
 def _cleanup_trace_temp_files(trace: tuple[PipelineNodeResult, ...]) -> None:

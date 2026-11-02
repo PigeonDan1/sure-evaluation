@@ -1,0 +1,20 @@
+id: normalization/etc_canonicalization
+group: normalization-extra
+runtime:
+  type: uv
+  python: "3.11"
+  project: pyproject.toml
+  frozen: false
+  optional: true
+  gpu: true
+packages:
+  - name: torch
+    version: "==2.10.0"
+  - name: transformers
+    version: "==5.14.1"
+  - name: accelerate
+    version: "==1.14.0"
+verify:
+  imports:
+    - torch
+    - transformers
