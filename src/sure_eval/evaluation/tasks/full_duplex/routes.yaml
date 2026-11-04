@@ -1,0 +1,47 @@
+task: FULL_DUPLEX
+language_sensitive: false
+routes:
+  - metric: ird
+    pipeline_id: full_duplex.any.ird.duplex_timeline_v1.fdbench_timing_v1
+    nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    computation_nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    input_contract: full_duplex_jsonl
+    protocol: fdbench_8a4b7df_compat
+    executor: sure_eval.evaluation.tasks.full_duplex.pipeline.evaluate_full_duplex_files
+  - metric: fsed
+    pipeline_id: full_duplex.any.fsed.duplex_timeline_v1.fdbench_timing_v1
+    nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    computation_nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    input_contract: full_duplex_jsonl
+    protocol: fdbench_8a4b7df_compat
+    executor: sure_eval.evaluation.tasks.full_duplex.pipeline.evaluate_full_duplex_files
+  - metric: ert
+    pipeline_id: full_duplex.any.ert.duplex_timeline_v1.fdbench_timing_v1
+    nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    computation_nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    input_contract: full_duplex_jsonl
+    protocol: fdbench_8a4b7df_compat
+    executor: sure_eval.evaluation.tasks.full_duplex.pipeline.evaluate_full_duplex_files
+  - metric: eit
+    pipeline_id: full_duplex.any.eit.duplex_timeline_v1.fdbench_timing_v1
+    nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    computation_nodes:
+      - normalization/duplex_timeline
+      - scoring/fdbench_timing
+    input_contract: full_duplex_jsonl
+    protocol: fdbench_8a4b7df_compat
+    executor: sure_eval.evaluation.tasks.full_duplex.pipeline.evaluate_full_duplex_files

@@ -30,6 +30,7 @@ DISCOVERY_TASKS = (
     "slu",
     "kws",
     "vad",
+    "full_duplex",
     "doa",
     "lid",
     "sv",

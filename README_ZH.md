@@ -199,6 +199,7 @@ node-local 虚拟环境只保留在本地，不会进入安装包或 Git。
 | SLU | Accuracy | [SLU](docs/tasks/slu.md) |
 | KWS | 固定 FA/hour 下逐词 recall、Macro recall（默认 0.1 次/小时）、触发延时，可选 ROC/AUC | [KWS](docs/tasks/kws.md) |
 | VAD | F1、false alarm、miss、NIST DCF、ROC AUC | [VAD](docs/tasks/vad.md) |
+| FULL_DUPLEX | 从已保存的对话时间轴计算 IRD、FSED、ERT、EIT | [全双工时序评估](docs/tasks/full_duplex.md) |
 | DOA | MAE、RMSE、阈值准确率、定位 precision/recall/F1 | [DOA](docs/tasks/doa.md) |
 | LID | 语种标签准确率 | [LID](docs/tasks/lid.md) |
 

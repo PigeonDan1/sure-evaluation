@@ -1,0 +1,9 @@
+id: normalization/duplex_timeline
+group: full-duplex-base
+runtime:
+  type: in_process
+  optional: false
+  gpu: false
+verify:
+  imports: []
+  files: []

@@ -1,0 +1,18 @@
+id: normalization/duplex_timeline
+version: v1
+stage: normalization
+language_sensitive: false
+input_schema: duplex_timeline_jsonl_pair
+output_schema: duplex_timeline_bundle
+implementation: sure_eval.evaluation.nodes.normalization.duplex_timeline.node
+internal_stages:
+  - exact_decimal_jsonl_parse
+  - schema_and_clock_validation
+  - channel_segment_validation
+  - exact_conversation_key_alignment
+notes:
+  - One row is one complete conversation; keys must match exactly across both files.
+  - Explicit seconds and conversation_start are required; decimal literals remain exact.
+  - Segment order is validated and preserved; cross-channel overlap is preserved.
+  - Missing predictions are errors; an explicit empty system_segments array represents silence.
+  - No clipping, sorting within channels, VAD, model calls, or model-specific preamble removal.

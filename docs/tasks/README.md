@@ -27,6 +27,7 @@ multi-metric bundles, see [Pipeline Catalog](../pipeline_catalog.md).
 - [Classification / SER / GR](./classification.md)
 - [KWS — Keyword Spotting](./kws.md)
 - [VAD — Voice Activity Detection](./vad.md)
+- [FULL_DUPLEX — Full-Duplex Dialogue Timing](./full_duplex.md)
 - [DOA — Direction of Arrival](./doa.md)
 - [LID — Spoken Language Identification](./lid.md)
 - [SLU — Spoken Language Understanding](./slu.md)

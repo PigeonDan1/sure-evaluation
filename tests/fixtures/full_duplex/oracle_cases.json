@@ -1,0 +1,2824 @@
+{
+  "schema_version": 1,
+  "provenance": {
+    "source_repository": "https://github.com/pengyizhou/FD-Bench",
+    "generated_on": "2026-11-04",
+    "source_commit": "8a4b7df1b4dcb0fc50a7a5660247a2ffe8d394eb",
+    "source_file": "benchmark/benchmarking.py",
+    "source_sha256_lf": "86a515a2c86fcd9ae89da9c96b2a4dd461b5d41a68dc752f5d3d719b114ee979",
+    "protocol": "fdbench_8a4b7df_compat",
+    "ticks_per_second": 16000,
+    "oracle": "Hash-locked cached source AST only; no upstream module or SURE imports.",
+    "raw_arrays_method": "analyze_VAD_interruption_new2",
+    "results_method": "analyze_VAD_marks interruption branch, pure prefix through Interruption Delays assignment; flatten_list and time_average",
+    "reference_settings": {
+      "model_name": "generic",
+      "strict": false,
+      "debug": false,
+      "preamble_deletion": false,
+      "counter_helpers": "no-op stubs"
+    },
+    "result_adapter": "score and samples_ms from upstream AST; sample_count=len(samples_ms), status=ok iff sample_count>0 else no_events",
+    "synthetic_inputs": true,
+    "case_count": 34
+  },
+  "cases": [
+    {
+      "id": "threshold_8001_ticks",
+      "coverage": "500 ms plus one tick is EIT",
+      "input": {
+        "schema_version": 1,
+        "key": "threshold_8001_ticks",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.4999375,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            8001
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 500.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              500
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "threshold_8000_ticks",
+      "coverage": "exact 500 ms is ERT",
+      "input": {
+        "schema_version": 1,
+        "key": "threshold_8000_ticks",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.5,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            8000
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 500.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              500
+            ]
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "threshold_7999_ticks",
+      "coverage": "500 ms minus one tick is ERT",
+      "input": {
+        "schema_version": 1,
+        "key": "threshold_7999_ticks",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.5000625,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            7999
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 499.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              499
+            ]
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "start_equals_user_start",
+      "coverage": "equal start is excluded",
+      "input": {
+        "schema_version": 1,
+        "key": "start_equals_user_start",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 1,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "start_equals_user_end",
+      "coverage": "equal end is excluded",
+      "input": {
+        "schema_version": 1,
+        "key": "start_equals_user_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 3,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "old_speech_ends_at_user_start",
+      "coverage": "old end equality does not establish interruption",
+      "input": {
+        "schema_version": 1,
+        "key": "old_speech_ends_at_user_start",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 1
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "nonlast_old_end_before_user_end",
+      "coverage": "nonfinal old stop inside user",
+      "input": {
+        "schema_version": 1,
+        "key": "nonlast_old_end_before_user_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 2.9999375
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            31999,
+            0
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 1999.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              1999
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "nonlast_old_end_at_user_end",
+      "coverage": "nonfinal old stop includes user end",
+      "input": {
+        "schema_version": 1,
+        "key": "nonlast_old_end_at_user_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 3
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            32000,
+            0
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 2000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              2000
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "nonlast_old_end_after_user_end",
+      "coverage": "source continue excludes old stop after nonfinal end",
+      "input": {
+        "schema_version": 1,
+        "key": "nonlast_old_end_after_user_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            0
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "last_old_end_after_user_end",
+      "coverage": "final old stop has no user-end upper bound",
+      "input": {
+        "schema_version": 1,
+        "key": "last_old_end_after_user_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            48000
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 3000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              3000
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "cross_user_segment_not_consumed",
+      "coverage": "one old system segment considered for both users",
+      "input": {
+        "schema_version": 1,
+        "key": "cross_user_segment_not_consumed",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 8
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            48000
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 3000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              3000
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "early_interruption_ird_duration",
+      "coverage": "IRD is system duration when early speech stops inside user",
+      "input": {
+        "schema_version": 1,
+        "key": "early_interruption_ird_duration",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2,
+            "end": 2.4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            6400
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            16000
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 400.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              400
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 1000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              1000
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "early_interruption_end_equals_user_end",
+      "coverage": "early speech end equality does not assign IRD duration",
+      "input": {
+        "schema_version": 1,
+        "key": "early_interruption_end_equals_user_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2,
+            "end": 3
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            16000
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 1000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              1000
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "early_interruption_end_after_user_end",
+      "coverage": "early speech end beyond user does not assign IRD duration",
+      "input": {
+        "schema_version": 1,
+        "key": "early_interruption_end_after_user_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            16000
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 1000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              1000
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "nonlast_interrupted_reply_ird_new_end",
+      "coverage": "IRD fallback uses new response end, not old end",
+      "input": {
+        "schema_version": 1,
+        "key": "nonlast_interrupted_reply_ird_new_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 8,
+            "end": 9
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 4
+          },
+          {
+            "id": "a2",
+            "start": 5,
+            "end": 6
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            80000,
+            0
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            32000,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 5000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              5000
+            ]
+          },
+          "fsed": {
+            "score": 2000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              2000
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "last_interrupted_reply_ird_old_end",
+      "coverage": "same old/new endpoints but final user keeps old-end IRD",
+      "input": {
+        "schema_version": 1,
+        "key": "last_interrupted_reply_ird_old_end",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 4
+          },
+          {
+            "id": "a2",
+            "start": 5,
+            "end": 6
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            48000
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            32000
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 3000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              3000
+            ]
+          },
+          "fsed": {
+            "score": 2000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              2000
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "ordinary_ert_overwrite",
+      "coverage": "later ordinary ERT overwrites earlier candidate",
+      "input": {
+        "schema_version": 1,
+        "key": "ordinary_ert_overwrite",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.6,
+            "end": 2.7
+          },
+          {
+            "id": "a2",
+            "start": 2.8,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            3200
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 200.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              200
+            ]
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "ordinary_fsed_first",
+      "coverage": "ordinary FSED keeps first later response",
+      "input": {
+        "schema_version": 1,
+        "key": "ordinary_fsed_first",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 3.1,
+            "end": 3.2
+          },
+          {
+            "id": "a2",
+            "start": 3.5,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            1600
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 100.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              100
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "multiple_eit_and_interrupted_ert",
+      "coverage": "EIT retains two values and uses separate interrupted ERT slot",
+      "input": {
+        "schema_version": 1,
+        "key": "multiple_eit_and_interrupted_ert",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 1.5,
+            "end": 1.7
+          },
+          {
+            "id": "a2",
+            "start": 2,
+            "end": 2.2
+          },
+          {
+            "id": "a3",
+            "start": 2.7,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            3200
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            4800
+          ],
+          "Lead Times Interrupt": [
+            [
+              24000,
+              16000
+            ]
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 200.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              200
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 300.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              300
+            ]
+          },
+          "eit": {
+            "score": 1250.0,
+            "sample_count": 2,
+            "status": "ok",
+            "samples_ms": [
+              1500,
+              1000
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "empty_system",
+      "coverage": "all raw slots remain zero with silent system",
+      "input": {
+        "schema_version": 1,
+        "key": "empty_system",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": []
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "one_tick_fsed",
+      "coverage": "positive one-tick FSED remains observed after conversion to zero ms",
+      "input": {
+        "schema_version": 1,
+        "key": "one_tick_fsed",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 3.0000625,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            1
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              0
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "half_millisecond_fsed_median",
+      "coverage": "truncate each raw delta before even median",
+      "input": {
+        "schema_version": 1,
+        "key": "half_millisecond_fsed_median",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 2
+          },
+          {
+            "id": "u2",
+            "start": 4,
+            "end": 5
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.1009375,
+            "end": 3
+          },
+          {
+            "id": "a2",
+            "start": 5.1010625,
+            "end": 6
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            0
+          ],
+          "Response Delay": [
+            1615,
+            1617
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 100.5,
+            "sample_count": 2,
+            "status": "ok",
+            "samples_ms": [
+              100,
+              101
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "nonlast_threshold_8000_ticks",
+      "coverage": "500 ms equality also selects ordinary ERT on nonfinal user",
+      "input": {
+        "schema_version": 1,
+        "key": "nonlast_threshold_8000_ticks",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.5,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            0
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            8000,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 500.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              500
+            ]
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "ordinary_and_interrupted_fsed",
+      "coverage": "FSED joins ordinary and interrupted response arrays",
+      "input": {
+        "schema_version": 1,
+        "key": "ordinary_and_interrupted_fsed",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 6,
+            "end": 8
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 3.1,
+            "end": 6.2
+          },
+          {
+            "id": "a2",
+            "start": 8.4,
+            "end": 9
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            3200
+          ],
+          "Response Delay": [
+            1600,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            6400
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 200.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              200
+            ]
+          },
+          "fsed": {
+            "score": 250.0,
+            "sample_count": 2,
+            "status": "ok",
+            "samples_ms": [
+              100,
+              400
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "ordinary_and_interrupted_ert",
+      "coverage": "ERT joins ordinary and interrupted lead arrays",
+      "input": {
+        "schema_version": 1,
+        "key": "ordinary_and_interrupted_ert",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 6,
+            "end": 8
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.75,
+            "end": 6.25
+          },
+          {
+            "id": "a2",
+            "start": 7.75,
+            "end": 9
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            4000
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            4000,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            4000
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 250.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              250
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 250.0,
+            "sample_count": 2,
+            "status": "ok",
+            "samples_ms": [
+              250,
+              250
+            ]
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "interrupted_then_ordinary_ert",
+      "coverage": "interrupted ERT clears context before later ordinary ERT",
+      "input": {
+        "schema_version": 1,
+        "key": "interrupted_then_ordinary_ert",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 1.5
+          },
+          {
+            "id": "a2",
+            "start": 2.6,
+            "end": 2.7
+          },
+          {
+            "id": "a3",
+            "start": 2.8,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            8000
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            3200
+          ],
+          "Lead Times to Interruption": [
+            6400
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 500.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              500
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 300.0,
+            "sample_count": 2,
+            "status": "ok",
+            "samples_ms": [
+              200,
+              400
+            ]
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "interrupted_then_ordinary_fsed",
+      "coverage": "interrupted FSED clears context; array order differs from chronology",
+      "input": {
+        "schema_version": 1,
+        "key": "interrupted_then_ordinary_fsed",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 1.5
+          },
+          {
+            "id": "a2",
+            "start": 3.1,
+            "end": 3.2
+          },
+          {
+            "id": "a3",
+            "start": 3.5,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            8000
+          ],
+          "Response Delay": [
+            8000
+          ],
+          "Response Delay to Interruption": [
+            1600
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 500.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              500
+            ]
+          },
+          "fsed": {
+            "score": 300.0,
+            "sample_count": 2,
+            "status": "ok",
+            "samples_ms": [
+              500,
+              100
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "start_equals_next_user_start",
+      "coverage": "next-user start is exclusive for prior response and current equality",
+      "input": {
+        "schema_version": 1,
+        "key": "start_equals_next_user_start",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 5,
+            "end": 8
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            0
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "start_one_tick_before_next_user",
+      "coverage": "prior response window includes one tick before next user",
+      "input": {
+        "schema_version": 1,
+        "key": "start_one_tick_before_next_user",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 4.9999375,
+            "end": 5.5
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            8000
+          ],
+          "Response Delay": [
+            31999,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 500.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              500
+            ]
+          },
+          "fsed": {
+            "score": 1999.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              1999
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "start_one_tick_after_next_user",
+      "coverage": "one tick after next user belongs to its early interruption branch",
+      "input": {
+        "schema_version": 1,
+        "key": "start_one_tick_after_next_user",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 5.0000625,
+            "end": 6
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0,
+            15999
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            31999
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 999.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              999
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 1999.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              1999
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "one_tick_ird",
+      "coverage": "positive one-tick IRD remains observed at zero ms",
+      "input": {
+        "schema_version": 1,
+        "key": "one_tick_ird",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 1.0000625
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            1
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              0
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "one_tick_ert",
+      "coverage": "positive one-tick ERT remains observed at zero ms",
+      "input": {
+        "schema_version": 1,
+        "key": "one_tick_ert",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 2.9999375,
+            "end": 4
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            0
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            1
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              0
+            ]
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    },
+    {
+      "id": "three_eit_candidates",
+      "coverage": "third EIT appends to nested slot; first IRD duration retained",
+      "input": {
+        "schema_version": 1,
+        "key": "three_eit_candidates",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 1.2,
+            "end": 1.3
+          },
+          {
+            "id": "a2",
+            "start": 1.5,
+            "end": 1.6
+          },
+          {
+            "id": "a3",
+            "start": 2,
+            "end": 2.1
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            1600
+          ],
+          "Response Delay": [
+            0
+          ],
+          "Response Delay to Interruption": [
+            0
+          ],
+          "Lead Times": [
+            0
+          ],
+          "Lead Times to Interruption": [
+            0
+          ],
+          "Lead Times Interrupt": [
+            [
+              28800,
+              24000,
+              16000
+            ]
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 100.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              100
+            ]
+          },
+          "fsed": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 1500.0,
+            "sample_count": 3,
+            "status": "ok",
+            "samples_ms": [
+              1800,
+              1500,
+              1000
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "half_millisecond_ird_median",
+      "coverage": "even IRD median can end in half a millisecond",
+      "input": {
+        "schema_version": 1,
+        "key": "half_millisecond_ird_median",
+        "time_unit": "seconds",
+        "time_origin": "conversation_start",
+        "duration": 20,
+        "user_segments": [
+          {
+            "id": "u1",
+            "start": 1,
+            "end": 3
+          },
+          {
+            "id": "u2",
+            "start": 5,
+            "end": 7
+          }
+        ],
+        "system_segments": [
+          {
+            "id": "a1",
+            "start": 0,
+            "end": 1.1009375
+          },
+          {
+            "id": "a2",
+            "start": 4,
+            "end": 5.1010625
+          }
+        ]
+      },
+      "expected": {
+        "raw_slots_ticks": {
+          "Interrupt Delay": [
+            1615,
+            1617
+          ],
+          "Response Delay": [
+            0,
+            0
+          ],
+          "Response Delay to Interruption": [
+            16000,
+            0
+          ],
+          "Lead Times": [
+            0,
+            0
+          ],
+          "Lead Times to Interruption": [
+            0,
+            0
+          ],
+          "Lead Times Interrupt": [
+            0,
+            0
+          ]
+        },
+        "results": {
+          "ird": {
+            "score": 100.5,
+            "sample_count": 2,
+            "status": "ok",
+            "samples_ms": [
+              100,
+              101
+            ]
+          },
+          "fsed": {
+            "score": 1000.0,
+            "sample_count": 1,
+            "status": "ok",
+            "samples_ms": [
+              1000
+            ]
+          },
+          "ert": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          },
+          "eit": {
+            "score": 0.0,
+            "sample_count": 0,
+            "status": "no_events",
+            "samples_ms": []
+          }
+        }
+      }
+    }
+  ]
+}
