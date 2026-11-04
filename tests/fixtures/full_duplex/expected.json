@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "protocol": "fdbench_8a4b7df_compat",
+  "aggregation": "pooled_event_median_ms",
+  "per_conversation": {
+    "case-A": {"ird": [250], "fsed": [400], "ert": [250], "eit": []},
+    "case-B": {"ird": [400], "fsed": [], "ert": [], "eit": [1000]},
+    "case-C": {"ird": [], "fsed": [], "ert": [500], "eit": []},
+    "case-D": {"ird": [], "fsed": [], "ert": [], "eit": [500]},
+    "case-E-start": {"ird": [], "fsed": [], "ert": [], "eit": []},
+    "case-E-end": {"ird": [], "fsed": [], "ert": [], "eit": []},
+    "case-F": {"ird": [5000], "fsed": [2000], "ert": [], "eit": []},
+    "case-G": {"ird": [3000], "fsed": [2000], "ert": [], "eit": []},
+    "case-H": {"ird": [], "fsed": [], "ert": [200], "eit": []},
+    "case-I": {"ird": [], "fsed": [], "ert": [], "eit": []},
+    "case-J": {"ird": [], "fsed": [0], "ert": [], "eit": []}
+  },
+  "pooled": {
+    "ird": {"samples_ms": [250, 400, 5000, 3000], "score": 1700.0, "unit": "ms", "sample_count": 4, "status": "ok"},
+    "fsed": {"samples_ms": [400, 2000, 2000, 0], "score": 1200.0, "unit": "ms", "sample_count": 4, "status": "ok"},
+    "ert": {"samples_ms": [250, 500, 200], "score": 250.0, "unit": "ms", "sample_count": 3, "status": "ok"},
+    "eit": {"samples_ms": [1000, 500], "score": 750.0, "unit": "ms", "sample_count": 2, "status": "ok"}
+  }
+}

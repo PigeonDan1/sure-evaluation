@@ -1,0 +1,22 @@
+id: scoring/fdbench_timing
+version: v1
+stage: scoring
+language_sensitive: false
+input_schema: duplex_timeline_bundle
+output_schema: fdbench_timing_report
+implementation: sure_eval.evaluation.nodes.scoring.fdbench_timing.node
+metrics: [ird, fsed, ert, eit]
+notes:
+  - Fixed fdbench_8a4b7df_compat protocol; exact integer 16k tick endpoints required.
+  - Scores are pooled event medians in ms after positive tick filtering and integer ms truncation.
+  - Empty event pools retain score 0.0 with sample_count 0 and status no_events.
+  - Ordered source branches include special IRD endpoints and ordinary ERT overwrites.
+  - No model-brand inference, preamble deletion, audio detection, or external API calls.
+internal_stages:
+  - exact_tick_conversion
+  - protocol_event_traversal
+  - candidate_slot_selection
+  - positive_tick_filtering
+  - integer_millisecond_conversion
+  - pooled_event_median
+  - event_ledger_diagnostics

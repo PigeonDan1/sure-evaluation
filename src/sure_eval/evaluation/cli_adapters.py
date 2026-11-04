@@ -178,10 +178,15 @@ def list_metric_routes(
         suffix = f" ({', '.join(filters)})" if filters else ""
         raise ValueError(f"No configured routes found for task {task!r}{suffix}")
 
+    # Full-duplex chooses one primary metric for the task. Keep that task-level
+    # default visible even when discovery is filtered to another timing metric.
+    task_default_pipeline_id = (
+        str(build_pipeline_spec(task)["pipeline_id"]) if route_task == "full_duplex" else None
+    )
     entries: list[dict[str, Any]] = []
     for route, pipeline_id in matched:
         spec = build_pipeline_spec(task, pipeline_id=pipeline_id)
-        default_pipeline_id = _default_pipeline_id(
+        default_pipeline_id = task_default_pipeline_id or _default_pipeline_id(
             task,
             language=str(spec.get("language") or "n/a"),
             metric=str(spec["metric"]),
@@ -193,6 +198,7 @@ def list_metric_routes(
                 "pipeline_id": pipeline_id,
                 "language": spec["language"],
                 "metric": spec["metric"],
+                "execution_metrics": list(spec["metrics"]),
                 "computation_node_ids": list(spec["computation_node_ids"]),
                 "required_roles": list(spec["required_roles"]),
                 "optional_roles": list(spec["optional_roles"]),
@@ -206,7 +212,11 @@ def list_metric_routes(
             }
         )
 
-    default_ids = [entry["pipeline_id"] for entry in entries if entry["default"]]
+    default_ids = (
+        [task_default_pipeline_id]
+        if task_default_pipeline_id
+        else [entry["pipeline_id"] for entry in entries if entry["default"]]
+    )
     return {
         "schema": ROUTE_LIST_SCHEMA,
         "task": requested_task,
@@ -458,7 +468,7 @@ def run_pipeline_spec(
         kwargs.pop("samples_jsonl", None)
     report = run_task(task, **kwargs)
     output_path = Path(output_dir)
-    return {
+    summary = {
         "status": "ok",
         "task": report.task,
         "metric": report.metric,
@@ -470,6 +480,31 @@ def run_pipeline_spec(
         "environment_note": ENVIRONMENT_NOTE,
         "node_config_paths": _node_config_paths(pipeline),
     }
+    if task == "full_duplex":
+        selected_result = report.details["results"][report.metric]
+        sample_count = selected_result["sample_count"]
+        protocol_status = report.details.get("measurement_protocol", {}).get("status", "missing")
+        warnings = []
+        if sample_count == 0:
+            warnings.append(
+                "No selected timing events were observed. The score 0.0 is the compatibility "
+                "empty-pool value, not a measured 0 ms delay."
+            )
+        if protocol_status != "recorded":
+            warnings.append(
+                f"Measurement protocol provenance is {protocol_status}; timing scores may not "
+                "be comparable across recordings. See report.details.measurement_protocol."
+            )
+        summary.update(
+            sample_count=sample_count,
+            status="ok" if sample_count > 0 else "no_events",
+            score_is_measured=sample_count > 0,
+            measurement_protocol_status=protocol_status,
+            warnings=warnings,
+        )
+        if warnings:
+            summary["warning"] = " ".join(warnings)
+    return summary
 
 
 def validate_pipeline_selection(pipeline: dict[str, Any]) -> None:
@@ -544,6 +579,11 @@ def _describe_kwargs(
         return kwargs
     if task == "vad":
         kwargs = {"metric": metric or "f1"}
+        if pipeline_id:
+            kwargs["pipeline_id"] = pipeline_id
+        return kwargs
+    if task == "full_duplex":
+        kwargs = {"metric": metric or "ird"}
         if pipeline_id:
             kwargs["pipeline_id"] = pipeline_id
         return kwargs

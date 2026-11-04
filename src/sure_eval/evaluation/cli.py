@@ -152,10 +152,10 @@ def run_metric_pipeline(
         None, "--label-spec", help="Classification label spec path or id"
     ),
     reference_jsonl: Optional[str] = typer.Option(
-        None, "--reference-jsonl", help="KWS/VAD/DOA reference JSONL"
+        None, "--reference-jsonl", help="KWS/VAD/DOA/full-duplex reference JSONL"
     ),
     sample_output: Optional[str] = typer.Option(
-        None, "--sample-output", help="KWS/VAD/SV/DOA model output JSONL"
+        None, "--sample-output", help="KWS/VAD/SV/DOA/full-duplex model output JSONL"
     ),
     dimension: Optional[str] = typer.Option(
         None, "--dimension", help="Canonical DOA dimension: 2d or 3d"
@@ -271,10 +271,16 @@ def run_metric_pipeline(
     table.add_row("task", summary["task"])
     table.add_row("metric", summary["metric"])
     table.add_row("score", _format_score(summary["score"]))
+    if summary["task"] == "FULL_DUPLEX":
+        for field in ("sample_count", "score_is_measured", "measurement_protocol_status"):
+            table.add_row(field, str(summary[field]))
     table.add_row("pipeline_id", summary["pipeline_id"])
     table.add_row("report", summary["report_path"])
     table.add_row("pipeline_description", summary["pipeline_description_path"])
     console.print(table)
+    if summary["task"] == "FULL_DUPLEX":
+        for warning in summary.get("warnings", []):
+            console.print("Warning:", warning, style="yellow", markup=False)
 
 
 def _print_error(exc: Exception, *, json_output: bool) -> None:

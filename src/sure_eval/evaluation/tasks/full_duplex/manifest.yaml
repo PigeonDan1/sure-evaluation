@@ -1,0 +1,49 @@
+id: task/full_duplex
+version: v1
+task: FULL_DUPLEX
+default_metric: ird
+language_sensitive: false
+routes:
+  ird:
+    pipeline_id: full_duplex.any.ird.duplex_timeline_v1.fdbench_timing_v1
+    normalization: normalization/duplex_timeline
+    scoring: scoring/fdbench_timing
+  fsed:
+    pipeline_id: full_duplex.any.fsed.duplex_timeline_v1.fdbench_timing_v1
+    normalization: normalization/duplex_timeline
+    scoring: scoring/fdbench_timing
+  ert:
+    pipeline_id: full_duplex.any.ert.duplex_timeline_v1.fdbench_timing_v1
+    normalization: normalization/duplex_timeline
+    scoring: scoring/fdbench_timing
+  eit:
+    pipeline_id: full_duplex.any.eit.duplex_timeline_v1.fdbench_timing_v1
+    normalization: normalization/duplex_timeline
+    scoring: scoring/fdbench_timing
+input_contracts:
+  full_duplex_jsonl:
+    metric_id: task/full_duplex_jsonl
+    required_roles:
+      - reference_jsonl
+      - sample_output
+    optional_roles: []
+    row_format: duplex_timeline_jsonl
+    alignment_key: key
+    aggregation: pooled_event_median_ms
+    purpose: full_duplex_conversation_timing
+metrics:
+  - ird
+  - fsed
+  - ert
+  - eit
+reported_fields:
+  - results
+  - evaluation_config
+  - input_sha256
+  - per_conversation
+  - events
+  - measurement_protocol
+  - input_contract
+  - input_files
+compatibility:
+  legacy_entry: []

@@ -1,0 +1,9 @@
+id: scoring/fdbench_timing
+group: full-duplex-base
+runtime:
+  type: in_process
+  optional: false
+  gpu: false
+verify:
+  imports: []
+  files: []

@@ -1,0 +1,11 @@
+{"schema_version":1,"key":"case-A","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0},{"id":"u2","start":6.0,"end":8.0}]}
+{"schema_version":1,"key":"case-B","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-C","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-D","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-E-start","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-E-end","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-F","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0},{"id":"u2","start":8.0,"end":9.0}]}
+{"schema_version":1,"key":"case-G","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-H","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-I","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
+{"schema_version":1,"key":"case-J","time_unit":"seconds","time_origin":"conversation_start","duration":10.0,"user_segments":[{"id":"u1","start":1.0,"end":3.0}]}
