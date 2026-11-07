@@ -1,0 +1,10 @@
+[project]
+name = "sure-eval-scoring-llm-judge"
+version = "0.1.0"
+description = "API-based spoken-language-understanding textual answer judge"
+requires-python = ">=3.10"
+
+dependencies = []
+
+[tool.uv]
+package = false

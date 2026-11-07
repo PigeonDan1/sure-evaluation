@@ -1,0 +1,11 @@
+id: scoring/llm_judge
+group: text-judge
+runtime:
+  type: pip
+  optional: true
+  gpu: false
+verify:
+  imports:
+    - json
+    - urllib.request
+  files: []
